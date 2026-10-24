@@ -13,10 +13,12 @@ import re
 import urllib.parse
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
+from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv("/home/arjun/tenderbee/.env")
-load_dotenv(os.path.expanduser("~/.env"))
+_repo_root = Path(__file__).resolve().parent.parent.parent
+load_dotenv(_repo_root / ".env")
+load_dotenv()
 
 try:
     from tinyfish import TinyFish

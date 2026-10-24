@@ -13,10 +13,12 @@ import time
 import urllib.error
 import urllib.request
 from typing import Any, Dict, Optional
+from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv("/home/arjun/tenderbee/.env")
-load_dotenv(os.path.expanduser("~/.env"))
+_repo_root = Path(__file__).resolve().parent.parent.parent
+load_dotenv(_repo_root / ".env")
+load_dotenv()
 
 from tinyfish import TinyFish
 from backend.engine.schema import TenderPDFExtractionResult

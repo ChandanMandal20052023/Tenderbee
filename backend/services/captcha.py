@@ -8,11 +8,13 @@ import logging
 import os
 import re
 from typing import Optional
+from pathlib import Path
 from dotenv import load_dotenv
 import httpx
 
-load_dotenv("/home/arjun/tenderbee/.env")
-load_dotenv(os.path.expanduser("~/.env"))
+_repo_root = Path(__file__).resolve().parent.parent.parent
+load_dotenv(_repo_root / ".env")
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
