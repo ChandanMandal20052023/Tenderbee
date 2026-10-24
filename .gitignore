@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.env
+.venv/
+env/
+venv/
+bee/
+
+# Node
+node_modules/
+.next/
+out/
+build/
+dist/
+
+# Database & Environment
+.env
+.env.*
+!.env.example
+*.sqlite3
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

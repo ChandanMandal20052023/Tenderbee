@@ -1,0 +1,1 @@
+# Tenders app configuration
