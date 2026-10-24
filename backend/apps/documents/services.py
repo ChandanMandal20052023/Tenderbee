@@ -25,17 +25,17 @@ from backend.services.llm import (
     UdyamCertificateExtraction,
 )
 
-from backend.services.r2_storage import CloudflareR2Storage
+from backend.services.r2_storage import CloudflareR2Storage, get_object_storage
 
 logger = logging.getLogger(__name__)
 
 
 class DocumentPipelineService:
-    def __init__(self, media_root: Optional[Path] = None, r2_storage: Optional[CloudflareR2Storage] = None):
+    def __init__(self, media_root: Optional[Path] = None, r2_storage: Optional[Any] = None):
         self.media_root = media_root or Path(settings.MEDIA_ROOT)
         self.docs_dir = self.media_root / "documents"
         self.docs_dir.mkdir(parents=True, exist_ok=True)
-        self.r2_storage = r2_storage or CloudflareR2Storage()
+        self.r2_storage = r2_storage or get_object_storage()
 
     def process_document(
         self,

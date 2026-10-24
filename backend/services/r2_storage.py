@@ -37,24 +37,29 @@ class CloudflareR2Storage:
 
         self.endpoint_url = (
             endpoint_url
+            or os.getenv("B2_ENDPOINT_URL")
             or os.getenv("R2_ENDPOINT_URL")
             or os.getenv("S3_ENDPOINT_URL")
             or default_endpoint
         )
         self.access_key_id = (
             access_key_id
+            or os.getenv("B2_APPLICATION_KEY_ID")
+            or os.getenv("B2_KEY_ID")
             or os.getenv("R2_ACCESS_KEY_ID")
             or os.getenv("S3_ACCESS_KEY_ID")
             or os.getenv("AWS_ACCESS_KEY_ID")
         )
         self.secret_access_key = (
             secret_access_key
+            or os.getenv("B2_APPLICATION_KEY")
             or os.getenv("R2_SECRET_ACCESS_KEY")
             or os.getenv("S3_SECRET_ACCESS_KEY")
             or os.getenv("AWS_SECRET_ACCESS_KEY")
         )
         self.bucket_name = (
             bucket_name
+            or os.getenv("B2_BUCKET_NAME")
             or os.getenv("R2_BUCKET_NAME")
             or os.getenv("S3_BUCKET_NAME")
             or os.getenv("AWS_STORAGE_BUCKET_NAME")
@@ -199,3 +204,15 @@ class CloudflareR2Storage:
 
         local_path = Path(settings.MEDIA_ROOT) / key
         return local_path.exists()
+
+
+def get_object_storage():
+    """
+    Factory resolving the active object storage service based on STORAGE_BACKEND or env.
+    Supports Backblaze B2, Cloudflare R2, and S3-compatible backends.
+    """
+    backend = os.getenv("STORAGE_BACKEND", "").lower()
+    if backend == "b2" or os.getenv("B2_APPLICATION_KEY_ID") or os.getenv("B2_KEY_ID"):
+        from backend.services.b2_storage import BackblazeB2Storage
+        return BackblazeB2Storage()
+    return CloudflareR2Storage()
