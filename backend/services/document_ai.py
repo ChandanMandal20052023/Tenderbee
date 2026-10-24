@@ -47,11 +47,17 @@ class DocumentAISafeExtractor:
             ocr_confidence: Optional[float] = None
             ocr_used = len(text) < 40
             if ocr_used:
-                text, ocr_confidence = DocumentAISafeExtractor._ocr_page(
-                    pdf_bytes,
-                    index - 1,
-                    ocr_language,
-                )
+                try:
+                    ocr_text, ocr_conf = DocumentAISafeExtractor._ocr_page(
+                        pdf_bytes,
+                        index - 1,
+                        ocr_language,
+                    )
+                    if ocr_text:
+                        text = ocr_text
+                    ocr_confidence = ocr_conf
+                except (ModuleNotFoundError, Exception):
+                    pass
             page_assessment = assess_page({
                 "page": index,
                 "text": text,
