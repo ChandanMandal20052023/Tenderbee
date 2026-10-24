@@ -1,6 +1,6 @@
 # TenderBee
     
-![Uploading Screenshot_2026-10-24_162111-removebg-preview.png…]()
+ <img width="676" height="369" alt="Screenshot_2026-10-24_162111-removebg-preview" src="https://github.com/user-attachments/assets/af4b6255-5986-4b82-bc85-8a8d20e68a76" />
 
 > **"AI extracts. Deterministic rules decide. Official sources confirm."**
 
