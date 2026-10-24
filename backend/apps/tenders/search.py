@@ -262,3 +262,17 @@ class TenderSearchService:
         res = self.search(parsed_filters)
         res["interpreted_prompt"] = prompt
         return res
+
+    def get_tender(self, identifier: str) -> Optional[Dict[str, Any]]:
+        """
+        Retrieves complete tender details by tender_id or external tender_number,
+        including its extraction and OpenAPI-compliant JSON schema.
+        """
+        from backend.engine.schema import TenderPDFExtractionResult
+        tender = self.storage.get_tender(identifier)
+        if not tender:
+            return None
+
+        tender["json_schema"] = TenderPDFExtractionResult.get_json_schema()
+        return tender
+

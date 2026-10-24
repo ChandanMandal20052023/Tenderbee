@@ -374,3 +374,56 @@ class TenderStorage:
                 })
 
         return results
+
+    def get_tender(self, identifier: str) -> Optional[Dict[str, Any]]:
+        """
+        Retrieves a tender by its tender_id or external tender_number,
+        including its extraction snapshot and content hash if available.
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT * FROM tenders
+                WHERE tender_id = ? OR external_id = ?
+                LIMIT 1
+            """, (identifier, identifier))
+            row = cursor.fetchone()
+            if not row:
+                return None
+
+            tender_dict = {
+                "tender_id": row["tender_id"],
+                "tender_number": row["external_id"],
+                "title": row["title"],
+                "buyer_name": row["buyer_name"],
+                "state": row["state"] or "All India",
+                "category": row["category"] or "Services",
+                "estimated_value_inr": row["estimated_value_inr"],
+                "emd_amount_inr": row["emd_amount_inr"],
+                "tenure_months": row["tenure_months"],
+                "submission_deadline": row["submission_deadline"],
+                "portal": row["portal"] or "Government Portal",
+                "source_url": row["source_url"],
+                "status": "ACTIVE",
+            }
+
+            cursor.execute("""
+                SELECT extracted_json_path, content_hash, fetched_at FROM tender_snapshots
+                WHERE tender_id = ?
+                ORDER BY fetched_at DESC LIMIT 1
+            """, (row["tender_id"],))
+            snap_row = cursor.fetchone()
+            if snap_row:
+                extracted_path = Path(snap_row["extracted_json_path"])
+                if extracted_path.exists():
+                    try:
+                        with open(extracted_path, "r", encoding="utf-8") as f:
+                            tender_dict["extraction"] = json.load(f)
+                    except Exception:
+                        pass
+                tender_dict["content_hash"] = snap_row["content_hash"]
+                tender_dict["fetched_at"] = snap_row["fetched_at"]
+
+            return tender_dict
+
