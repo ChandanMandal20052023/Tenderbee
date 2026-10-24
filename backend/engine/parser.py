@@ -173,7 +173,7 @@ class TenderPDFExtractor:
         Values are only applied if their quote is verified to physically exist on the cited page.
         """
         adapter = self.llm_adapter
-        if adapter is None and os.getenv("GEMINI_API_KEY"):
+        if adapter is None and (os.getenv("GEMINI_API_KEY") or os.getenv("LLM_API_KEY")):
             try:
                 from backend.services.llm import LLMAdapter
                 adapter = LLMAdapter()

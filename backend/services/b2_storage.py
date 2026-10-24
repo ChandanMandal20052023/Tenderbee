@@ -38,7 +38,7 @@ class BackblazeB2Storage:
             or os.getenv("B2_ENDPOINT_URL")
             or os.getenv("S3_ENDPOINT_URL")
             or ""
-        )
+        ).strip()
         if raw_endpoint and not raw_endpoint.startswith("http"):
             raw_endpoint = f"https://{raw_endpoint}"
         self.endpoint_url = raw_endpoint
@@ -51,14 +51,14 @@ class BackblazeB2Storage:
             or os.getenv("S3_ACCESS_KEY_ID")
             or os.getenv("AWS_ACCESS_KEY_ID")
             or ""
-        )
+        ).strip()
         self.secret_access_key = (
             application_key
             or os.getenv("B2_APPLICATION_KEY")
             or os.getenv("S3_SECRET_ACCESS_KEY")
             or os.getenv("AWS_SECRET_ACCESS_KEY")
             or ""
-        )
+        ).strip()
 
         # 3. Bucket Name
         self.bucket_name = (
@@ -67,11 +67,12 @@ class BackblazeB2Storage:
             or os.getenv("S3_BUCKET_NAME")
             or os.getenv("AWS_STORAGE_BUCKET_NAME")
             or "tenderbee"
-        )
+        ).strip()
 
         # 4. Region (auto-inferred from endpoint URL if not provided)
-        if region_name or os.getenv("B2_REGION"):
-            self.region_name = region_name or os.getenv("B2_REGION")
+        raw_region = (region_name or os.getenv("B2_REGION") or "").strip()
+        if raw_region:
+            self.region_name = raw_region
         else:
             match = re.search(r"s3\.([a-z0-9\-]+)\.backblazeb2\.com", self.endpoint_url)
             self.region_name = match.group(1) if match else "us-west-004"
@@ -101,6 +102,12 @@ class BackblazeB2Storage:
                 self.is_configured = False
         else:
             logger.info("Backblaze B2 credentials not fully set. Operating in local filesystem storage mode.")
+
+    def _get_media_root(self) -> Path:
+        try:
+            return Path(settings.MEDIA_ROOT)
+        except Exception:
+            return Path(__file__).resolve().parent.parent.parent / "data" / "media"
 
     def upload_bytes(
         self,
@@ -137,7 +144,7 @@ class BackblazeB2Storage:
                 logger.error("Failed to upload to Backblaze B2 (%s): %s. Falling back to local disk.", key, e)
 
         # Local fallback
-        local_path = Path(settings.MEDIA_ROOT) / key
+        local_path = self._get_media_root() / key
         local_path.parent.mkdir(parents=True, exist_ok=True)
         with open(local_path, "wb") as f:
             f.write(data)
@@ -179,7 +186,7 @@ class BackblazeB2Storage:
                 logger.error("Error downloading from Backblaze B2: %s", e)
 
         # Check local disk
-        local_path = Path(settings.MEDIA_ROOT) / key
+        local_path = self._get_media_root() / key
         if local_path.exists():
             with open(local_path, "rb") as f:
                 return f.read()
@@ -212,5 +219,5 @@ class BackblazeB2Storage:
             except ClientError:
                 pass
 
-        local_path = Path(settings.MEDIA_ROOT) / key
+        local_path = self._get_media_root() / key
         return local_path.exists()
