@@ -4,23 +4,23 @@ export default function TelemetryFeed() {
   const telemetryItems = [
     {
       title: "ICAI UDIN VERIFIED",
-      time: "14:02:11 IST",
-      description: "UDIN 23491823BK checked against MCA & ICAI registry. CA firm credentials validated.",
+      time: "14:02 IST",
+      description: "UDIN 23491823BK checked against MCA & ICAI registry.",
     },
     {
       title: "SHA-256 HASH COMPLIANT",
-      time: "13:58:44 IST",
-      description: "Doc integrity: e7f90c8...3b92 matches vault master record.",
+      time: "13:58 IST",
+      description: "Integrity: e7f90c8...3b92 matches vault record.",
     },
     {
       title: "CBDT PAN MATCHED",
-      time: "13:42:09 IST",
-      description: "PAN AAACF9182K matched to ABC Facility Services LLP. No debarment tags found on GeM blacklist.",
+      time: "13:42 IST",
+      description: "PAN AAACF9182K verified. Zero debarment records on GeM.",
     },
     {
       title: "PORTAL SYNC HEARTBEAT",
-      time: "13:30:00 IST",
-      description: "CPPP XML Feed endpoint parsed: 124 new NIT notices analyzed for scope match.",
+      time: "13:30 IST",
+      description: "CPPP & GeM feeds parsed (124 notices checked).",
     },
   ];
 
@@ -42,7 +42,7 @@ export default function TelemetryFeed() {
         {telemetryItems.map((item, idx) => (
           <div
             key={idx}
-            className="p-3 rounded-xl bg-surface-container-low border border-outline-variant/20 flex flex-col gap-1 hover:bg-surface-container transition-colors"
+            className="p-3 rounded-xl bg-surface-container-low border border-outline-variant/20 flex flex-col gap-0.5 hover:bg-surface-container transition-colors"
           >
             <div className="flex items-center justify-between text-on-surface-variant">
               <span className="text-secondary font-bold text-[10px] tracking-wide">{item.title}</span>
@@ -56,7 +56,7 @@ export default function TelemetryFeed() {
       {/* Security Protocol Footer */}
       <div className="pt-2 text-center border-t border-outline-variant/20">
         <span className="text-[9px] uppercase tracking-widest text-on-surface-variant font-semibold">
-          Encrypted with 2048-bit Class 3 DSC Protocol
+          2048-bit Class 3 DSC Encrypted
         </span>
       </div>
     </div>

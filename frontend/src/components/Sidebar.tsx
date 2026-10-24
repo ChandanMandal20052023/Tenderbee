@@ -34,13 +34,13 @@ export default function Sidebar({ activeTab, activeRoute }: SidebarProps) {
       <div className="flex flex-col gap-6">
         {/* Brand Logo & Intelligence Tagline with Official logo.png */}
         <Link href="/" className="flex items-center gap-3 px-2 group">
-          <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-xs">
+          <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-xs border border-outline-variant/30 bg-surface-container-low">
             <Image
               src="/logo.png"
               alt="TenderBee"
               width={40}
               height={40}
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain scale-[1.3]"
               priority
             />
           </div>
@@ -91,25 +91,25 @@ export default function Sidebar({ activeTab, activeRoute }: SidebarProps) {
 
       {/* Bottom Sync Information Card */}
       <div className="flex flex-col gap-3 px-1">
-        <div className="p-3.5 rounded-xl bg-surface-container-lowest shadow-[0_12px_32px_-4px_rgba(59,0,102,0.08)] border border-outline-variant/30 flex flex-col gap-1.5">
+        <div className="p-3 rounded-xl bg-surface-container-lowest shadow-[0_12px_32px_-4px_rgba(59,0,102,0.08)] border border-outline-variant/30 flex flex-col gap-1.5">
           <div className="flex items-center gap-2 text-secondary">
             <span className="material-symbols-outlined text-lg">hub</span>
-            <span className="text-[11px] uppercase tracking-wider font-bold text-secondary">
+            <span className="text-[10px] uppercase tracking-wider font-bold text-secondary">
               Portal Sync
             </span>
           </div>
           <p className="text-xs text-on-surface-variant leading-snug">
-            CPPP eProcurement &amp; GeM nodes verified 4m ago.
+            CPPP &amp; GeM nodes synced 4m ago.
           </p>
-          <div className="flex items-center justify-between pt-1">
-            <span className="text-[11px] font-medium text-on-surface-variant">Status: Green</span>
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm" />
+          <div className="flex items-center justify-between pt-0.5">
+            <span className="text-[11px] font-medium text-on-surface-variant">Active</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-sm" />
           </div>
         </div>
 
-        <div className="text-center py-1">
+        <div className="text-center py-0.5">
           <span className="text-[10px] tracking-wider uppercase font-semibold text-outline">
-            Institutional Enterprise Tier
+            Enterprise Tier
           </span>
         </div>
       </div>

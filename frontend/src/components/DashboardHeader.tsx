@@ -20,8 +20,8 @@ export default function DashboardHeader() {
             <span className="material-symbols-outlined text-2xl">menu</span>
           </button>
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center">
-              <Image src="/logo.png" alt="TenderBee" width={32} height={32} className="w-full h-full object-contain" priority />
+            <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center border border-outline-variant/30 bg-surface-container-low shadow-xs">
+              <Image src="/logo.png" alt="TenderBee" width={32} height={32} className="w-full h-full object-contain scale-[1.3]" priority />
             </div>
             <span className="font-serif text-xl font-bold text-primary">TenderBee</span>
           </Link>
@@ -35,7 +35,7 @@ export default function DashboardHeader() {
             </span>
             <input
               className="w-full pl-10 pr-4 py-2 bg-surface-container-low rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:bg-surface-container-lowest focus:ring-1 focus:ring-secondary/30 transition-all border border-outline-variant/20"
-              placeholder="Search tenders, NIT IDs, corrigenda, or vault docs (⌘K)..."
+              placeholder="Search tenders, NITs, docs (⌘K)..."
               type="text"
             />
           </div>
@@ -70,10 +70,10 @@ export default function DashboardHeader() {
           <Link href="/settings" className="flex items-center gap-2.5 pl-1 group cursor-pointer">
             <div className="flex flex-col text-right hidden sm:flex">
               <span className="text-xs font-semibold text-on-surface group-hover:text-primary transition-colors leading-tight">
-                Govind K. CISO
+                Govind K.
               </span>
               <span className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">
-                Chief Bidding Officer
+                CISO • Lead Bidder
               </span>
             </div>
             {/* User Avatar */}

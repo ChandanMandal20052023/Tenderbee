@@ -12,13 +12,13 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
         {/* Brand Logo with Official public/logo.png */}
         <Link href="/" aria-label="TenderBee Home" className="flex items-center gap-3 group">
-          <div className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-xs">
+          <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-xs border border-outline-variant/30 bg-surface-container-low">
             <Image
               src="/logo.png"
               alt="TenderBee Logo"
-              width={36}
-              height={36}
-              className="w-full h-full object-contain"
+              width={40}
+              height={40}
+              className="w-full h-full object-contain scale-[1.3]"
               priority
             />
           </div>

@@ -31,12 +31,12 @@ export default function MetricCards() {
     <section ref={containerRef} className="px-4 sm:px-8 xl:px-12 pb-8">
       <div ref={gridRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* 1. Overall Bid Readiness Index */}
-        <div className="relative bg-surface-container-lowest rounded-2xl p-6 shadow-[0_12px_32px_-4px_rgba(59,0,102,0.05)] border border-outline-variant/30 flex flex-col justify-between min-h-[250px] overflow-hidden group">
+        <div className="relative bg-surface-container-lowest rounded-2xl p-6 shadow-[0_12px_32px_-4px_rgba(59,0,102,0.05)] border border-outline-variant/30 flex flex-col justify-between min-h-[240px] overflow-hidden group">
           <div className="absolute -top-12 -right-12 w-32 h-32 bg-secondary-fixed/40 rounded-full blur-2xl group-hover:scale-125 transition-transform" />
           <div className="flex items-start justify-between relative z-10">
             <div>
               <span className="text-[10px] text-on-surface-variant uppercase tracking-wider block font-semibold">
-                Autonomous Health
+                Readiness
               </span>
               <span className="font-serif text-xl font-bold text-primary">Readiness Index</span>
             </div>
@@ -76,24 +76,22 @@ export default function MetricCards() {
                 <span className="material-symbols-outlined text-sm">trending_up</span>
                 <span>+16 pts this week</span>
               </div>
-              <p className="text-xs text-on-surface-variant mt-1 leading-snug">
-                Top percentile among Facility Class 1 MSE suppliers.
-              </p>
+              <span className="text-xs text-on-surface-variant mt-1">Class 1 MSE profile</span>
             </div>
           </div>
 
           <div className="pt-2 border-t border-outline-variant/20 relative z-10 flex items-center justify-between text-on-surface-variant">
-            <span className="text-[10px] uppercase font-semibold">Target: 95+ (Guaranteed Pass)</span>
+            <span className="text-[10px] uppercase font-semibold">Target 95+</span>
             <span className="text-[10px] font-bold text-secondary">8 pts to peak</span>
           </div>
         </div>
 
         {/* 2. Active Pipeline Value */}
-        <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-[0_12px_32px_-4px_rgba(59,0,102,0.05)] border border-outline-variant/30 flex flex-col justify-between min-h-[250px]">
+        <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-[0_12px_32px_-4px_rgba(59,0,102,0.05)] border border-outline-variant/30 flex flex-col justify-between min-h-[240px]">
           <div className="flex items-start justify-between">
             <div>
               <span className="text-[10px] text-on-surface-variant uppercase tracking-wider block font-semibold">
-                Central Radar
+                Pipeline
               </span>
               <span className="font-serif text-xl font-bold text-primary">Tenders Tracked</span>
             </div>
@@ -105,13 +103,13 @@ export default function MetricCards() {
           <div className="my-3">
             <div className="flex items-baseline gap-2">
               <span className="font-serif text-4xl text-primary font-bold leading-none">14</span>
-              <span className="text-sm font-medium text-on-surface-variant">Bids Live</span>
+              <span className="text-sm font-medium text-on-surface-variant">Live Bids</span>
             </div>
             <div className="mt-2 flex items-center gap-2 flex-wrap">
               <span className="px-2.5 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed text-[11px] font-bold">
-                ₹18.4 Cr Pipeline
+                ₹18.4 Cr
               </span>
-              <span className="text-xs text-on-surface-variant">4 bids closing &lt;48h</span>
+              <span className="text-xs text-on-surface-variant">4 closing &lt;48h</span>
             </div>
           </div>
 
@@ -127,11 +125,11 @@ export default function MetricCards() {
         </div>
 
         {/* 3. Compliance Health */}
-        <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-[0_12px_32px_-4px_rgba(59,0,102,0.05)] border border-outline-variant/30 flex flex-col justify-between min-h-[250px]">
+        <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-[0_12px_32px_-4px_rgba(59,0,102,0.05)] border border-outline-variant/30 flex flex-col justify-between min-h-[240px]">
           <div className="flex items-start justify-between">
             <div>
               <span className="text-[10px] text-on-surface-variant uppercase tracking-wider block font-semibold">
-                Clause Integrity
+                Integrity
               </span>
               <span className="font-serif text-xl font-bold text-primary">Compliance Health</span>
             </div>
@@ -144,27 +142,27 @@ export default function MetricCards() {
             <div className="flex items-baseline gap-2">
               <span className="font-serif text-4xl text-primary font-bold leading-none">99.2%</span>
               <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-surface-container text-on-surface-variant">
-                Audited
+                Verified
               </span>
             </div>
             <div className="mt-2 flex items-center gap-1.5 text-on-surface-variant text-xs">
               <span className="w-2 h-2 rounded-full bg-secondary" />
-              <span>27/28 clauses verified clean</span>
+              <span>27 of 28 clauses clean</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 p-2.5 rounded-xl bg-surface-container-low text-on-surface border border-outline-variant/20">
+          <div className="flex items-center gap-2 p-2 rounded-xl bg-surface-container-low text-on-surface border border-outline-variant/20">
             <span className="material-symbols-outlined text-base text-error">priority_high</span>
-            <span className="text-xs truncate font-medium">1 attention item: CSPO exemption doc</span>
+            <span className="text-xs truncate font-medium">1 pending: CSPO exemption</span>
           </div>
         </div>
 
         {/* 4. Corrigendum Alerts */}
-        <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-[0_12px_32px_-4px_rgba(59,0,102,0.05)] border border-outline-variant/30 flex flex-col justify-between min-h-[250px]">
+        <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-[0_12px_32px_-4px_rgba(59,0,102,0.05)] border border-outline-variant/30 flex flex-col justify-between min-h-[240px]">
           <div className="flex items-start justify-between">
             <div>
               <span className="text-[10px] text-on-surface-variant uppercase tracking-wider block font-semibold">
-                GeM &amp; CPPP Feed
+                Updates
               </span>
               <span className="font-serif text-xl font-bold text-primary">Corrigenda</span>
             </div>
@@ -181,8 +179,8 @@ export default function MetricCards() {
               <span className="font-serif text-4xl text-primary font-bold leading-none">3</span>
               <span className="text-sm font-medium text-on-surface-variant">New (24h)</span>
             </div>
-            <p className="text-xs text-on-surface-variant mt-2 leading-relaxed">
-              Addenda parsed autonomously. BOQ specs shifted for AIIMS tender.
+            <p className="text-xs text-on-surface-variant mt-2">
+              AIIMS BOQ &amp; specs revised
             </p>
           </div>
 
@@ -190,7 +188,7 @@ export default function MetricCards() {
             href="/audit"
             className="flex items-center justify-between text-secondary text-xs font-semibold hover:underline pt-2 border-t border-outline-variant/20"
           >
-            <span>Inspect Addendum Diff</span>
+            <span>View Diff</span>
             <span className="material-symbols-outlined text-base">north_east</span>
           </Link>
         </div>
