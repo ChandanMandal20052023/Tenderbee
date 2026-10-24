@@ -178,7 +178,7 @@ class LLMAdapter:
                 resp = httpx.post(fallback_url, json=payload, timeout=60.0)
 
             if resp.status_code != 200:
-                logger.error(f"Gemini API returned status {resp.status_code}: {resp.text}")
+                logger.debug("Gemini API returned status %s: %s", resp.status_code, resp.text)
                 return None
 
             data = resp.json()

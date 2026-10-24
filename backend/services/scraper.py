@@ -149,13 +149,15 @@ class UniversalTenderScraper:
         Converts a TenderPDFExtractionResult into standardized tender dict.
         """
         return {
-            "tender_number": extraction.metadata.tender_number or identifier,
-            "tender_title": extraction.metadata.tender_title or "Tender Notice",
-            "buyer_name": extraction.metadata.buyer_name or "Procurement Authority",
-            "submission_deadline": extraction.metadata.submission_deadline or "2026-12-31T15:00:00+05:30",
-            "estimated_value_inr": extraction.metadata.estimated_value_inr,
-            "emd_amount_inr": extraction.metadata.emd_amount_inr,
-            "mse_exemption_allowed": extraction.eligibility_rules.mse_exemption_allowed,
+            "tender_number": extraction.tender_number or identifier,
+            "tender_title": extraction.tender_title or "Tender Notice",
+            "buyer_name": extraction.buyer_name or "Procurement Authority",
+            "submission_deadline": extraction.submission_deadline or "2026-12-31T15:00:00+05:30",
+            "estimated_value_inr": extraction.estimated_value_inr,
+            "emd_amount_inr": extraction.emd_amount_inr,
+            "contract_period": extraction.contract_period,
+            "portal_website": extraction.portal_website,
+            "mse_exemption_allowed": extraction.mse_exemption_allowed,
             "mandatory_documents": [d.value if hasattr(d, "value") else str(d) for d in extraction.mandatory_documents],
             "eligibility_rules": {
                 "min_annual_turnover_inr": extraction.eligibility_rules.min_annual_turnover_inr,
@@ -167,5 +169,7 @@ class UniversalTenderScraper:
                 "eligible_entity_types": extraction.eligibility_rules.eligible_entity_types,
             },
             "verbatim_clauses": [c.model_dump() for c in extraction.verbatim_clauses],
+            "total_pages": extraction.total_pages,
+            "digital_text_coverage": extraction.digital_text_coverage,
             "source_type": "pdf_direct_extraction",
         }

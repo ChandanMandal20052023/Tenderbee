@@ -188,3 +188,26 @@ class TenderSchemaAPIView(APIView):
         return Response(TenderPDFExtractionResult.get_json_schema(), status=status.HTTP_200_OK)
 
 
+class TenderDetailAPIView(APIView):
+    """
+    GET /api/v1/tenders/<identifier>/?mode=skim|detailed
+    Two viewing modes:
+    - 'skim': Fast high-level overview
+    - 'detailed': Complete breakdown including parsed PDF clauses, page citations, and rule pack
+    """
+    def get(self, request, identifier, *args, **kwargs):
+        mode = request.query_params.get("mode", "skim").lower()
+        if mode not in ("skim", "detailed"):
+            mode = "skim"
+
+        service = TenderService()
+        result = service.get_tender(identifier=identifier, mode=mode)
+        if not result:
+            return Response(
+                {"success": False, "error": f"Tender '{identifier}' not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        return Response(result, status=status.HTTP_200_OK)
+
+
+

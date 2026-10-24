@@ -263,16 +263,39 @@ class TenderSearchService:
         res["interpreted_prompt"] = prompt
         return res
 
-    def get_tender(self, identifier: str) -> Optional[Dict[str, Any]]:
+    def get_tender(self, identifier: str, mode: str = "skim") -> Optional[Dict[str, Any]]:
         """
-        Retrieves complete tender details by tender_id or external tender_number,
-        including its extraction and OpenAPI-compliant JSON schema.
+        Retrieves tender by tender_id or external tender_number.
+        Supports two viewing modes:
+        - 'skim': Fast high-level overview (financials, buyer, deadline, tenure, status)
+        - 'detailed': Complete breakdown including parsed PDF clauses, page citations, and rule pack.
         """
-        from backend.engine.schema import TenderPDFExtractionResult
-        tender = self.storage.get_tender(identifier)
-        if not tender:
-            return None
+        from backend.apps.tenders.services import TenderService
 
-        tender["json_schema"] = TenderPDFExtractionResult.get_json_schema()
+        tender = self.storage.get_tender(identifier, mode=mode)
+
+        # If detailed mode requested and no PDF has been parsed yet, try to acquire & parse it
+        if mode == "detailed":
+            if not tender or tender.get("pdf_status") == "PENDING_INTAKE" or identifier.endswith(".pdf"):
+                service = TenderService(storage=self.storage)
+                if identifier.endswith(".pdf"):
+                    intake_res = service.intake_tender_pdf(identifier)
+                else:
+                    intake_res = service.intake_tender(identifier)
+
+                if intake_res.get("success"):
+                    tender = self.storage.get_tender(intake_res["tender_id"], mode="detailed")
+                    if tender:
+                        tender["rule_pack"] = intake_res.get("rule_pack")
+            elif tender and tender.get("has_pdf_document"):
+                service = TenderService(storage=self.storage)
+                rule_pack = service.get_rule_pack_by_tender_id(tender["tender_id"])
+                if rule_pack:
+                    tender["rule_pack"] = rule_pack.model_dump()
+
+            if tender:
+                from backend.engine.schema import TenderPDFExtractionResult
+                tender["json_schema"] = TenderPDFExtractionResult.get_json_schema()
+
         return tender
 

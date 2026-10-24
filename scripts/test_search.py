@@ -23,6 +23,8 @@ from backend.apps.tenders.search import TenderSearchService, TenderSearchFilter,
 def main():
     parser = argparse.ArgumentParser(description="TenderBee Multi-Criteria Tender Discovery")
     parser.add_argument("prompt", nargs="?", default=None, help="Natural language query (e.g. 'services in bihar above 1 cr')")
+    parser.add_argument("--tender", help="Look up specific tender by ID/Number (e.g. Mech-TPA-2026 or DHBVN/2026/METER-401)")
+    parser.add_argument("--mode", choices=["skim", "detailed"], default="skim", help="View mode: 'skim' (basic details) or 'detailed' (parse PDF)")
     parser.add_argument("--state", help="Filter by Indian State (e.g. Bihar, Maharashtra)")
     parser.add_argument("--category", choices=["Services", "Works", "Goods"], help="Filter by procurement category")
     parser.add_argument("--min-val", type=float, help="Minimum estimated contract value in INR")
@@ -34,6 +36,50 @@ def main():
 
     args = parser.parse_args()
     service = TenderSearchService()
+
+    if args.tender:
+        result = service.get_tender(args.tender, mode=args.mode)
+        if not result:
+            print(f"❌ Tender '{args.tender}' not found.")
+            return
+
+        if args.json:
+            print(json.dumps(result, indent=2, default=str))
+            return
+
+        print("=" * 80)
+        print(f"TENDERBEE VIEW MODE: {args.mode.upper()}")
+        print(f"Identifier: {args.tender}")
+        print("=" * 80)
+        print(f"Title       : {result.get('title')}")
+        print(f"Buyer       : {result.get('buyer_name')}")
+        print(f"Location    : {result.get('state')} | Category: {result.get('category')}")
+        print(f"Value       : ₹{result.get('estimated_value_inr', 0):,.2f}")
+        print(f"EMD         : ₹{result.get('emd_amount_inr', 0):,.2f}")
+        print(f"Tenure      : {result.get('tenure_months')} Months")
+        print(f"Deadline    : {result.get('submission_deadline')}")
+        print(f"Portal      : {result.get('portal')}")
+
+        if args.mode == "detailed":
+            print("\n--- DETAILED PDF CLAUSES & ELIGIBILITY ---")
+            print(f"PDF Status  : {result.get('pdf_status')}")
+            ext = result.get("extraction")
+            if ext:
+                print(f"Total Pages : {ext.get('total_pages')}")
+                print(f"Coverage    : {ext.get('digital_text_coverage') * 100:.1f}%")
+                clauses = ext.get("verbatim_clauses", [])
+                print(f"Clauses     : {len(clauses)} verbatim clauses extracted")
+                for c in clauses[:4]:
+                    print(f"  • [Page {c.get('page')}] {c.get('clause_type')}:")
+                    print(f"    \"{c.get('quote')}\"")
+            if "rule_pack" in result:
+                rp = result["rule_pack"]
+                print(f"\nRule Pack   : {rp.get('content_hash', '')[:16]} ({len(rp.get('rules', []))} rules drafted)")
+        else:
+            print(f"\n💡 For deep PDF clause extraction and rule pack, run with: --mode detailed")
+
+        print("=" * 80)
+        return
 
     if args.prompt:
         # Natural language discovery
@@ -53,6 +99,7 @@ def main():
 
     if args.json:
         print(json.dumps(result, indent=2, default=str))
+        return
         return
 
     # Formatted CLI presentation

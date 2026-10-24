@@ -434,3 +434,27 @@ class TenderService:
                 reference_dates=ReferenceDates(submission_deadline=deadline),
                 rules=rules,
             )
+
+    def get_rule_pack_by_tender_id(self, tender_id: str) -> Optional[RulePack]:
+        """Retrieves and deserializes the active/draft RulePack for a tender."""
+        with sqlite3.connect(self.storage.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT rule_pack_id FROM rule_packs WHERE tender_id = ? ORDER BY version DESC LIMIT 1",
+                (tender_id,),
+            )
+            row = cursor.fetchone()
+            if not row:
+                return None
+            return self.get_rule_pack(row["rule_pack_id"])
+
+    def get_tender(self, identifier: str, mode: str = "skim") -> Optional[Dict[str, Any]]:
+        """
+        Retrieves tender details supporting both viewing modes:
+        - 'skim': Fast summary of metadata (title, buyer, estimated value, EMD, tenure, deadline)
+        - 'detailed': Parses the full PDF notice, extracts all verbatim clauses with page numbers, and returns draft rules.
+        """
+        from backend.apps.tenders.search import TenderSearchService
+        return TenderSearchService(storage=self.storage).get_tender(identifier, mode=mode)
+

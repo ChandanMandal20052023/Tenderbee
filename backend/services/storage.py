@@ -375,10 +375,12 @@ class TenderStorage:
 
         return results
 
-    def get_tender(self, identifier: str) -> Optional[Dict[str, Any]]:
+    def get_tender(self, identifier: str, mode: str = "skim") -> Optional[Dict[str, Any]]:
         """
-        Retrieves a tender by its tender_id or external tender_number,
-        including its extraction snapshot and content hash if available.
+        Retrieves a tender by its tender_id or external tender_number.
+        Supports two viewing modes:
+        - 'skim': Fast high-level overview (financials, buyer, deadline, tenure, status)
+        - 'detailed': Complete breakdown including extracted clauses, page citations, and rule pack.
         """
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
@@ -392,28 +394,45 @@ class TenderStorage:
             if not row:
                 return None
 
-            tender_dict = {
-                "tender_id": row["tender_id"],
-                "tender_number": row["external_id"],
-                "title": row["title"],
-                "buyer_name": row["buyer_name"],
-                "state": row["state"] or "All India",
-                "category": row["category"] or "Services",
-                "estimated_value_inr": row["estimated_value_inr"],
-                "emd_amount_inr": row["emd_amount_inr"],
-                "tenure_months": row["tenure_months"],
-                "submission_deadline": row["submission_deadline"],
-                "portal": row["portal"] or "Government Portal",
-                "source_url": row["source_url"],
-                "status": "ACTIVE",
-            }
-
             cursor.execute("""
                 SELECT extracted_json_path, content_hash, fetched_at FROM tender_snapshots
                 WHERE tender_id = ?
                 ORDER BY fetched_at DESC LIMIT 1
             """, (row["tender_id"],))
             snap_row = cursor.fetchone()
+            has_snapshot = snap_row is not None
+
+            val = row["estimated_value_inr"]
+            tenure = row["tenure_months"]
+            state = row["state"] or "All India"
+            cat = row["category"] or "Services"
+
+            val_str = f"₹{val:,.2f}" if val else "Not Specified"
+            summary_str = f"{val_str} | {tenure}M | {cat} in {state}" if tenure else f"{val_str} | {cat} in {state}"
+
+            tender_dict = {
+                "mode": mode,
+                "tender_id": row["tender_id"],
+                "tender_number": row["external_id"],
+                "title": row["title"],
+                "buyer_name": row["buyer_name"],
+                "state": state,
+                "category": cat,
+                "estimated_value_inr": val,
+                "emd_amount_inr": row["emd_amount_inr"],
+                "tenure_months": tenure,
+                "submission_deadline": row["submission_deadline"],
+                "portal": row["portal"] or "Government Portal",
+                "source_url": row["source_url"],
+                "status": "ACTIVE",
+                "summary": summary_str,
+                "has_pdf_document": has_snapshot,
+            }
+
+            if mode == "skim":
+                return tender_dict
+
+            # mode == "detailed":
             if snap_row:
                 extracted_path = Path(snap_row["extracted_json_path"])
                 if extracted_path.exists():
@@ -424,6 +443,14 @@ class TenderStorage:
                         pass
                 tender_dict["content_hash"] = snap_row["content_hash"]
                 tender_dict["fetched_at"] = snap_row["fetched_at"]
+                tender_dict["pdf_status"] = "PARSED"
+            else:
+                tender_dict["pdf_status"] = "PENDING_INTAKE"
+                tender_dict["message"] = (
+                    "Full notice PDF has not yet been ingested for this tender. "
+                    "Provide or upload the tender notice PDF to parse full clauses."
+                )
 
             return tender_dict
+
 
