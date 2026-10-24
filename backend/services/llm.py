@@ -133,6 +133,21 @@ class LLMAdapter:
         self.api_key = api_key or os.getenv("GEMINI_API_KEY")
         self.model = model or os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
 
+    def _clean_schema_for_gemini(self, schema: Dict[str, Any]) -> Dict[str, Any]:
+        """Inlines $defs/$ref for Gemini REST API compatibility."""
+        defs = schema.get("$defs", {})
+        def _resolve(node):
+            if isinstance(node, dict):
+                if "$ref" in node:
+                    ref_key = node["$ref"].split("/")[-1]
+                    if ref_key in defs:
+                        return _resolve(defs[ref_key].copy())
+                return {k: _resolve(v) for k, v in node.items() if k != "$defs"}
+            elif isinstance(node, list):
+                return [_resolve(item) for item in node]
+            return node
+        return _resolve(schema)
+
     def extract_structured(
         self,
         pages: List[Tuple[int, str]],
@@ -146,13 +161,14 @@ class LLMAdapter:
 
         try:
             import httpx
+            cleaned_schema = self._clean_schema_for_gemini(response_schema.model_json_schema())
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
             payload = {
                 "system_instruction": {"parts": [{"text": SYSTEM_PROMPT_EXTRACTION}]},
                 "contents": [{"parts": [{"text": prompt}]}],
                 "generationConfig": {
                     "response_mime_type": "application/json",
-                    "response_schema": response_schema.model_json_schema(),
+                    "response_schema": cleaned_schema,
                     "temperature": 0.0,
                 },
             }

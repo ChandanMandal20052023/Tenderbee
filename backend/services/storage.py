@@ -254,6 +254,27 @@ class TenderStorage:
                 "2026-11-05T15:00:00+05:30", 522615823.34, "https://ireps.gov.in/tender/Mech-TPA-2026",
                 now, now, "Maharashtra", "Services", 36, 2763100.0, "Mumbai", "ireps.gov.in"
             ),
+            (
+                "tnd_hsvp_gurugram_flyover_2026", "org_default", "HSVP/2026/CIVIL-89",
+                "Construction of 6-Lane Flyover and Underpass at Golf Course Road Extension, Gurugram",
+                "Haryana Shehri Vikas Pradhikaran (HSVP)",
+                "2026-12-10T15:00:00+05:30", 450000000.0, "https://etenders.hry.nic.in/tender/HSVP-2026-89",
+                now, now, "Haryana", "Works", 36, 4500000.0, "Gurugram", "etenders.hry.nic.in"
+            ),
+            (
+                "tnd_hpgcl_panipat_om_2026", "org_default", "HPGCL/2026/OM-112",
+                "Comprehensive Operation and Maintenance Services for 2x250 MW Thermal Units at Panipat",
+                "Haryana Power Generation Corporation Limited (HPGCL)",
+                "2026-11-20T16:00:00+05:30", 28000000.0, "https://etenders.hry.nic.in/tender/HPGCL-2026-OM",
+                now, now, "Haryana", "Services", 24, 560000.0, "Panipat", "etenders.hry.nic.in"
+            ),
+            (
+                "tnd_dhbvn_faridabad_metering_2026", "org_default", "DHBVN/2026/METER-401",
+                "Smart Meter Installation and Network Infrastructure Deployment across Faridabad Industrial Sub-divisions",
+                "Dakshin Haryana Bijli Vitran Nigam (DHBVN)",
+                "2026-12-01T15:00:00+05:30", 62000000.0, "https://etenders.hry.nic.in/tender/DHBVN-2026-401",
+                now, now, "Haryana", "Services", 18, 1240000.0, "Faridabad", "etenders.hry.nic.in"
+            ),
         ]
 
         cursor.executemany("""
