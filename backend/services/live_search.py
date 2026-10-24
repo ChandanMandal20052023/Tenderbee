@@ -200,26 +200,26 @@ class LiveTenderSearchEngine:
 
                     bid_no = m_bid.group(1).strip() if m_bid else None
                     if not bid_no:
-                        filename = os.path.basename(urllib.parse.urlparse(url).path)
-                        bid_no = f"PDF_{filename[:18]}"
+                        return None
 
                     # Strict Liveness check on Bid End Date
                     end_date_str = m_date.group(1).strip() if m_date else None
                     deadline_dt = _parse_deadline(end_date_str) if end_date_str else None
-                    if deadline_dt and deadline_dt < now_ist:
-                        logger.debug("Discarding expired PDF tender %s (deadline %s)", bid_no, deadline_dt)
+                    if not deadline_dt or deadline_dt < now_ist:
+                        logger.debug("Discarding invalid or expired PDF tender %s (deadline %s)", bid_no, deadline_dt)
+                        return None
+
+                    if not m_item:
                         return None
 
                     dept_str = m_dept.group(1).strip() if m_dept else ""
                     office_str = m_office.group(1).strip() if m_office else ""
                     buyer = f"{dept_str} - {office_str}".strip(" -") or f"Procuring Authority ({domain})"
-                    item_title = m_item.group(1).strip() if m_item else f"Tender Notice ({bid_no})"
+                    item_title = m_item.group(1).strip()
                     state_str = m_state.group(1).strip() if m_state else (state or "All India")
 
                     val_inr = float(m_val.group(1).replace(",", "")) if m_val else None
                     emd_inr = float(m_emd.group(1).replace(",", "")) if m_emd else None
-
-                    dl_iso = deadline_dt.isoformat() if deadline_dt else (now_ist + timedelta(days=21)).isoformat()
 
                     tender_entry = {
                         "tender_number": bid_no,
@@ -230,7 +230,7 @@ class LiveTenderSearchEngine:
                         "estimated_value_inr": val_inr,
                         "emd_amount_inr": emd_inr,
                         "tenure_months": 12,
-                        "submission_deadline": dl_iso,
+                        "submission_deadline": deadline_dt.isoformat(),
                         "portal": domain,
                         "source_url": url,
                         "status": "ACTIVE",
@@ -330,23 +330,18 @@ class LiveTenderSearchEngine:
             end_raw = m_end.group(1).strip() if m_end else None
             dl_dt = _parse_deadline(end_raw)
 
-            # Enforce strict liveness: reject tenders whose deadline has already elapsed
-            if dl_dt:
-                if dl_dt < now_ist:
-                    logger.debug("Discarding expired tender %s (deadline was %s)", tid, end_raw)
-                    return None
-                deadline_iso = dl_dt.isoformat()
-            else:
-                # If deadline not in summary table, ensure tender ID is from 2026
-                if tid and (tid.startswith("2026_") or "2026" in tid):
-                    deadline_iso = (now_ist + timedelta(days=21)).isoformat()
-                else:
-                    return None
+            # Enforce strict liveness: reject tenders without active upcoming deadline
+            if not dl_dt or dl_dt < now_ist:
+                logger.debug("Discarding expired or deadline-missing tender %s", tid)
+                return None
+            deadline_iso = dl_dt.isoformat()
 
-            t_num = tid or f"TND/2026/{abs(hash(url)) % 10000:04d}"
+            if not tid:
+                return None
+
             t_category = extracted_cat or category or "Services"
             return [{
-                "tender_number": t_num,
+                "tender_number": tid,
                 "title": title,
                 "buyer_name": buyer_name,
                 "state": state or "All India",
@@ -375,10 +370,18 @@ class LiveTenderSearchEngine:
                 if any(k in tit.lower() for k in UI_NOISE_KEYWORDS) or len(tit) < 8:
                     continue
                 dt_str = m_date.group(1) if m_date else None
+                if not dt_str:
+                    continue
+                card_dt = _parse_deadline(dt_str)
+                if not card_dt or card_dt < now_ist:
+                    continue
+
                 dept = m_dept.group(1).strip() if m_dept else f"Government of {state or 'State'}"
                 link = urllib.parse.urljoin(url, m_link.group(1))
                 id_m = re.search(r"/(\d+)\?", link)
-                t_num = f"SIK/2026/{id_m.group(1)}" if id_m else f"TND/2026/{abs(hash(link)) % 10000:04d}"
+                if not id_m:
+                    continue
+                t_num = f"SIK/2026/{id_m.group(1)}"
 
                 cards.append({
                     "tender_number": t_num,
@@ -389,7 +392,7 @@ class LiveTenderSearchEngine:
                     "estimated_value_inr": None,
                     "emd_amount_inr": None,
                     "tenure_months": 12,
-                    "submission_deadline": (now_ist + timedelta(days=21)).isoformat(),
+                    "submission_deadline": card_dt.isoformat(),
                     "portal": domain,
                     "source_url": link,
                     "status": "ACTIVE",
@@ -471,13 +474,12 @@ class LiveTenderSearchEngine:
                 ref_no = item.get("currenttenderrefno") or ""
                 rfq_id = str(item.get("currentOrgTenderId") or item.get("currenttenderid") or "")
 
-                # Deadline verification
+                # Deadline verification - require explicit end date
                 end_ms = item.get("currentbidEndDate")
-                if end_ms:
-                    dl_dt = datetime.fromtimestamp(end_ms / 1000.0, tz=timezone(timedelta(hours=5, minutes=30)))
-                else:
-                    dl_dt = now_ist + timedelta(days=7)
+                if not end_ms:
+                    continue
 
+                dl_dt = datetime.fromtimestamp(end_ms / 1000.0, tz=timezone(timedelta(hours=5, minutes=30)))
                 if dl_dt < now_ist:
                     continue
 
@@ -520,6 +522,12 @@ class LiveTenderSearchEngine:
                     extracted_data=tender_dict,
                     raw_text_payload=f"eProc2 Bihar Tender {rfq_id}: {desc}\nRef: {ref_no}\nDepartment: {dept_name}\nDeadline: {dl_dt}\nEstimated Value: {val_str}",
                     tender_id=tender_dict["tender_id"],
+                    state="Bihar",
+                    category=cat,
+                    portal="eproc2.bihar.gov.in",
+                    tenure_months=12,
+                    emd_amount_inr=None,
+                    location="Bihar",
                 )
             return results
         except Exception as e:

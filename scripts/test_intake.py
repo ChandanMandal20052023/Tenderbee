@@ -52,9 +52,12 @@ def main():
         is_pdf = True
         file_path = args[0]
         identifier = f"Document File: {file_path}"
+    elif args:
+        identifier = args[0]
     else:
-        default_identifier = "GEM/2026/B/894210"
-        identifier = args[0] if args else default_identifier
+        print("❌ Please provide a Tender Number, Tender URL, or --file <document.pdf>")
+        print("Usage: .venv/bin/python scripts/test_intake.py <TENDER_URL_OR_NUMBER>")
+        return
 
     service = TenderService()
 

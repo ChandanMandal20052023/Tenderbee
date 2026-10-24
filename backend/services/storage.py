@@ -154,6 +154,12 @@ class TenderStorage:
         extracted_data: Dict[str, Any],
         raw_text_payload: str,
         tender_id: Optional[str] = None,
+        state: Optional[str] = None,
+        category: Optional[str] = None,
+        portal: Optional[str] = None,
+        tenure_months: Optional[int] = None,
+        emd_amount_inr: Optional[float] = None,
+        location: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Stores tender metadata and commits an immutable snapshot to tiered storage.
@@ -187,20 +193,29 @@ class TenderStorage:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             
-            # Upsert master tender record
+            # Upsert master tender record with search attributes
             cursor.execute("""
                 INSERT INTO tenders (
                     tender_id, organization_id, external_id, title, buyer_name,
-                    submission_deadline, estimated_value_inr, source_url, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    submission_deadline, estimated_value_inr, source_url, created_at, updated_at,
+                    state, category, tenure_months, emd_amount_inr, location, portal
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(tender_id) DO UPDATE SET
                     title = excluded.title,
                     buyer_name = excluded.buyer_name,
                     submission_deadline = excluded.submission_deadline,
+                    estimated_value_inr = excluded.estimated_value_inr,
+                    state = COALESCE(excluded.state, tenders.state),
+                    category = COALESCE(excluded.category, tenders.category),
+                    tenure_months = COALESCE(excluded.tenure_months, tenders.tenure_months),
+                    emd_amount_inr = COALESCE(excluded.emd_amount_inr, tenders.emd_amount_inr),
+                    location = COALESCE(excluded.location, tenders.location),
+                    portal = COALESCE(excluded.portal, tenders.portal),
                     updated_at = excluded.updated_at
             """, (
                 tender_id, org_id, tender_number, tender_title, buyer_name,
-                submission_deadline, estimated_value_inr, source_url, now, now
+                submission_deadline, estimated_value_inr, source_url, now, now,
+                state, category, tenure_months, emd_amount_inr, location, portal
             ))
             
             # Append immutable snapshot

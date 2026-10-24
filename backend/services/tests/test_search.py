@@ -41,17 +41,17 @@ def _seed_test_tenders(storage: TenderStorage):
     now = datetime.now(timezone.utc).isoformat()
     samples = [
         (
-            "test_buidco_01", "org_default", "TEST/BUIDCO/01",
+            "ut_fixture_01", "org_default", "UT/2026/01",
             "Sanitation & Waste Management Services",
-            "Bihar Urban Development", "2026-11-28T15:00:00+05:30",
-            34500000.0, "https://test.bihar.gov.in/1", now, now,
+            "Urban Development Department", "2026-11-28T15:00:00+05:30",
+            34500000.0, "https://test.local/1", now, now,
             "Bihar", "Services", 24, 690000.0, "Patna", "eproc2.bihar.gov.in"
         ),
         (
-            "test_bsphcl_02", "org_default", "TEST/BSPHCL/02",
+            "ut_fixture_02", "org_default", "UT/2026/02",
             "Substation Security Guarding Services",
-            "Bihar Power Holding", "2026-11-22T17:00:00+05:30",
-            25000000.0, "https://test.bihar.gov.in/2", now, now,
+            "Power Holding Authority", "2026-11-22T17:00:00+05:30",
+            25000000.0, "https://test.local/2", now, now,
             "Bihar", "Services", 12, 360000.0, "Gaya", "eproc2.bihar.gov.in"
         ),
     ]
