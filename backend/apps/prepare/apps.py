@@ -1,1 +1,7 @@
-# Prepare app configuration
+from django.apps import AppConfig
+
+
+class PrepareConfig(AppConfig):
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "apps.prepare"
+    verbose_name = "Proposal Preparation (Prepare)"

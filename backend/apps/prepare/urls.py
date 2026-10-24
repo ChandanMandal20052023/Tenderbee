@@ -1,1 +1,5 @@
-# URL routes for prepare
+from django.urls import path
+
+app_name = "prepare"
+
+urlpatterns = []

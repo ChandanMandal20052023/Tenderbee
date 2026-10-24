@@ -220,7 +220,17 @@ class ComplianceEngine:
                 )
 
             # Check grounding
-            is_grounded = getattr(field_obj, "is_grounded", getattr(field_obj, "grounded", True))
+            if isinstance(field_obj, dict):
+                is_grounded = field_obj.get("grounded", field_obj.get("is_grounded", True))
+                actual_amount = field_obj.get("value", field_obj)
+                item_page = field_obj.get("page", rule.source.page)
+                item_quote = field_obj.get("quote", rule.source.quote)
+            else:
+                is_grounded = getattr(field_obj, "is_grounded", getattr(field_obj, "grounded", True))
+                actual_amount = getattr(field_obj, "value", field_obj)
+                item_page = getattr(field_obj, "page", rule.source.page)
+                item_quote = getattr(field_obj, "quote", rule.source.quote)
+
             if not is_grounded:
                 return Verdict(
                     rule_id=rule.rule_id,
@@ -230,7 +240,6 @@ class ComplianceEngine:
                     evidence=[],
                 )
 
-            actual_amount = getattr(field_obj, "value", field_obj)
             try:
                 actual_num = float(actual_amount)
                 threshold_num = float(threshold)
@@ -252,8 +261,8 @@ class ComplianceEngine:
                     computed_value=actual_num,
                     evidence=[
                         EvidenceItem(
-                            page=getattr(field_obj, "page", rule.source.page),
-                            quote=getattr(field_obj, "quote", rule.source.quote),
+                            page=item_page,
+                            quote=item_quote,
                             source=target_doc or "ca_certificate",
                         )
                     ],

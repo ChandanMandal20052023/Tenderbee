@@ -1,0 +1,144 @@
+"use client";
+
+import React, { useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
+
+export default function DashboardHeader() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  return (
+    <>
+      <header className="fixed top-0 left-0 lg:left-72 right-0 h-16 bg-surface/90 backdrop-blur-xl z-40 border-b border-outline-variant/30 px-4 sm:px-8 flex items-center justify-between">
+        {/* Mobile Brand Toggle */}
+        <div className="flex items-center gap-2 lg:hidden">
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="p-1.5 rounded-lg text-on-surface hover:bg-surface-container cursor-pointer"
+            aria-label="Toggle Navigation"
+          >
+            <span className="material-symbols-outlined text-2xl">menu</span>
+          </button>
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center">
+              <Image src="/logo.png" alt="TenderBee" width={32} height={32} className="w-full h-full object-contain" priority />
+            </div>
+            <span className="font-serif text-xl font-bold text-primary">TenderBee</span>
+          </Link>
+        </div>
+
+        {/* Global Search Bar */}
+        <div className="hidden sm:flex items-center gap-4 flex-1 max-w-xl">
+          <div className="relative w-full">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg">
+              search
+            </span>
+            <input
+              className="w-full pl-10 pr-4 py-2 bg-surface-container-low rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:bg-surface-container-lowest focus:ring-1 focus:ring-secondary/30 transition-all border border-outline-variant/20"
+              placeholder="Search tenders, NIT IDs, corrigenda, or vault docs (⌘K)..."
+              type="text"
+            />
+          </div>
+        </div>
+
+        {/* Header Right Cluster */}
+        <div className="flex items-center gap-3 sm:gap-4">
+          {/* GeM & CPPP Synced Badge */}
+          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container-low border border-outline-variant/30">
+            <div className="w-2 h-2 rounded-full bg-secondary animate-ping" />
+            <span className="text-[10px] uppercase tracking-wider font-semibold text-on-surface-variant">
+              GeM &amp; CPPP
+            </span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-bold">
+              Synced
+            </span>
+          </div>
+
+          {/* Notifications */}
+          <button
+            className="relative p-2 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
+            type="button"
+            aria-label="View notifications"
+          >
+            <span className="material-symbols-outlined text-2xl">notifications</span>
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-secondary" />
+          </button>
+
+          <div className="h-6 w-px bg-surface-container-high hidden sm:block" />
+
+          {/* User Profile */}
+          <Link href="/settings" className="flex items-center gap-2.5 pl-1 group cursor-pointer">
+            <div className="flex flex-col text-right hidden sm:flex">
+              <span className="text-xs font-semibold text-on-surface group-hover:text-primary transition-colors leading-tight">
+                Govind K. CISO
+              </span>
+              <span className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">
+                Chief Bidding Officer
+              </span>
+            </div>
+            {/* User Avatar */}
+            <div className="w-9 h-9 rounded-full bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed font-bold text-xs ring-2 ring-white shadow-sm overflow-hidden group-hover:ring-primary/20 transition-all">
+              <span className="material-symbols-outlined text-lg">person</span>
+            </div>
+          </Link>
+        </div>
+      </header>
+
+      {/* Mobile Menu Dropdown */}
+      {mobileMenuOpen && (
+        <div className="lg:hidden fixed top-16 left-0 right-0 bg-surface-container-lowest border-b border-outline-variant/30 z-50 p-4 shadow-xl">
+          <nav className="flex flex-col gap-2">
+            <Link
+              href="/dashboard"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface-container-high text-on-surface text-sm font-semibold"
+            >
+              <span className="material-symbols-outlined text-lg">grid_view</span>
+              <span>Dashboard</span>
+            </Link>
+            <Link
+              href="/tenders"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container text-sm font-medium"
+            >
+              <span className="material-symbols-outlined text-lg">gavel</span>
+              <span>Open Tenders</span>
+            </Link>
+            <Link
+              href="/vault"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container text-sm font-medium"
+            >
+              <span className="material-symbols-outlined text-lg">folder_managed</span>
+              <span>Document Vault</span>
+            </Link>
+            <Link
+              href="/audit"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container text-sm font-medium"
+            >
+              <span className="material-symbols-outlined text-lg">verified_user</span>
+              <span>Bid Readiness &amp; Audits</span>
+            </Link>
+            <Link
+              href="/corrigendum"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container text-sm font-medium"
+            >
+              <span className="material-symbols-outlined text-lg">radar</span>
+              <span>Corrigendum Radar</span>
+            </Link>
+            <Link
+              href="/settings"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container text-sm font-medium"
+            >
+              <span className="material-symbols-outlined text-lg">settings</span>
+              <span>Settings</span>
+            </Link>
+          </nav>
+        </div>
+      )}
+    </>
+  );
+}

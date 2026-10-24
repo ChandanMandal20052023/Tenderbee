@@ -92,3 +92,46 @@ def test_audit_trail_tamper_evident_chain(tmp_path):
     assert len(events) == 2
     assert events[0]["action"] == "INTAKE_PDF"
     assert events[1]["action"] == "FREEZE_RULE_PACK"
+
+
+from rest_framework.test import APITestCase
+from apps.accounts.models import Organization, User, UserRole
+from apps.tenders.models import Tender, TenderSnapshot
+
+
+class TenderAPITests(APITestCase):
+    def setUp(self):
+        self.org = Organization.objects.create(name="Apex Engineers Ltd")
+        self.user = User.objects.create_user(
+            email="tenderlead@apex.in",
+            username="tenderlead",
+            password="ApexPassword123!",
+            organization=self.org,
+            role=UserRole.BID_MANAGER,
+        )
+        self.client.force_authenticate(user=self.user)
+        self.tender = Tender.objects.create(
+            organization=self.org,
+            external_id="GEM/2026/B/999111",
+            title="Procurement of Heavy Engineering Equipment",
+            buyer_name="BHEL",
+            estimated_value_inr=50000000.0,
+        )
+
+    def test_list_tenders_tenant_isolation(self):
+        other_org = Organization.objects.create(name="Foreign Org")
+        Tender.objects.create(
+            organization=other_org,
+            external_id="OTHER/123",
+            title="Other Org Tender",
+        )
+
+        resp = self.client.get("/api/v1/tenders/")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.data), 1)
+        self.assertEqual(resp.data[0]["external_id"], "GEM/2026/B/999111")
+
+    def test_get_tender_detail(self):
+        resp = self.client.get(f"/api/v1/tenders/{self.tender.id}/")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data["title"], "Procurement of Heavy Engineering Equipment")

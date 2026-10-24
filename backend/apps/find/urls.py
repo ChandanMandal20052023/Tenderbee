@@ -1,1 +1,5 @@
-# URL routes for find
+from django.urls import path
+
+app_name = "find"
+
+urlpatterns = []
