@@ -398,12 +398,29 @@ class TenderStorage:
                         pass
                 tender_dict["content_hash"] = snap_row["content_hash"]
                 tender_dict["fetched_at"] = snap_row["fetched_at"]
-                tender_dict["pdf_status"] = "PARSED"
+
+                # Check if the snapshot contains actual parsed PDF clauses/pages
+                ext = tender_dict.get("extraction")
+                has_deep_clauses = isinstance(ext, dict) and (
+                    bool(ext.get("verbatim_clauses")) or ext.get("total_pages") is not None
+                )
+
+                if has_deep_clauses:
+                    tender_dict["pdf_status"] = "PARSED"
+                    tender_dict["has_pdf_document"] = True
+                else:
+                    tender_dict["pdf_status"] = "PENDING_INTAKE"
+                    tender_dict["has_pdf_document"] = False
+                    tender_dict["message"] = (
+                        "Full notice PDF has not yet been ingested for this tender. "
+                        "Detailed mode will automatically acquire and parse full clauses."
+                    )
             else:
                 tender_dict["pdf_status"] = "PENDING_INTAKE"
+                tender_dict["has_pdf_document"] = False
                 tender_dict["message"] = (
                     "Full notice PDF has not yet been ingested for this tender. "
-                    "Provide or upload the tender notice PDF to parse full clauses."
+                    "Detailed mode will automatically acquire and parse full clauses."
                 )
 
             return tender_dict

@@ -107,7 +107,7 @@ class TenderPDFDownloader:
         session = self.session_pool.get_session(domain)
         cookies = session.cookies if session else {}
 
-        with httpx.Client(headers=BROWSER_HEADERS, cookies=cookies, timeout=20.0, follow_redirects=True) as client:
+        with httpx.Client(headers=BROWSER_HEADERS, cookies=cookies, timeout=20.0, follow_redirects=True, verify=False) as client:
             try:
                 resp = client.get(url)
                 if resp.status_code == 200 and (resp.content[:4] == b"%PDF" or "application/pdf" in resp.headers.get("content-type", "")):

@@ -407,8 +407,12 @@ class TenderSearchService:
                         if tender:
                             tender["rule_pack"] = intake_res.get("rule_pack")
 
-                # If tender exists but has no parsed snapshot or clauses, robustly acquire and parse PDF
-                if tender and (tender.get("pdf_status") != "PARSED" or not tender.get("extraction")):
+                # If tender exists but has no parsed clauses/pages, robustly acquire and parse PDF
+                ext = tender.get("extraction")
+                has_deep_clauses = isinstance(ext, dict) and (
+                    bool(ext.get("verbatim_clauses")) or ext.get("total_pages") is not None
+                )
+                if tender and (tender.get("pdf_status") != "PARSED" or not has_deep_clauses):
                     from backend.services.pdf_resolver import TenderPDFResolver
                     resolver = TenderPDFResolver(storage=self.storage)
                     resolved_pdf = resolver.resolve_and_acquire_pdf(tender)
