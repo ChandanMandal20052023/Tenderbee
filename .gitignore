@@ -17,15 +17,17 @@ out/
 build/
 dist/
 
-# Database & Environment
+# Environment Variables & Secrets (CRITICAL: NEVER COMMIT)
 .env
 .env.*
 !.env.example
+
+# Local Database & Object Storage Cache
 data/
 *.db
 *.sqlite3
 
-# Testing & Coverage
+# Testing & Caches
 .pytest_cache/
 .coverage
 htmlcov/
