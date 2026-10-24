@@ -9,9 +9,11 @@ normalized into the TenderBee schema, and indexed into tiered storage for instan
 Skimmed, Detailed, and JSON inspection.
 """
 import hashlib
+import io
 import logging
 import os
 import re
+import ssl
 import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
@@ -63,6 +65,7 @@ UI_NOISE_KEYWORDS = [
 ]
 
 STATE_PORTAL_DOMAINS = {
+    "Bihar": "eproc2.bihar.gov.in",
     "Haryana": "etenders.hry.nic.in",
     "Rajasthan": "eproc.rajasthan.gov.in",
     "Uttar Pradesh": "etender.up.nic.in",
@@ -101,7 +104,12 @@ def _parse_deadline(date_str: str) -> Optional[datetime]:
         "%d %b %Y %I:%M %p",
         "%d %b %Y",
         "%d/%m/%Y %I:%M %p",
+        "%d/%m/%Y %H:%M:%S",
+        "%d/%m/%Y %H:%M",
         "%d/%m/%Y",
+        "%d-%m-%Y %H:%M:%S",
+        "%d-%m-%Y %H:%M",
+        "%d-%m-%Y",
     ]
     ist_tz = timezone(timedelta(hours=5, minutes=30))
     for fmt in formats:
@@ -145,48 +153,97 @@ class LiveTenderSearchEngine:
         if any(p in url for p in BLOCKED_URL_PATTERNS):
             return None
 
-        # Check for direct PDF notices
-        if url.lower().endswith(".pdf"):
-            try:
-                req = urllib.request.Request(url, headers=BROWSER_HEADERS)
-                with urllib.request.urlopen(req, timeout=3.5) as resp:
-                    if resp.status == 200:
-                        now = datetime.now(timezone.utc)
-                        filename = os.path.basename(urllib.parse.urlparse(url).path)
-                        t_id = f"PDF_{filename[:18]}"
-                        return [{
-                            "tender_number": t_id,
-                            "title": f"Tender Notice ({filename})",
-                            "buyer_name": f"Procuring Authority ({domain})",
-                            "state": state or "All India",
-                            "category": category or "Services",
-                            "estimated_value_inr": None,
-                            "emd_amount_inr": None,
-                            "tenure_months": 12,
-                            "submission_deadline": (now + timedelta(days=21)).isoformat(),
-                            "portal": domain,
-                            "source_url": url,
-                            "status": "ACTIVE",
-                            "has_pdf_document": True,
-                        }]
-            except Exception:
-                return None
-
-        # Fetch HTML content
+        # Fetch content with SSL fallback for government internal CA portals
+        data = None
         try:
             req = urllib.request.Request(url, headers=BROWSER_HEADERS)
-            with urllib.request.urlopen(req, timeout=3.5) as resp:
-                if resp.status != 200:
+            try:
+                with urllib.request.urlopen(req, timeout=4.5) as resp:
+                    if resp.status != 200:
+                        return None
+                    data = resp.read()
+            except Exception as e_ssl:
+                if "CERTIFICATE_VERIFY_FAILED" in str(e_ssl) or "ssl" in str(e_ssl).lower():
+                    ctx = ssl.create_default_context()
+                    ctx.check_hostname = False
+                    ctx.verify_mode = ssl.CERT_NONE
+                    with urllib.request.urlopen(req, context=ctx, timeout=4.5) as resp:
+                        if resp.status != 200:
+                            return None
+                        data = resp.read()
+                else:
                     return None
-                html = resp.read().decode("utf-8", errors="ignore")
         except Exception:
             return None
+
+        if not data:
+            return None
+
+        now_ist = datetime.now(timezone(timedelta(hours=5, minutes=30)))
+
+        # 0. Check for PDF Document (GeM showbidDocument or .pdf notices)
+        if data[:4] == b"%PDF" or url.lower().endswith(".pdf") or "showbiddocument" in url.lower():
+            try:
+                from pypdf import PdfReader
+                reader = PdfReader(io.BytesIO(data))
+                if len(reader.pages) > 0:
+                    text = "\n".join([reader.pages[i].extract_text() for i in range(min(3, len(reader.pages)))])
+                    m_bid = re.search(r"Bid Number[:\s]+([^\n\r]+)", text, re.I) or re.search(r"(GEM/\d+/[A-Z]/\d+)", text)
+                    m_date = re.search(r"Bid End Date/Time[:\s]+([0-9\- :]+)", text, re.I)
+                    m_state = re.search(r"Ministry/State Name[:\s]+([^\n\r]+)", text, re.I)
+                    m_dept = re.search(r"Department Name[:\s]+([^\n\r]+)", text, re.I)
+                    m_office = re.search(r"Office Name[:\s]+([^\n\r]+)", text, re.I)
+                    m_item = re.search(r"Item Category[:\s]+([^\n\r]+)", text, re.I)
+                    m_val = re.search(r"Estimated Bid Value[:\s]+([0-9,.]+)", text, re.I)
+                    m_emd = re.search(r"EMD Amount[:\s]+([0-9,.]+)", text, re.I)
+
+                    bid_no = m_bid.group(1).strip() if m_bid else None
+                    if not bid_no:
+                        filename = os.path.basename(urllib.parse.urlparse(url).path)
+                        bid_no = f"PDF_{filename[:18]}"
+
+                    # Strict Liveness check on Bid End Date
+                    end_date_str = m_date.group(1).strip() if m_date else None
+                    deadline_dt = _parse_deadline(end_date_str) if end_date_str else None
+                    if deadline_dt and deadline_dt < now_ist:
+                        logger.debug("Discarding expired PDF tender %s (deadline %s)", bid_no, deadline_dt)
+                        return None
+
+                    dept_str = m_dept.group(1).strip() if m_dept else ""
+                    office_str = m_office.group(1).strip() if m_office else ""
+                    buyer = f"{dept_str} - {office_str}".strip(" -") or f"Procuring Authority ({domain})"
+                    item_title = m_item.group(1).strip() if m_item else f"Tender Notice ({bid_no})"
+                    state_str = m_state.group(1).strip() if m_state else (state or "All India")
+
+                    val_inr = float(m_val.group(1).replace(",", "")) if m_val else None
+                    emd_inr = float(m_emd.group(1).replace(",", "")) if m_emd else None
+
+                    dl_iso = deadline_dt.isoformat() if deadline_dt else (now_ist + timedelta(days=21)).isoformat()
+
+                    tender_entry = {
+                        "tender_number": bid_no,
+                        "title": item_title,
+                        "buyer_name": buyer,
+                        "state": state_str,
+                        "category": category or "Goods",
+                        "estimated_value_inr": val_inr,
+                        "emd_amount_inr": emd_inr,
+                        "tenure_months": 12,
+                        "submission_deadline": dl_iso,
+                        "portal": domain,
+                        "source_url": url,
+                        "status": "ACTIVE",
+                        "has_pdf_document": True,
+                    }
+                    return [tender_entry]
+            except Exception as e_pdf:
+                logger.debug("Failed to parse PDF document %s: %s", url, e_pdf)
+
+        html = data.decode("utf-8", errors="ignore")
 
         # Reject maintenance, captcha, or service errors
         if any(k in html for k in ("Maintenance Notice", "Service Unavailable", "Provide Captcha")):
             return None
-
-        now_ist = datetime.now(timezone(timedelta(hours=5, minutes=30)))
 
         # 1. GePNIC / CPPP portal structure
         if "td_field" in html or "td_caption" in html or "FrontEndViewTender" in url:
@@ -375,6 +432,14 @@ class LiveTenderSearchEngine:
 
         # Construct high-precision queries that locate direct tender notice pages
         queries_to_try = []
+        if query and state:
+            queries_to_try.extend([
+                f'"{query}" "{state}" site:bidplus.gem.gov.in/showbidDocument 2026'.strip(),
+                f'"{query}" "{state}" site:bidplus.gem.gov.in/showbidDocument'.strip(),
+                f'"{query} Department" "{state}" site:bidplus.gem.gov.in/showbidDocument'.strip(),
+                f'2026 active tenders FrontEndViewTender {state} {query}'.strip(),
+                f'"{query}" {state} active tender notice site:gov.in 2026'.strip(),
+            ])
         if state:
             portal = STATE_PORTAL_DOMAINS.get(state)
             if portal:
@@ -383,18 +448,21 @@ class LiveTenderSearchEngine:
                     f"2026 active tenders FrontEndViewTender site:{portal}".strip(),
                 ])
             queries_to_try.extend([
+                f'"{state}" active tenders site:bidplus.gem.gov.in/showbidDocument 2026'.strip(),
                 f"2026 active tenders FrontEndViewTender {state} {category or ''}".strip(),
                 f"{state} active tenders FrontEndViewTender site:nic.in".strip(),
                 f"{state} 2026 active tender notice site:gov.in".strip(),
             ])
         if query:
             queries_to_try.extend([
+                f'"{query}" active tenders site:bidplus.gem.gov.in/showbidDocument 2026'.strip(),
                 f"2026 active tenders FrontEndViewTender {query}".strip(),
                 f"{query} active tenders FrontEndViewTender site:nic.in".strip(),
                 f"{query} 2026 active tender notice site:gov.in".strip(),
             ])
         if not queries_to_try:
             queries_to_try = [
+                f'"{search_query_str}" active tenders site:bidplus.gem.gov.in/showbidDocument 2026'.strip(),
                 f"2026 active tenders FrontEndViewTender {search_query_str}".strip(),
                 f"{search_query_str} active tenders FrontEndViewTender site:nic.in".strip(),
                 f"{search_query_str} 2026 active tender notice site:gov.in".strip(),
