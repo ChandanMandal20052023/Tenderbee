@@ -425,6 +425,7 @@ class TenderStorage:
             # mode == "detailed":
             if snap_row:
                 extracted_path = Path(snap_row["extracted_json_path"])
+                tender_dict["extracted_json_path"] = str(extracted_path)
                 if extracted_path.exists():
                     try:
                         with open(extracted_path, "r", encoding="utf-8") as f:

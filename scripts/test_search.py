@@ -56,6 +56,17 @@ def display_skimmed_view(tender: Dict[str, Any]):
     print_divider("=")
 
 
+def display_json_view(tender: Dict[str, Any]):
+    print_divider("=")
+    print(f"TENDERBEE VIEW MODE: RAW STRUCTURED JSON PAYLOAD")
+    print(f"Tender Number: {tender.get('tender_number')}  (ID: {tender.get('tender_id')})")
+    if tender.get("extracted_json_path"):
+        print(f"Snapshot File: {tender.get('extracted_json_path')}")
+    print_divider("=")
+    print(json.dumps(tender, indent=2, default=str))
+    print_divider("=")
+
+
 def display_detailed_view(tender: Dict[str, Any]):
     print_divider("=")
     print(f"TENDERBEE VIEW MODE: DETAILED (DEEP PDF CLAUSE EXTRACTION)")
@@ -77,6 +88,8 @@ def display_detailed_view(tender: Dict[str, Any]):
     pdf_status = tender.get("pdf_status", "PENDING_INTAKE")
     print(f"\n--- PDF DOCUMENT ANALYSIS ---")
     print(f"Status      : {pdf_status}")
+    if tender.get("extracted_json_path"):
+        print(f"Snapshot File: {tender.get('extracted_json_path')}")
 
     ext = tender.get("extraction")
     if ext:
@@ -203,13 +216,16 @@ def display_search_results(results: List[Dict[str, Any]], query_info: str = ""):
 def interactive_tender_inspection(service: TenderSearchService, tender_ident: str, default_mode: str = "skim"):
     current_mode = default_mode
     while True:
-        tender = service.get_tender(tender_ident, mode=current_mode)
+        fetch_mode = "detailed" if current_mode in ("detailed", "json") else "skim"
+        tender = service.get_tender(tender_ident, mode=fetch_mode)
         if not tender:
             print(f"\n❌ Tender '{tender_ident}' not found.")
             return
 
         if current_mode == "detailed":
             display_detailed_view(tender)
+        elif current_mode == "json":
+            display_json_view(tender)
         else:
             display_skimmed_view(tender)
 
@@ -219,10 +235,15 @@ def interactive_tender_inspection(service: TenderSearchService, tender_ident: st
                 "\nActions: [d] Detailed View (parse PDF clauses) | [j] View JSON | [b] Back to results | [q] Quit\n"
                 "Select action [d/j/b/q]: "
             )
-        else:
+        elif current_mode == "detailed":
             prompt_str = (
                 "\nActions: [s] Skimmed View | [j] View JSON | [b] Back to results | [q] Quit\n"
                 "Select action [s/j/b/q]: "
+            )
+        else:
+            prompt_str = (
+                "\nActions: [s] Skimmed View | [d] Detailed View | [j] View JSON again | [b] Back to results | [q] Quit\n"
+                "Select action [s/d/j/b/q]: "
             )
 
         try:
@@ -235,8 +256,8 @@ def interactive_tender_inspection(service: TenderSearchService, tender_ident: st
             current_mode = "detailed"
         elif choice in ("s", "skim", "1"):
             current_mode = "skim"
-        elif choice in ("j", "json"):
-            print("\n" + json.dumps(tender, indent=2, default=str))
+        elif choice in ("j", "json", "3"):
+            current_mode = "json"
         elif choice in ("b", "back", "r"):
             return
         elif choice in ("q", "quit", "exit"):
@@ -298,14 +319,20 @@ def interactive_search_loop(service: TenderSearchService, initial_prompt: Option
                     print("Choose view mode:")
                     print("  [1] Skimmed  (Fast overview, high-level financials, dates & buyer)")
                     print("  [2] Detailed (Deep PDF parsing, verbatim clauses, eligibility & rule pack)")
+                    print("  [3] JSON     (Raw structured JSON schema payload)")
                     
                     try:
-                        mode_input = input("Select mode [1/2 or s/d] (default: 1): ").strip().lower()
+                        mode_input = input("Select mode [1/2/3 or s/d/j] (default: 1): ").strip().lower()
                     except (KeyboardInterrupt, EOFError):
                         print("\nExiting TenderBee. Goodbye!")
                         sys.exit(0)
 
-                    chosen_mode = "detailed" if mode_input in ("2", "d", "detailed") else "skim"
+                    if mode_input in ("3", "j", "json"):
+                        chosen_mode = "json"
+                    elif mode_input in ("2", "d", "detailed"):
+                        chosen_mode = "detailed"
+                    else:
+                        chosen_mode = "skim"
                     interactive_tender_inspection(service, t_num, default_mode=chosen_mode)
 
                     # Re-display results after returning from tender inspection
@@ -320,7 +347,7 @@ def main():
     parser = argparse.ArgumentParser(description="TenderBee Multi-Criteria Tender Discovery & Inspection CLI")
     parser.add_argument("prompt", nargs="?", default=None, help="Natural language query (e.g. 'services in haryana above 2 cr')")
     parser.add_argument("--tender", help="Look up specific tender by ID/Number (e.g. Mech-TPA-2026 or DHBVN/2026/METER-401)")
-    parser.add_argument("--mode", choices=["skim", "detailed"], default="skim", help="View mode: 'skim' (basic details) or 'detailed' (parse PDF)")
+    parser.add_argument("--mode", choices=["skim", "detailed", "json"], default="skim", help="View mode: 'skim' (basic details), 'detailed' (parse PDF), or 'json' (raw JSON payload)")
     parser.add_argument("--interactive", action="store_true", help="Force interactive mode even when parameters are given")
     parser.add_argument("--non-interactive", action="store_true", help="Disable interactive prompts (for CI/piping)")
     parser.add_argument("--state", help="Filter by Indian State (e.g. Bihar, Haryana, Maharashtra)")
@@ -342,13 +369,14 @@ def main():
             interactive_tender_inspection(service, args.tender, default_mode=args.mode)
             return
 
-        result = service.get_tender(args.tender, mode=args.mode)
+        lookup_mode = "detailed" if args.mode in ("detailed", "json") else "skim"
+        result = service.get_tender(args.tender, mode=lookup_mode)
         if not result:
             print(f"❌ Tender '{args.tender}' not found.")
             sys.exit(1)
 
-        if args.json:
-            print(json.dumps(result, indent=2, default=str))
+        if args.json or args.mode == "json":
+            display_json_view(result)
             return
 
         if args.mode == "detailed":
