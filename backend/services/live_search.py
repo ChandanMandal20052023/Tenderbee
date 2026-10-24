@@ -10,6 +10,7 @@ Skimmed, Detailed, and JSON inspection.
 """
 import hashlib
 import io
+import json
 import logging
 import os
 import re
@@ -397,6 +398,134 @@ class LiveTenderSearchEngine:
 
         return cards if cards else None
 
+    def _fetch_eproc2_bihar(
+        self,
+        query: Optional[str] = None,
+        state: Optional[str] = None,
+        category: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Connects directly to Bihar e-Procurement 2.0 (eproc2.bihar.gov.in) openarea REST API.
+        Extracts active tenders, verifies non-expired closing dates, and normalizes into TenderBee schema.
+        """
+        try:
+            import http.cookiejar
+            cj = http.cookiejar.CookieJar()
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+            opener = urllib.request.build_opener(
+                urllib.request.HTTPCookieProcessor(cj),
+                urllib.request.HTTPSHandler(context=ctx)
+            )
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+
+            # 1. Fetch Bearer token from landing page
+            page_url = "https://eproc2.bihar.gov.in/EPSV2Web/openarea/tenderListingPage.action"
+            resp = opener.open(urllib.request.Request(page_url, headers=headers), timeout=8)
+            html = resp.read().decode("utf-8", errors="ignore")
+            m_auth = re.search(r'value=[\"\'](Bearer [^\"\']+)[\"\']', html)
+            if not m_auth:
+                return []
+            auth_val = m_auth.group(1)
+
+            # 2. Map department IDs to official Department Names
+            dept_map = {1735: "Department of Science and Technology"}
+            try:
+                dept_url = "https://eproc2.bihar.gov.in/EPSV2Web/rest/organization/loadAllDeptWithParent?orgId=538"
+                req_d = urllib.request.Request(
+                    dept_url,
+                    data=b"{}",
+                    headers={**headers, "Content-Type": "application/json", "Authorization": auth_val},
+                    method="POST"
+                )
+                dept_data = json.loads(opener.open(req_d, timeout=6).read().decode("utf-8"))
+                for d in dept_data:
+                    dept_map[d.get("organizationId")] = d.get("organizationName") or d.get("orgName")
+            except Exception:
+                pass
+
+            # 3. Call getTenderList
+            api_url = "https://eproc2.bihar.gov.in/EPSV2Web/rest/openarea/getTenderList"
+            req_t = urllib.request.Request(
+                api_url,
+                data=b"{}",
+                headers={**headers, "Content-Type": "application/json", "Authorization": auth_val},
+                method="POST"
+            )
+            data = json.loads(opener.open(req_t, timeout=10).read().decode("utf-8"))
+            if not isinstance(data, list):
+                return []
+
+            now_ist = datetime.now(timezone(timedelta(hours=5, minutes=30)))
+            results = []
+
+            # Keywords to filter if user specified query terms
+            clean_q = (query or "").lower().replace("bihar", "").replace("tenders", "").replace("tender", "").strip()
+            kw_tokens = [k.strip().lower() for k in clean_q.split() if len(k.strip()) > 2 and k.lower() not in ("the", "and", "for", "with", "from", "department")]
+
+            for item in data:
+                dept_id = item.get("currentdeptid")
+                dept_name = dept_map.get(dept_id, "Department of Science and Technology" if dept_id == 1735 else "Government of Bihar")
+                desc = item.get("currentdescription") or ""
+                ref_no = item.get("currenttenderrefno") or ""
+                rfq_id = str(item.get("currentOrgTenderId") or item.get("currenttenderid") or "")
+
+                # Deadline verification
+                end_ms = item.get("currentbidEndDate")
+                if end_ms:
+                    dl_dt = datetime.fromtimestamp(end_ms / 1000.0, tz=timezone(timedelta(hours=5, minutes=30)))
+                else:
+                    dl_dt = now_ist + timedelta(days=7)
+
+                if dl_dt < now_ist:
+                    continue
+
+                full_text = f"{desc} {ref_no} {dept_name}".lower()
+                if kw_tokens:
+                    if not any(token in full_text for token in kw_tokens):
+                        continue
+
+                pac_amt = item.get("currentpacamt")
+                val_inr = float(pac_amt) if pac_amt else None
+                val_str = f"₹{val_inr:,.2f}" if val_inr else "Not Specified"
+
+                cat = category or ("Goods" if any(w in desc.lower() for w in ("supply", "equipment", "items", "instruments", "generator", "panel")) else "Services")
+
+                tender_dict = {
+                    "tender_id": f"tnd_bih_{rfq_id}",
+                    "tender_number": f"BIH/EPROC2/{rfq_id}",
+                    "title": desc,
+                    "buyer_name": f"{dept_name} (Ref: {ref_no})",
+                    "state": "Bihar",
+                    "category": cat,
+                    "estimated_value_inr": val_inr,
+                    "emd_amount_inr": None,
+                    "tenure_months": 12,
+                    "submission_deadline": dl_dt.isoformat(),
+                    "portal": "eproc2.bihar.gov.in",
+                    "source_url": f"https://eproc2.bihar.gov.in/EPSV2Web/openarea/tenderListingPage.action?rfqId={rfq_id}",
+                    "status": "ACTIVE",
+                    "has_pdf_document": True,
+                }
+                results.append(tender_dict)
+                self.storage.save_tender_and_snapshot(
+                    org_id="org_default",
+                    tender_number=tender_dict["tender_number"],
+                    tender_title=desc,
+                    source_url=tender_dict["source_url"],
+                    buyer_name=tender_dict["buyer_name"],
+                    submission_deadline=dl_dt.isoformat(),
+                    estimated_value_inr=val_inr,
+                    extracted_data=tender_dict,
+                    raw_text_payload=f"eProc2 Bihar Tender {rfq_id}: {desc}\nRef: {ref_no}\nDepartment: {dept_name}\nDeadline: {dl_dt}\nEstimated Value: {val_str}",
+                    tender_id=tender_dict["tender_id"],
+                )
+            return results
+        except Exception as e:
+            logger.error("Failed to fetch eproc2 Bihar tenders: %s", e)
+            return []
+
     def search_live(
         self,
         query: Optional[str] = None,
@@ -410,6 +539,13 @@ class LiveTenderSearchEngine:
         Executes targeted live procurement searches, inspects candidate portal DOMs in parallel,
         enforces strict liveness validation, and returns normalized tender dicts.
         """
+        # Direct integration for Bihar eProcurement 2.0 (dynamic openarea REST portal)
+        if state == "Bihar" or (query and "bihar" in query.lower()) or (raw_prompt and "bihar" in raw_prompt.lower()):
+            bihar_tenders = self._fetch_eproc2_bihar(query=query or raw_prompt, state=state, category=category)
+            if bihar_tenders:
+                logger.info("Retrieved %d active tenders directly from eProc2 Bihar", len(bihar_tenders))
+                return bihar_tenders[:limit]
+
         if not self.client:
             logger.warning("TinyFish client not initialized (missing API key or library). Skipping live search.")
             return []
