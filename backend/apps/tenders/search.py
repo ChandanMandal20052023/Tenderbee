@@ -4,7 +4,9 @@ Supports natural language query parsing (e.g. 'services in bihar above 1 cr for 
 and structured multi-dimensional filtering across geography, category, capital, tenure, and buyer.
 """
 import logging
+import os
 import re
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
@@ -276,17 +278,38 @@ class TenderSearchService:
 
         # If detailed mode requested and no PDF has been parsed yet, try to acquire & parse it
         if mode == "detailed":
-            if not tender or tender.get("pdf_status") == "PENDING_INTAKE" or identifier.endswith(".pdf"):
+            if identifier.endswith(".pdf") or (os.path.exists(identifier) and not os.path.isdir(identifier)):
                 service = TenderService(storage=self.storage)
-                if identifier.endswith(".pdf"):
-                    intake_res = service.intake_tender_pdf(identifier)
-                else:
-                    intake_res = service.intake_tender(identifier)
-
+                intake_res = service.intake_tender_pdf(identifier)
                 if intake_res.get("success"):
                     tender = self.storage.get_tender(intake_res["tender_id"], mode="detailed")
                     if tender:
                         tender["rule_pack"] = intake_res.get("rule_pack")
+            elif not tender:
+                service = TenderService(storage=self.storage)
+                intake_res = service.intake_tender(identifier)
+                if intake_res.get("success"):
+                    tender = self.storage.get_tender(intake_res["tender_id"], mode="detailed")
+                    if tender:
+                        tender["rule_pack"] = intake_res.get("rule_pack")
+            elif tender.get("pdf_status") == "PENDING_INTAKE":
+                # Check if a matching PDF exists in samples directory
+                clean_id = re.sub(r"[^\w]", "", identifier.lower())
+                samples_dir = Path(__file__).resolve().parents[3] / "samples"
+                target_pdf = None
+                if samples_dir.exists():
+                    for sample_pdf in samples_dir.glob("*.pdf"):
+                        clean_name = re.sub(r"[^\w]", "", sample_pdf.stem.lower())
+                        if clean_id in clean_name or clean_name in clean_id:
+                            target_pdf = str(sample_pdf)
+                            break
+                if target_pdf:
+                    service = TenderService(storage=self.storage)
+                    intake_res = service.intake_tender_pdf(target_pdf)
+                    if intake_res.get("success"):
+                        tender = self.storage.get_tender(intake_res["tender_id"], mode="detailed")
+                        if tender:
+                            tender["rule_pack"] = intake_res.get("rule_pack")
             elif tender and tender.get("has_pdf_document"):
                 service = TenderService(storage=self.storage)
                 rule_pack = service.get_rule_pack_by_tender_id(tender["tender_id"])
