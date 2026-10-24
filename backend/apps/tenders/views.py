@@ -151,8 +151,16 @@ class TenderSearchAPIView(APIView):
             except ValueError:
                 pass
 
+        t_num = (
+            request.query_params.get("tender_number")
+            or request.query_params.get("tender_no")
+            or request.query_params.get("tender_id")
+            or request.query_params.get("rfq_id")
+        )
+
         filters = TenderSearchFilter(
             query=request.query_params.get("query"),
+            tender_number=t_num,
             state=request.query_params.get("state"),
             category=request.query_params.get("category"),
             min_value_inr=min_val,

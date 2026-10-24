@@ -243,6 +243,7 @@ class TenderStorage:
     def search_indexed_tenders(
         self,
         query: Optional[str] = None,
+        tender_number: Optional[str] = None,
         state: Optional[str] = None,
         category: Optional[str] = None,
         min_value_inr: Optional[float] = None,
@@ -254,10 +255,15 @@ class TenderStorage:
         offset: int = 0,
     ) -> List[Dict[str, Any]]:
         """
-        Executes multi-criteria search with full-text keyword matching and numeric thresholds.
+        Executes multi-criteria search with full-text keyword matching, tender number lookup, and numeric thresholds.
         """
         clauses = ["1=1"]
         params: List[Any] = []
+
+        if tender_number:
+            clauses.append("(external_id LIKE ? OR tender_id LIKE ?)")
+            t_kw = f"%{tender_number}%"
+            params.extend([t_kw, t_kw])
 
         if state:
             clauses.append("state = ?")
@@ -288,10 +294,10 @@ class TenderStorage:
             params.append(f"%{buyer_name}%")
 
         if query:
-            # Match query against title, buyer_name, or location
-            clauses.append("(title LIKE ? OR buyer_name LIKE ? OR location LIKE ?)")
+            # Match query against external_id, tender_id, title, buyer_name, or location
+            clauses.append("(external_id LIKE ? OR tender_id LIKE ? OR title LIKE ? OR buyer_name LIKE ? OR location LIKE ?)")
             kw = f"%{query}%"
-            params.extend([kw, kw, kw])
+            params.extend([kw, kw, kw, kw, kw])
 
         where_sql = " AND ".join(clauses)
         sql = f"""
@@ -332,18 +338,26 @@ class TenderStorage:
     def get_tender(self, identifier: str, mode: str = "skim") -> Optional[Dict[str, Any]]:
         """
         Retrieves a tender by its tender_id or external tender_number.
+        Supports exact match and prefix/partial number match.
         Supports two viewing modes:
         - 'skim': Fast high-level overview (financials, buyer, deadline, tenure, status)
         - 'detailed': Complete breakdown including extracted clauses, page citations, and rule pack.
         """
+        clean_id = (identifier or "").strip()
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             cursor.execute("""
                 SELECT * FROM tenders
-                WHERE tender_id = ? OR external_id = ?
+                WHERE tender_id = ? OR external_id = ? OR external_id LIKE ? OR tender_id LIKE ?
+                ORDER BY CASE
+                    WHEN external_id = ? THEN 1
+                    WHEN tender_id = ? THEN 2
+                    WHEN external_id LIKE ? THEN 3
+                    ELSE 4
+                END
                 LIMIT 1
-            """, (identifier, identifier))
+            """, (clean_id, clean_id, f"%{clean_id}%", f"%{clean_id}%", clean_id, clean_id, f"%{clean_id}%"))
             row = cursor.fetchone()
             if not row:
                 return None

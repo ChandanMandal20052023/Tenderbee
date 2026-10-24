@@ -109,6 +109,7 @@ class ParsedSearchQuery(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
     query: Optional[str] = Field(default=None, description="Residual keywords or project item terms (e.g. 'smart meter', 'cleaning', 'flyover'). DO NOT include state names, categories, or numbers extracted into dedicated fields.")
+    tender_number: Optional[str] = Field(default=None, description="Exact or partial tender reference number, RFQ ID, or Bid Number (e.g. 'BIH/EPROC2/141349', '141349', '2026_HRY_530295_1', 'GEM/2026/B/12345').")
     state: Optional[str] = Field(default=None, description="Full official Indian State or Union Territory name (e.g. 'Uttar Pradesh', 'Rajasthan', 'Haryana', 'Bihar', 'Maharashtra'). If user types abbreviations like 'up' or 'rj', map to 'Uttar Pradesh' or 'Rajasthan'.")
     city_or_district: Optional[str] = Field(default=None, description="Specific city, town, or district e.g. 'Lucknow', 'Jaipur', 'Patna', 'Faridabad', 'Noida'")
     category: Optional[str] = Field(default=None, description="Procurement category: strictly 'Services', 'Works', or 'Goods'")

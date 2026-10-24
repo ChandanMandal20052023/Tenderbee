@@ -89,6 +89,7 @@ CATEGORIES = ["Services", "Works", "Goods"]
 
 class TenderSearchFilter(BaseModel):
     query: Optional[str] = Field(default=None, description="Free text keywords")
+    tender_number: Optional[str] = Field(default=None, description="Exact or partial tender reference number / ID")
     state: Optional[str] = Field(default=None, description="Indian state name (e.g. Bihar)")
     city_or_district: Optional[str] = Field(default=None, description="City or district (e.g. Patna)")
     category: Optional[str] = Field(default=None, description="Services, Works, or Goods")
@@ -139,6 +140,7 @@ class QueryParser:
                     logger.info("LLM query parser extracted structured filters: %s", llm_parsed.model_dump())
                     return TenderSearchFilter(
                         query=llm_parsed.query,
+                        tender_number=getattr(llm_parsed, "tender_number", None),
                         state=llm_parsed.state,
                         city_or_district=llm_parsed.city_or_district,
                         category=llm_parsed.category,
@@ -151,6 +153,7 @@ class QueryParser:
                 logger.debug("LLM query parsing encountered exception, falling back to deterministic parser: %s", e)
 
         # Step 2: Deterministic Rule-Based Parsing
+        tender_number = cls._extract_tender_number(text)
         state = cls._extract_state(lower)
         category = cls._extract_category(lower)
         city = cls._extract_city(lower, state)
@@ -158,10 +161,11 @@ class QueryParser:
             state = cls._infer_state_from_city(city)
         min_val, max_val = cls._extract_values(lower)
         min_tenure = cls._extract_tenure(lower)
-        keywords = cls._extract_keywords(text, state, category, city)
+        keywords = cls._extract_keywords(text, state, category, city, tender_number=tender_number)
 
         return TenderSearchFilter(
             query=keywords if keywords else None,
+            tender_number=tender_number,
             state=state,
             city_or_district=city,
             category=category,
@@ -169,6 +173,65 @@ class QueryParser:
             max_value_inr=max_val,
             min_tenure_months=min_tenure,
         )
+
+    @classmethod
+    def _extract_tender_number(cls, text: str) -> Optional[str]:
+        """
+        Extracts exact or partial tender numbers, RFQ IDs, or portal bid numbers.
+        Handles prefixes ('tender 141349', 'tender no 2026_HRY_530295_1') and
+        well-known Indian portal numbering schemes.
+        """
+        # 1. Check for explicit prefix: tender no, tender #, tender id, tender number, rfq, bid no
+        m_prefix = re.search(
+            r"(?:tender\s*(?:no\.?|number|id|#)?|rfq\s*(?:no\.?|number|id|#)?|bid\s*(?:no\.?|number|id|#)?)\s*[:\-]?\s*([A-Za-z0-9_\/-]{4,})",
+            text,
+            re.IGNORECASE,
+        )
+        if m_prefix:
+            cand = m_prefix.group(1).strip().rstrip(".,;:")
+            # Filter out common non-tender words if matched erroneously
+            if cand.lower() not in (
+                "active", "notice", "notices", "details", "detail", "document", "documents",
+                "service", "services", "goods", "works", "bihar", "haryana", "delhi"
+            ):
+                return cand
+
+        # 2. Bihar eProc2 format: BIH/EPROC2/141349 or EPROC2/141349
+        m_bih = re.search(r"\b(BIH/EPROC2/\d+|EPROC2/\d+)\b", text, re.IGNORECASE)
+        if m_bih:
+            return m_bih.group(1).upper()
+
+        # 3. CPPP / GePNIC tender IDs: e.g. 2026_HRY_530295_1, 2025_CPPP_123456_1
+        m_cppp = re.search(r"\b(20\d\d_[A-Za-z0-9_]+_\d+_\d+|20\d\d_[A-Za-z0-9_]+_\d+)\b", text)
+        if m_cppp:
+            return m_cppp.group(1)
+
+        # 4. GeM Bid Numbers: e.g. GEM/2026/B/1234567 or GEM/2025/R/12345
+        m_gem = re.search(r"\b(GEM/\d{4}/[A-Z]/\d+)\b", text, re.IGNORECASE)
+        if m_gem:
+            return m_gem.group(1).upper()
+
+        # 5. Railway / IREPS / Department tender numbers with slashes: e.g. ECR/HAJIPUR/CIVIL/2026/09
+        m_dept = re.search(r"\b([A-Z]{2,10}/[A-Za-z0-9_\/-]{5,})\b", text)
+        if m_dept:
+            return m_dept.group(1)
+
+        # 6. TenderBee internal ID format: tnd_bih_141349 or tnd_...
+        m_tnd = re.search(r"\b(tnd_[a-zA-Z0-9_]+)\b", text, re.IGNORECASE)
+        if m_tnd:
+            return m_tnd.group(1).lower()
+
+        # 7. Standalone numeric RFQ or tender ID (e.g. 141349, 140751, 530295) if entire text is digits
+        stripped = text.strip()
+        if re.match(r"^\d{4,10}$", stripped):
+            return stripped
+
+        # 8. 6-digit RFQ ID typically used in Bihar eProc2 (14XXXX)
+        m_rfq = re.search(r"\b(14\d{4})\b", text)
+        if m_rfq:
+            return m_rfq.group(1)
+
+        return None
 
     @classmethod
     def _extract_state(cls, text: str) -> Optional[str]:
@@ -256,14 +319,28 @@ class QueryParser:
         return None
 
     @classmethod
-    def _extract_keywords(cls, original: str, state: Optional[str], category: Optional[str], city: Optional[str]) -> str:
+    def _extract_keywords(
+        cls,
+        original: str,
+        state: Optional[str],
+        category: Optional[str],
+        city: Optional[str],
+        tender_number: Optional[str] = None,
+    ) -> str:
         s = original
+        if tender_number:
+            # Strip tender number from residual keywords
+            s = re.sub(re.escape(tender_number), " ", s, flags=re.IGNORECASE)
+            if tender_number.isdigit():
+                s = re.sub(r"\b(?:BIH/EPROC2/|EPROC2/|GEM/\d{4}/[A-Z]/)\b", " ", s, flags=re.IGNORECASE)
+
         remove_terms = [
             "tenders", "tender", "related", "to", "released", "in", "for", "give", "me", "show",
             "active", "above", "below", "greater", "less", "than", "with", "tenure", "duration",
             "period", "capital", "value", "budget", "find", "search", "between", "from", "upto",
             "having", "contract", "like", "any", "all", "around", "near", "location", "is", "these",
-            "those", "there", "wanted", "want", "look", "looking", "procurement", "notice"
+            "those", "there", "wanted", "want", "look", "looking", "procurement", "notice", "notices",
+            "number", "numbers", "rfq", "bid", "no"
         ]
         if state:
             remove_terms.extend([state.lower(), f"in {state.lower()}"])
@@ -322,6 +399,7 @@ class TenderSearchService:
         # 1. Search local indexed database
         local_results = self.storage.search_indexed_tenders(
             query=filters.query,
+            tender_number=filters.tender_number,
             state=filters.state,
             category=filters.category,
             min_value_inr=filters.min_value_inr,
@@ -338,11 +416,11 @@ class TenderSearchService:
         if total_count == 0 and self.live_search_engine:
             logger.info("No local match found. Dispatching live portal search for filters %s", filters.model_dump())
             live_tenders = self.live_search_engine.search_live(
-                query=filters.query,
+                query=filters.tender_number or filters.query,
                 state=filters.state,
                 category=filters.category,
                 city=filters.city_or_district,
-                raw_prompt=raw_prompt,
+                raw_prompt=raw_prompt or filters.tender_number,
                 limit=filters.limit,
             )
             if live_tenders:

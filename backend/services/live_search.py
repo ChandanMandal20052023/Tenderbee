@@ -737,7 +737,7 @@ class LiveTenderSearchEngine:
                 if dl_dt < now_ist:
                     continue
 
-                full_text = f"{desc} {ref_no} {dept_name}".lower()
+                full_text = f"{desc} {ref_no} {dept_name} {rfq_id} bih/eproc2/{rfq_id} {item.get('currenttenderid', '')}".lower()
                 if kw_tokens:
                     if not any(token in full_text for token in kw_tokens):
                         continue
@@ -862,7 +862,13 @@ class LiveTenderSearchEngine:
         enforces strict liveness validation, and returns normalized tender dicts.
         """
         # Direct integration for Bihar eProcurement 2.0 (dynamic openarea REST portal)
-        if state == "Bihar" or (query and "bihar" in query.lower()) or (raw_prompt and "bihar" in raw_prompt.lower()):
+        is_bihar_query = (
+            state == "Bihar"
+            or (query and any(k in query.lower() for k in ("bihar", "bih", "eproc2", "buidco")))
+            or (raw_prompt and any(k in raw_prompt.lower() for k in ("bihar", "bih", "eproc2", "buidco")))
+            or bool(re.search(r"\b14\d{4}\b", query or raw_prompt or ""))
+        )
+        if is_bihar_query:
             bihar_tenders = self._fetch_eproc2_bihar(query=query or raw_prompt, state=state, category=category)
             if bihar_tenders:
                 logger.info("Retrieved %d active tenders directly from eProc2 Bihar", len(bihar_tenders))

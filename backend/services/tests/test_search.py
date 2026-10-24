@@ -156,3 +156,58 @@ def test_search_service_live_discovery_fallback(tmp_path):
     assert res["results"][0]["state"] == "Sikkim"
     assert res["results"][0]["tender_number"] == "SIK/2026/001"
 
+
+def test_query_parser_tender_numbers():
+    """Verify deterministic parsing of full and partial tender reference numbers."""
+    f1 = QueryParser.parse("BIH/EPROC2/141349")
+    assert f1.tender_number == "BIH/EPROC2/141349"
+    assert f1.query is None
+
+    f2 = QueryParser.parse("141349")
+    assert f2.tender_number == "141349"
+    assert f2.query is None
+
+    f3 = QueryParser.parse("tender 141349")
+    assert f3.tender_number == "141349"
+    assert f3.query is None
+
+    f4 = QueryParser.parse("tender no 2026_HRY_530295_1")
+    assert f4.tender_number == "2026_HRY_530295_1"
+    assert f4.query is None
+
+    f5 = QueryParser.parse("GEM/2026/B/998877")
+    assert f5.tender_number == "GEM/2026/B/998877"
+    assert f5.query is None
+
+    f6 = QueryParser.parse("hospital tender 2026_HRY_530295_1")
+    assert f6.tender_number == "2026_HRY_530295_1"
+    assert f6.query == "hospital"
+
+
+def test_search_service_by_tender_number(tmp_path):
+    """Verify search service locates tenders by exact and partial tender numbers."""
+    storage = TenderStorage(base_dir=str(tmp_path))
+    _seed_test_tenders(storage)
+    service = TenderSearchService(storage=storage)
+
+    # 1. Search by full tender number
+    res1 = service.search_by_prompt("UT/2026/01")
+    assert res1["success"] is True
+    assert res1["total_matches"] == 1
+    assert res1["results"][0]["tender_number"] == "UT/2026/01"
+
+    # 2. Search by prefix/partial number
+    res2 = service.search_by_prompt("UT/2026/02")
+    assert res2["success"] is True
+    assert res2["total_matches"] == 1
+    assert res2["results"][0]["tender_number"] == "UT/2026/02"
+
+    # 3. Direct lookup via get_tender with partial / exact identifier
+    t1 = service.get_tender("UT/2026/01")
+    assert t1 is not None
+    assert t1["tender_id"] == "ut_fixture_01"
+
+    t2 = service.get_tender("ut_fixture_02")
+    assert t2 is not None
+    assert t2["tender_number"] == "UT/2026/02"
+

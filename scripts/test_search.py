@@ -369,7 +369,7 @@ def interactive_search_loop(service: TenderSearchService, initial_prompt: Option
 def main():
     parser = argparse.ArgumentParser(description="TenderBee Multi-Criteria Tender Discovery & Inspection CLI")
     parser.add_argument("prompt", nargs="?", default=None, help="Natural language query (e.g. 'services in haryana above 2 cr')")
-    parser.add_argument("--tender", help="Look up specific tender by ID/Number (e.g. BIH/EPROC2/140751 or 2026_HRY_530295_1)")
+    parser.add_argument("--tender", "--tender-number", dest="tender", help="Look up specific tender by ID/Number (e.g. BIH/EPROC2/140751, 141349, or 2026_HRY_530295_1)")
     parser.add_argument("--mode", choices=["skim", "detailed", "json"], default="skim", help="View mode: 'skim' (basic details), 'detailed' (parse PDF), or 'json' (raw JSON payload)")
     parser.add_argument("--interactive", action="store_true", help="Force interactive mode even when parameters are given")
     parser.add_argument("--non-interactive", action="store_true", help="Disable interactive prompts (for CI/piping)")
