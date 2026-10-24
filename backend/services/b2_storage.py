@@ -69,13 +69,15 @@ class BackblazeB2Storage:
             or "tenderbee"
         ).strip()
 
-        # 4. Region (auto-inferred from endpoint URL if not provided)
-        raw_region = (region_name or os.getenv("B2_REGION") or "").strip()
-        if raw_region:
-            self.region_name = raw_region
+        # 4. Region (explicit region_name -> inferred from endpoint_url -> B2_REGION env -> default)
+        if region_name:
+            self.region_name = region_name.strip()
         else:
             match = re.search(r"s3\.([a-z0-9\-]+)\.backblazeb2\.com", self.endpoint_url)
-            self.region_name = match.group(1) if match else "us-west-004"
+            if match:
+                self.region_name = match.group(1)
+            else:
+                self.region_name = (os.getenv("B2_REGION") or "us-west-004").strip()
 
         # Check configuration readiness
         self.is_configured = bool(

@@ -127,6 +127,11 @@ class VerificationService:
 
         if not rule_pack_obj:
             return {"success": False, "error": "No RulePack found for this tender. Please intake tender first."}
+        if not rule_pack_obj.has_valid_frozen_integrity():
+            return {
+                "success": False,
+                "error": "RulePack is not frozen or its SHA-256 integrity check failed.",
+            }
 
         if rule_pack_obj.status == RulePackStatus.DRAFT:
             rule_pack_obj.freeze(confirmed_by_name=actor)
