@@ -1,0 +1,117 @@
+{
+  "tender_id": "tnd_mech_tpa_2026",
+  "version": 1,
+  "status": "FROZEN",
+  "content_hash": "b2f67ac83d02e48231c5f3b7949b919a",
+  "reference_dates": {
+    "submission_deadline": "2026-03-30T15:00:00+05:30"
+  },
+  "rules": [
+    {
+      "rule_id": "R-DOC-UDYAM",
+      "document_type": "udyam_certificate",
+      "rule_type": "document_required",
+      "description": "Valid Udyam Registration Certificate required for MSE eligibility / exemption.",
+      "source": {
+        "page": 4,
+        "quote": "Udyam Registration Certificate required."
+      },
+      "field": "status",
+      "operator": "eq",
+      "value": "ACTIVE"
+    },
+    {
+      "rule_id": "R-DOC-CA",
+      "document_type": "ca_turnover_certificate",
+      "rule_type": "document_required",
+      "description": "Chartered Accountant certified turnover balance sheet required.",
+      "source": {
+        "page": 4,
+        "quote": "The contractor shall submit a certificate from Chartered Accountant"
+      },
+      "field": "status",
+      "operator": "eq",
+      "value": "SUBMITTED"
+    },
+    {
+      "rule_id": "R-TURNOVER-AVG3",
+      "document_type": "ca_turnover_certificate",
+      "rule_type": "numeric_threshold",
+      "description": "Average annual turnover over last 3 years must exceed ₹78,39,23,735.01.",
+      "source": {
+        "page": 4,
+        "quote": "150% of the Advertised Value of the tender i.e. Rs. 78,39,23,735.01"
+      },
+      "field": "average_turnover_inr",
+      "operator": "gte",
+      "value": 783923735.01
+    },
+    {
+      "rule_id": "R-UDIN",
+      "document_type": "ca_turnover_certificate",
+      "rule_type": "identifier_present",
+      "description": "Chartered Accountant Unique Document Identification Number (UDIN) is mandatory.",
+      "source": {
+        "page": 4,
+        "quote": "The certificates from CA should bear the Unique Document Identification Number (UDIN)"
+      },
+      "field": "udin",
+      "operator": "present",
+      "value": true
+    },
+    {
+      "rule_id": "R-LIQUIDITY",
+      "document_type": "banking_reference_annexure_x",
+      "rule_type": "numeric_threshold",
+      "description": "Working capital / liquidity facility must exceed ₹2,61,30,791.17.",
+      "source": {
+        "page": 4,
+        "quote": "Liquidity (T-2): Minimum 5% of Advertised Value of Tender i.e. Rs. 2,61,30,791.17"
+      },
+      "field": "available_credit_facility_inr",
+      "operator": "gte",
+      "value": 26130791.17
+    },
+    {
+      "rule_id": "R-WORK-EXP",
+      "document_type": "work_experience_certificate",
+      "rule_type": "numeric_threshold",
+      "description": "Single qualifying completed contract value must exceed ₹18,29,15,538.17.",
+      "source": {
+        "page": 4,
+        "quote": "Single work of similar nature having minimum value of 35% of the Advertised Value of Tender i.e. Rs. 18,29,15,538.17"
+      },
+      "field": "contract_value_inr",
+      "operator": "gte",
+      "value": 182915538.17
+    },
+    {
+      "rule_id": "R-DOC-ANNEXURE-I",
+      "document_type": "truthfulness_undertaking_annexure_i",
+      "rule_type": "document_required",
+      "description": "Signed Truthfulness & Non-Debarment Undertaking on letterhead (Annexure-I).",
+      "source": {
+        "page": 17,
+        "quote": "Annexure-I FORMAT FOR AFFIDAVIT TO BE SUBMITTED BY TENDERER"
+      },
+      "field": "signed",
+      "operator": "eq",
+      "value": true
+    },
+    {
+      "rule_id": "R-ENTITY-ELIGIBILITY",
+      "document_type": "udyam_certificate",
+      "rule_type": "field_in_set",
+      "description": "Bidder entity type must belong to approved types: Railway PSUs.",
+      "source": {
+        "page": 5,
+        "quote": "Only Railway PSUs are eligible to participate in this tender."
+      },
+      "field": "entity_type",
+      "operator": "in",
+      "value": [
+        "Railway PSUs"
+      ]
+    }
+  ]
+}
