@@ -20,6 +20,7 @@ class AuditLogListAPIView(TenantIsolationMixin, generics.ListAPIView):
     GET /api/v1/audit/
     Retrieves paginated immutable audit trail events for the authenticated organization.
     """
+    queryset = AuditLogEntry.objects.all()
     serializer_class = AuditLogEntrySerializer
     permission_classes = [IsMember]
     pagination_class = AuditPagination

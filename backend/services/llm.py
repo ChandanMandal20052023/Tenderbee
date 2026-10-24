@@ -239,7 +239,7 @@ class LLMAdapter:
     Supports Google Gemini API with JSON schema enforcement.
     """
     def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
-        raw_key = api_key or os.getenv("GEMINI_API_KEY") or os.getenv("LLM_API_KEY") or ""
+        raw_key = api_key or os.getenv("GEMINI_API_KEY") or ""
         self.api_key = raw_key.strip() or None
         self.model = (model or os.getenv("GEMINI_MODEL", "gemini-2.0-flash")).strip()
         if not _MODEL_NAME_PATTERN.fullmatch(self.model):
