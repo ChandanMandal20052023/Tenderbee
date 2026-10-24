@@ -1,23 +1,28 @@
 """
-URL endpoints for Tender Intake, PDF Parsing, and RulePack Management.
+URL endpoints for Tender Management, Intake, Search, Schema, PDF Parsing, and RulePack Confirmation.
 """
 from django.urls import path
 
-from backend.apps.tenders.views import (
+from apps.tenders.views import (
     RulePackConfirmAPIView,
     RulePackDetailAPIView,
+    TenderDetailAPIView,
     TenderIntakeAPIView,
+    TenderListAPIView,
     TenderPDFUploadAPIView,
-    TenderSearchAPIView,
     TenderSchemaAPIView,
+    TenderSearchAPIView,
 )
 
+app_name = "tenders"
+
 urlpatterns = [
+    path("", TenderListAPIView.as_view(), name="tender-list"),
     path("schema/", TenderSchemaAPIView.as_view(), name="tender-schema"),
     path("search/", TenderSearchAPIView.as_view(), name="tender-search"),
+    path("<str:tender_id>/", TenderDetailAPIView.as_view(), name="tender-detail"),
     path("intake/", TenderIntakeAPIView.as_view(), name="tender-intake"),
     path("upload-pdf/", TenderPDFUploadAPIView.as_view(), name="tender-upload-pdf"),
     path("rule-pack/<str:rule_pack_id>/", RulePackDetailAPIView.as_view(), name="rule-pack-detail"),
     path("rule-pack/<str:rule_pack_id>/confirm/", RulePackConfirmAPIView.as_view(), name="rule-pack-confirm"),
 ]
-

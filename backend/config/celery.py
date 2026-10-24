@@ -1,1 +1,16 @@
-# Celery application initialization and task broker routing
+"""
+Celery configuration for TenderBee asynchronous task execution.
+"""
+import os
+from celery import Celery
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+
+app = Celery("tenderbee")
+app.config_from_object("django.conf:settings", namespace="CELERY")
+app.autodiscover_tasks()
+
+
+@app.task(bind=True, ignore_result=True)
+def debug_task(self):
+    print(f"Request: {self.request!r}")

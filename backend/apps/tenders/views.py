@@ -188,3 +188,35 @@ class TenderSchemaAPIView(APIView):
         return Response(TenderPDFExtractionResult.get_json_schema(), status=status.HTTP_200_OK)
 
 
+class TenderListAPIView(APIView):
+    """
+    GET /api/v1/tenders/
+    Lists tenders belonging to the current tenant.
+    """
+    def get(self, request, *args, **kwargs):
+        from apps.accounts.utils import get_tenant_org_id
+        from apps.tenders.models import Tender
+        from apps.tenders.serializers import TenderSerializer
+        org_id = get_tenant_org_id(request)
+        tenders = Tender.objects.filter(organization_id=org_id)
+        serializer = TenderSerializer(tenders, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class TenderDetailAPIView(APIView):
+    """
+    GET /api/v1/tenders/<tender_id>/
+    Retrieves a single tender record with all its snapshots.
+    """
+    def get(self, request, tender_id, *args, **kwargs):
+        from apps.accounts.utils import get_tenant_org_id
+        from apps.tenders.models import Tender
+        from apps.tenders.serializers import TenderSerializer
+        org_id = get_tenant_org_id(request)
+        try:
+            tender = Tender.objects.get(id=tender_id, organization_id=org_id)
+        except Tender.DoesNotExist:
+            return Response({"error": f"Tender '{tender_id}' not found."}, status=status.HTTP_404_NOT_FOUND)
+        serializer = TenderSerializer(tender)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+

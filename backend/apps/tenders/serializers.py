@@ -2,6 +2,7 @@
 DRF Serializers for Tender Intake, PDF Parsing, and RulePack Confirmation.
 """
 from rest_framework import serializers
+from apps.tenders.models import Tender, TenderSnapshot
 
 
 class TenderIntakeRequestSerializer(serializers.Serializer):
@@ -43,3 +44,34 @@ class RulePackConfirmSerializer(serializers.Serializer):
         max_length=128,
         help_text="Identifier of the human reviewer approving the rules",
     )
+
+
+class TenderSnapshotSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TenderSnapshot
+        fields = ("id", "content_hash", "source_url", "extracted_data", "fetched_at")
+
+
+class TenderSerializer(serializers.ModelSerializer):
+    snapshots = TenderSnapshotSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Tender
+        fields = (
+            "id",
+            "external_id",
+            "title",
+            "buyer_name",
+            "buyer_location",
+            "submission_deadline",
+            "bid_opening_date",
+            "estimated_value_inr",
+            "emd_amount_inr",
+            "mse_exemption_allowed",
+            "source_url",
+            "status",
+            "snapshots",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = ("id", "created_at", "updated_at")

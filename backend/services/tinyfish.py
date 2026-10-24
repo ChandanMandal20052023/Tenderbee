@@ -77,9 +77,11 @@ class BidEasyScraper:
 
     def __init__(self, api_key: Optional[str] = None, storage: Optional[Any] = None):
         self.api_key = api_key or os.getenv("TINYFISH_API_KEY")
-        if not self.api_key:
-            raise ValueError("TINYFISH_API_KEY is not set in environment or .env file.")
-        self.client = TinyFish(api_key=self.api_key)
+        if self.api_key:
+            self.client = TinyFish(api_key=self.api_key)
+        else:
+            self.client = None
+            logger.warning("TINYFISH_API_KEY not set. Live web scraping will be disabled.")
         self.storage = storage
 
     def _detect_cloudflare_barrier(self, url: str) -> Optional[str]:
@@ -154,6 +156,14 @@ class BidEasyScraper:
                 "mandatory documents required, minimum annual turnover threshold and number of years, "
                 "whether CA UDIN is mandatory, any required NIC codes, and copy the verbatim quotes for each eligibility clause."
             )
+
+        if not self.client:
+            return {
+                "success": False,
+                "error": "TINYFISH_API_KEY is not configured in environment or .env file.",
+                "reason_code": "EXTERNAL_UNAVAILABLE",
+                "is_cached": False,
+            }
 
         extracted_result = None
         raw_stream_text = []

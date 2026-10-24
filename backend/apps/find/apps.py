@@ -1,1 +1,7 @@
-# Find app configuration
+from django.apps import AppConfig
+
+
+class FindConfig(AppConfig):
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "apps.find"
+    verbose_name = "Tender Discovery (Find)"

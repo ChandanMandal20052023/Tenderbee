@@ -1,0 +1,3 @@
+"""
+TenderBee apps namespace package.
+"""
