@@ -20,7 +20,6 @@ urlpatterns = [
     path("", TenderListAPIView.as_view(), name="tender-list"),
     path("schema/", TenderSchemaAPIView.as_view(), name="tender-schema"),
     path("search/", TenderSearchAPIView.as_view(), name="tender-search"),
-    path("<str:tender_id>/", TenderDetailAPIView.as_view(), name="tender-detail"),
     path("intake/", TenderIntakeAPIView.as_view(), name="tender-intake"),
     path("upload-pdf/", TenderPDFUploadAPIView.as_view(), name="tender-upload-pdf"),
     path("rule-pack/<str:rule_pack_id>/", RulePackDetailAPIView.as_view(), name="rule-pack-detail"),

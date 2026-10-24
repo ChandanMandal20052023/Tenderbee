@@ -4,7 +4,7 @@ API Views for Tender Intake, PDF Parsing, and RulePack Management.
 import os
 import tempfile
 from pathlib import Path
-from rest_framework import status
+from rest_framework import status, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -119,6 +119,8 @@ class TenderSearchAPIView(APIView):
     POST /api/v1/tenders/search/ {"prompt": "services in bihar above 1 cr"}
     Discovery engine supporting natural language and multi-criteria filters.
     """
+    permission_classes = [permissions.AllowAny]
+
     def get(self, request, *args, **kwargs):
         from backend.apps.tenders.search import TenderSearchService, TenderSearchFilter
 
@@ -183,6 +185,8 @@ class TenderSchemaAPIView(APIView):
     GET /api/v1/tenders/schema/
     Returns the formal JSON Schema for Tender Notice Extractions.
     """
+    permission_classes = [permissions.AllowAny]
+
     def get(self, request, *args, **kwargs):
         from backend.engine.schema import TenderPDFExtractionResult
         return Response(TenderPDFExtractionResult.get_json_schema(), status=status.HTTP_200_OK)
@@ -210,6 +214,8 @@ class TenderDetailAPIView(APIView):
     - 'skim': Fast high-level overview
     - 'detailed': Complete breakdown including parsed PDF clauses, page citations, and rule pack
     """
+    permission_classes = [permissions.AllowAny]
+
     def get(self, request, identifier=None, tender_id=None, *args, **kwargs):
         target_id = identifier or tender_id
         mode = request.query_params.get("mode", "skim").lower()
@@ -221,17 +227,20 @@ class TenderDetailAPIView(APIView):
         if result:
             return Response(result, status=status.HTTP_200_OK)
 
-        from apps.accounts.utils import get_tenant_org_id
-        from apps.tenders.models import Tender
-        from apps.tenders.serializers import TenderSerializer
-        org_id = get_tenant_org_id(request)
-        try:
-            tender = Tender.objects.get(id=target_id, organization_id=org_id)
-            serializer = TenderSerializer(tender)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        except Exception:
-            return Response(
-                {"success": False, "error": f"Tender '{target_id}' not found."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+        if request.user and request.user.is_authenticated:
+            from apps.accounts.utils import get_tenant_org_id
+            from apps.tenders.models import Tender
+            from apps.tenders.serializers import TenderSerializer
+            org_id = get_tenant_org_id(request)
+            try:
+                tender = Tender.objects.get(id=target_id, organization_id=org_id)
+                serializer = TenderSerializer(tender)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            except Exception:
+                pass
+
+        return Response(
+            {"success": False, "error": f"Tender '{target_id}' not found."},
+            status=status.HTTP_404_NOT_FOUND,
+        )
 

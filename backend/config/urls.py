@@ -19,8 +19,38 @@ def health_check(request):
     })
 
 
+def api_root(request):
+    """Root landing endpoint returning service info and available API endpoints."""
+    return JsonResponse({
+        "service": "TenderBee Core API",
+        "version": "1.0.0",
+        "status": "online",
+        "documentation": "TenderBee Deterministic Verification & Procurement Platform",
+        "endpoints": {
+            "health": "/api/health/",
+            "admin": "/admin/",
+            "auth": {
+                "register": "/api/v1/auth/register/",
+                "token": "/api/v1/auth/token/",
+                "refresh": "/api/v1/auth/refresh/",
+                "me": "/api/v1/auth/me/",
+            },
+            "tenders": "/api/v1/tenders/",
+            "rules": "/api/v1/rules/",
+            "documents": "/api/v1/documents/",
+            "verify": "/api/v1/verify/",
+            "evidence": "/api/v1/evidence/",
+            "audit": "/api/v1/audit/",
+            "find": "/api/v1/find/",
+            "prepare": "/api/v1/prepare/",
+        },
+    })
+
+
 urlpatterns = [
+    path("", api_root, name="api-root"),
     path("admin/", admin.site.urls),
+    path("api-auth/", include("rest_framework.urls")),
     path("api/health/", health_check, name="health-check"),
 
     # API v1 routes
