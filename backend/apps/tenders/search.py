@@ -520,10 +520,21 @@ class TenderSearchService:
         """
         from backend.apps.tenders.services import TenderService
 
-        tender = self.storage.get_tender(identifier, mode=mode)
+        is_direct_pdf = identifier.endswith(".pdf") or (os.path.exists(identifier) and not os.path.isdir(identifier))
+        if is_direct_pdf:
+            service = TenderService(storage=self.storage)
+            intake_res = service.intake_tender_pdf(identifier)
+            if intake_res.get("success"):
+                tender = self.storage.get_tender(intake_res["tender_id"], mode=mode)
+                if tender and mode == "detailed":
+                    tender["rule_pack"] = intake_res.get("rule_pack")
+            else:
+                tender = None
+        else:
+            tender = self.storage.get_tender(identifier, mode=mode)
 
         # If tender lacks rich preview details (e.g. from raw initial index), fetch them via portal preview
-        if tender and self.live_search_engine:
+        if tender and self.live_search_engine and not is_direct_pdf:
             portal = (tender.get("portal") or "").lower()
             t_num = str(tender.get("tender_number") or "")
             if ("eproc2.bihar.gov.in" in portal or "BIH/EPROC2/" in t_num) and (
@@ -580,29 +591,21 @@ class TenderSearchService:
                     )
 
         # If detailed mode requested and no PDF has been parsed yet, robustly acquire & parse it
-        if mode == "detailed":
-            if identifier.endswith(".pdf") or (os.path.exists(identifier) and not os.path.isdir(identifier)):
+        if mode == "detailed" and not is_direct_pdf:
+            if not tender:
                 service = TenderService(storage=self.storage)
-                intake_res = service.intake_tender_pdf(identifier)
+                intake_res = service.intake_tender(identifier)
                 if intake_res.get("success"):
                     tender = self.storage.get_tender(intake_res["tender_id"], mode="detailed")
                     if tender:
                         tender["rule_pack"] = intake_res.get("rule_pack")
-            else:
-                if not tender:
-                    service = TenderService(storage=self.storage)
-                    intake_res = service.intake_tender(identifier)
-                    if intake_res.get("success"):
-                        tender = self.storage.get_tender(intake_res["tender_id"], mode="detailed")
-                        if tender:
-                            tender["rule_pack"] = intake_res.get("rule_pack")
 
-                # If tender exists but has no parsed clauses/pages, robustly acquire and parse PDF
-                ext = tender.get("extraction")
-                has_deep_clauses = isinstance(ext, dict) and (
-                    bool(ext.get("verbatim_clauses")) or ext.get("total_pages") is not None
-                )
-                if tender and (tender.get("pdf_status") != "PARSED" or not has_deep_clauses):
+            # If tender exists but has no parsed clauses/pages, robustly acquire and parse PDF
+            ext = tender.get("extraction") if tender else None
+            has_deep_clauses = isinstance(ext, dict) and (
+                bool(ext.get("verbatim_clauses")) or ext.get("total_pages") is not None
+            )
+            if tender and (tender.get("pdf_status") != "PARSED" or not has_deep_clauses):
                     from backend.services.pdf_resolver import TenderPDFResolver
                     resolver = TenderPDFResolver(storage=self.storage)
                     resolved_pdf = resolver.resolve_and_acquire_pdf(tender)
