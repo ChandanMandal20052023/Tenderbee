@@ -65,3 +65,52 @@ def test_search_service_multi_criteria_filter(tmp_path):
         assert tender["state"] == "Bihar"
         assert tender["estimated_value_inr"] >= 20000000.0
         assert tender["tenure_months"] >= 12
+
+
+def test_query_parser_uttar_pradesh_and_aliases():
+    """Verify parsing of Uttar Pradesh, UP alias, and clean residual keywords."""
+    f1 = QueryParser.parse("services tender in uttar pradesh")
+    assert f1.state == "Uttar Pradesh"
+    assert f1.category == "Services"
+    assert f1.query is None
+
+    f2 = QueryParser.parse("uttar pradesh")
+    assert f2.state == "Uttar Pradesh"
+    assert f2.query is None
+
+    f3 = QueryParser.parse("up")
+    assert f3.state == "Uttar Pradesh"
+    assert f3.query is None
+
+
+def test_query_parser_rajasthan_and_jaipur():
+    """Verify parsing of Rajasthan, alias rj, and city-based state inference for Jaipur."""
+    f1 = QueryParser.parse("rajasthan")
+    assert f1.state == "Rajasthan"
+    assert f1.query is None
+
+    f2 = QueryParser.parse("works in jaipur above 10 cr")
+    assert f2.state == "Rajasthan"
+    assert f2.city_or_district == "Jaipur"
+    assert f2.category == "Works"
+    assert f2.min_value_inr == 100000000.0
+
+
+def test_search_service_up_and_rajasthan(tmp_path):
+    """Verify discovery of seeded tenders in Uttar Pradesh and Rajasthan."""
+    storage = TenderStorage(base_dir=str(tmp_path))
+    service = TenderSearchService(storage=storage)
+
+    # Uttar Pradesh
+    res_up = service.search_by_prompt("services tender in uttar pradesh")
+    assert res_up["total_matches"] >= 2
+    for t in res_up["results"]:
+        assert t["state"] == "Uttar Pradesh"
+        assert t["category"] == "Services"
+
+    # Rajasthan
+    res_rj = service.search_by_prompt("rajasthan")
+    assert res_rj["total_matches"] >= 3
+    for t in res_rj["results"]:
+        assert t["state"] == "Rajasthan"
+

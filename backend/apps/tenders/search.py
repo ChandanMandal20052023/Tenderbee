@@ -23,6 +23,66 @@ INDIAN_STATES = [
     "Delhi", "Jammu and Kashmir", "Ladakh"
 ]
 
+STATE_ALIASES = {
+    "up": "Uttar Pradesh",
+    "u.p.": "Uttar Pradesh",
+    "rj": "Rajasthan",
+    "raj": "Rajasthan",
+    "rajasthan": "Rajasthan",
+    "mh": "Maharashtra",
+    "maha": "Maharashtra",
+    "wb": "West Bengal",
+    "w.b.": "West Bengal",
+    "mp": "Madhya Pradesh",
+    "m.p.": "Madhya Pradesh",
+    "ap": "Andhra Pradesh",
+    "a.p.": "Andhra Pradesh",
+    "hr": "Haryana",
+    "hry": "Haryana",
+    "br": "Bihar",
+    "bihar": "Bihar",
+    "dl": "Delhi",
+    "ncr": "Delhi",
+    "gj": "Gujarat",
+    "tn": "Tamil Nadu",
+    "ka": "Karnataka",
+    "kl": "Kerala",
+    "ts": "Telangana",
+    "tg": "Telangana",
+    "pb": "Punjab",
+    "od": "Odisha",
+    "jh": "Jharkhand",
+    "uk": "Uttarakhand",
+    "ua": "Uttarakhand",
+}
+
+CITY_TO_STATE = {
+    # Bihar
+    "patna": "Bihar", "gaya": "Bihar", "bhagalpur": "Bihar", "muzaffarpur": "Bihar",
+    "darbhanga": "Bihar", "purnia": "Bihar", "hajipur": "Bihar", "danapur": "Bihar",
+    # Uttar Pradesh
+    "lucknow": "Uttar Pradesh", "kanpur": "Uttar Pradesh", "varanasi": "Uttar Pradesh",
+    "noida": "Uttar Pradesh", "greater noida": "Uttar Pradesh", "agra": "Uttar Pradesh",
+    "prayagraj": "Uttar Pradesh", "allahabad": "Uttar Pradesh", "ghaziabad": "Uttar Pradesh",
+    "meerut": "Uttar Pradesh", "bareilly": "Uttar Pradesh", "aligarh": "Uttar Pradesh",
+    "gorakhpur": "Uttar Pradesh", "ayodhya": "Uttar Pradesh", "jhansi": "Uttar Pradesh",
+    # Rajasthan
+    "jaipur": "Rajasthan", "jodhpur": "Rajasthan", "udaipur": "Rajasthan", "kota": "Rajasthan",
+    "bikaner": "Rajasthan", "ajmer": "Rajasthan", "bhilwara": "Rajasthan", "alwar": "Rajasthan",
+    # Maharashtra
+    "mumbai": "Maharashtra", "pune": "Maharashtra", "nagpur": "Maharashtra",
+    "thane": "Maharashtra", "nashik": "Maharashtra", "aurangabad": "Maharashtra",
+    # Haryana
+    "gurugram": "Haryana", "gurgaon": "Haryana", "faridabad": "Haryana",
+    "panipat": "Haryana", "ambala": "Haryana", "rohtak": "Haryana", "karnal": "Haryana",
+    "hisar": "Haryana", "sonipat": "Haryana",
+    # West Bengal
+    "kolkata": "West Bengal", "howrah": "West Bengal", "durgapur": "West Bengal",
+    "asansol": "West Bengal", "siliguri": "West Bengal",
+    # Delhi NCR
+    "delhi": "Delhi", "new delhi": "Delhi",
+}
+
 CATEGORIES = ["Services", "Works", "Goods"]
 
 
@@ -60,16 +120,36 @@ class TenderSearchResult(BaseModel):
 class QueryParser:
     """
     Parses natural language procurement requests into structured TenderSearchFilter.
-    Examples:
-      - 'tenders related to services in bihar' -> category='Services', state='Bihar'
-      - 'civil works in patna above 50 lakhs for 2 years' -> category='Works', state='Bihar', min_value=5000000, tenure=24
+    Supports hybrid execution:
+    1. First attempts LLM-based query comprehension for complex natural language prompts.
+    2. Falls back to deterministic regex parser across Indian geography, categories, and financials.
     """
 
     @classmethod
-    def parse(cls, prompt: str) -> TenderSearchFilter:
+    def parse(cls, prompt: str, llm_adapter: Optional[Any] = None) -> TenderSearchFilter:
         text = prompt.strip()
         lower = text.lower()
 
+        # Step 1: Attempt LLM-based query parsing if adapter available
+        if llm_adapter is not None:
+            try:
+                llm_parsed = llm_adapter.parse_query(prompt)
+                if llm_parsed:
+                    logger.info("LLM query parser extracted structured filters: %s", llm_parsed.model_dump())
+                    return TenderSearchFilter(
+                        query=llm_parsed.query,
+                        state=llm_parsed.state,
+                        city_or_district=llm_parsed.city_or_district,
+                        category=llm_parsed.category,
+                        min_value_inr=llm_parsed.min_value_inr,
+                        max_value_inr=llm_parsed.max_value_inr,
+                        min_tenure_months=llm_parsed.min_tenure_months,
+                        buyer_name=llm_parsed.buyer_name,
+                    )
+            except Exception as e:
+                logger.debug("LLM query parsing encountered exception, falling back to deterministic parser: %s", e)
+
+        # Step 2: Deterministic Rule-Based Parsing
         state = cls._extract_state(lower)
         category = cls._extract_category(lower)
         city = cls._extract_city(lower, state)
@@ -94,47 +174,31 @@ class QueryParser:
         for s in INDIAN_STATES:
             if re.search(r"\b" + re.escape(s.lower()) + r"\b", text):
                 return s
-        # Common aliases
-        if re.search(r"\bup\b", text):
-            return "Uttar Pradesh"
-        if re.search(r"\bmh\b", text):
-            return "Maharashtra"
-        if re.search(r"\bwb\b", text):
-            return "West Bengal"
+        for alias, state_name in STATE_ALIASES.items():
+            if re.search(r"\b" + re.escape(alias) + r"\b", text):
+                return state_name
         return None
 
     @classmethod
     def _extract_category(cls, text: str) -> Optional[str]:
         if re.search(r"\b(service|services|housekeeping|sanitation|security|manpower|facility|it)\b", text):
             return "Services"
-        if re.search(r"\b(work|works|civil|construction|road|bridge|building|pipeline|drainage)\b", text):
+        if re.search(r"\b(work|works|civil|construction|road|bridge|building|pipeline|drainage|expressway|flyover)\b", text):
             return "Works"
-        if re.search(r"\b(good|goods|supply|supplies|equipment|hardware|vehicle|material)\b", text):
+        if re.search(r"\b(good|goods|supply|supplies|equipment|hardware|vehicle|material|solar)\b", text):
             return "Goods"
         return None
 
     @classmethod
     def _extract_city(cls, text: str, state: Optional[str]) -> Optional[str]:
-        # Major cities
-        bihar_cities = ["patna", "gaya", "bhagalpur", "muzaffarpur", "darbhanga", "purnia", "hajipur", "danapur"]
-        for c in bihar_cities:
+        for c in CITY_TO_STATE:
             if re.search(r"\b" + re.escape(c) + r"\b", text):
-                return c.capitalize()
+                return "Gurugram" if c == "gurgaon" else c.title()
         return None
 
     @classmethod
     def _infer_state_from_city(cls, city: str) -> Optional[str]:
-        city_lower = city.lower()
-        bihar_cities = {"patna", "gaya", "bhagalpur", "muzaffarpur", "darbhanga", "purnia", "hajipur", "danapur"}
-        mh_cities = {"mumbai", "pune", "nagpur", "thane", "nashik"}
-        up_cities = {"lucknow", "kanpur", "varanasi", "noida", "agra"}
-        if city_lower in bihar_cities:
-            return "Bihar"
-        if city_lower in mh_cities:
-            return "Maharashtra"
-        if city_lower in up_cities:
-            return "Uttar Pradesh"
-        return None
+        return CITY_TO_STATE.get(city.lower())
 
     @classmethod
     def _extract_values(cls, text: str) -> tuple[Optional[float], Optional[float]]:
@@ -197,14 +261,18 @@ class QueryParser:
             "tenders", "tender", "related", "to", "released", "in", "for", "give", "me", "show",
             "active", "above", "below", "greater", "less", "than", "with", "tenure", "duration",
             "period", "capital", "value", "budget", "find", "search", "between", "from", "upto",
-            "having", "contract", "like", "any", "all", "around", "near"
+            "having", "contract", "like", "any", "all", "around", "near", "location", "is", "these",
+            "those", "there", "wanted", "want", "look", "looking", "procurement", "notice"
         ]
         if state:
             remove_terms.extend([state.lower(), f"in {state.lower()}"])
+            for alias, full_state in STATE_ALIASES.items():
+                if full_state.lower() == state.lower():
+                    remove_terms.extend([alias, f"in {alias}"])
         if category:
             remove_terms.extend([category.lower(), f"{category.lower()}s"])
         if city:
-            remove_terms.extend([city.lower()])
+            remove_terms.extend([city.lower(), f"in {city.lower()}"])
 
         pattern = r"\b(" + "|".join(re.escape(w) for w in remove_terms) + r")\b"
         cleaned = re.sub(pattern, " ", s, flags=re.IGNORECASE)
@@ -221,8 +289,16 @@ class TenderSearchService:
     live GeM portal search, and state e-procurement systems (like eproc2.bihar.gov.in).
     """
 
-    def __init__(self, storage: Optional[TenderStorage] = None):
+    def __init__(self, storage: Optional[TenderStorage] = None, llm_adapter: Optional[Any] = None):
         self.storage = storage or TenderStorage()
+        if llm_adapter is not None:
+            self.llm_adapter = llm_adapter
+        else:
+            try:
+                from backend.services.llm import LLMAdapter
+                self.llm_adapter = LLMAdapter()
+            except Exception:
+                self.llm_adapter = None
 
     def search(self, filters: TenderSearchFilter) -> Dict[str, Any]:
         """
@@ -255,11 +331,11 @@ class TenderSearchService:
     def search_by_prompt(self, prompt: str) -> Dict[str, Any]:
         """
         End-to-end natural language search:
-        1. Parses prompt to structured filters.
+        1. Parses prompt to structured filters using LLM with deterministic fallback.
         2. Executes multi-criteria search.
         3. Returns ranked tenders.
         """
-        parsed_filters = QueryParser.parse(prompt)
+        parsed_filters = QueryParser.parse(prompt, llm_adapter=self.llm_adapter)
         logger.info("Parsed prompt '%s' to filters: %s", prompt, parsed_filters.model_dump())
         res = self.search(parsed_filters)
         res["interpreted_prompt"] = prompt

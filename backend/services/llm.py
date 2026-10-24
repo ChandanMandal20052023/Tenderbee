@@ -87,6 +87,18 @@ class TenderNoticeExtraction(BaseModel):
     mandatory_documents: List[str] = Field(default_factory=list)
 
 
+class ParsedSearchQuery(BaseModel):
+    """Structured search criteria extracted from natural language prompt by LLM."""
+    query: Optional[str] = Field(default=None, description="Residual keywords or project item terms (e.g. 'smart meter', 'cleaning', 'flyover'). DO NOT include state names, categories, or numbers extracted into dedicated fields.")
+    state: Optional[str] = Field(default=None, description="Full official Indian State or Union Territory name (e.g. 'Uttar Pradesh', 'Rajasthan', 'Haryana', 'Bihar', 'Maharashtra'). If user types abbreviations like 'up' or 'rj', map to 'Uttar Pradesh' or 'Rajasthan'.")
+    city_or_district: Optional[str] = Field(default=None, description="Specific city, town, or district e.g. 'Lucknow', 'Jaipur', 'Patna', 'Faridabad', 'Noida'")
+    category: Optional[str] = Field(default=None, description="Procurement category: strictly 'Services', 'Works', or 'Goods'")
+    min_value_inr: Optional[float] = Field(default=None, description="Minimum estimated contract value in INR (e.g. 5 Cr -> 50000000.0, 50 Lakh -> 5000000.0)")
+    max_value_inr: Optional[float] = Field(default=None, description="Maximum estimated contract value in INR")
+    min_tenure_months: Optional[int] = Field(default=None, description="Minimum contract tenure/duration in months (e.g. 2 years -> 24, 6 months -> 6)")
+    buyer_name: Optional[str] = Field(default=None, description="Issuing organization or department name if mentioned e.g. 'UPPCL', 'Western Railway'")
+
+
 # ==============================================================================
 # PROMPT TEMPLATES (ANTI-HALLUCINATION XML)
 # ==============================================================================
@@ -191,3 +203,56 @@ class LLMAdapter:
         except Exception as e:
             logger.error(f"Failed to execute LLM extraction: {e}")
             return None
+
+    def parse_query(self, query_text: str) -> Optional[ParsedSearchQuery]:
+        """
+        Uses LLM to parse natural language search queries into structured filters.
+        """
+        if not self.api_key:
+            return None
+
+        system_instruction = (
+            "You are an expert Indian Government Public Procurement search parser. "
+            "Analyze the user's search query and map it strictly to the structured schema: "
+            "1. Location: If the user enters a state or territory (e.g. 'uttar pradesh', 'up', 'rajasthan', 'bihar', 'haryana', 'maharashtra'), "
+            "set 'state' to the full title-case state name (e.g. 'Uttar Pradesh', 'Rajasthan') and leave 'query' as null unless extra search terms exist. "
+            "2. Cities: If a city like 'lucknow', 'jaipur', 'patna', 'noida' is specified, populate 'city_or_district' and infer 'state'. "
+            "3. Category: If services/cleaning/manpower/security is requested, set 'category' to 'Services'. "
+            "If construction/civil/road/expressway/bridge, set 'category' to 'Works'. If supply/goods/equipment, set 'category' to 'Goods'. "
+            "4. Numbers: Convert 'Cr' or 'Crores' (x 10,000,000) and 'Lakhs' (x 100,000) to numeric INR. "
+            "5. Residual Keywords: Strip out all location names, categories, and numbers from 'query'. If only filters were given (e.g. 'services tender in uttar pradesh'), 'query' MUST be null."
+        )
+
+        try:
+            import httpx
+            cleaned_schema = self._clean_schema_for_gemini(ParsedSearchQuery.model_json_schema())
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
+            payload = {
+                "system_instruction": {"parts": [{"text": system_instruction}]},
+                "contents": [{"parts": [{"text": f"User Search Query: {query_text}"}]}],
+                "generationConfig": {
+                    "response_mime_type": "application/json",
+                    "response_schema": cleaned_schema,
+                    "temperature": 0.0,
+                },
+            }
+            resp = httpx.post(url, json=payload, timeout=8.0)
+            if resp.status_code == 404 and "gemini-2.0-flash" in self.model:
+                fallback_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={self.api_key}"
+                resp = httpx.post(fallback_url, json=payload, timeout=8.0)
+
+            if resp.status_code != 200:
+                logger.debug("Gemini Query Parser returned status %s: %s", resp.status_code, resp.text)
+                return None
+
+            data = resp.json()
+            candidates = data.get("candidates", [])
+            if not candidates:
+                return None
+
+            raw_text = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "{}")
+            return ParsedSearchQuery.model_validate_json(raw_text)
+        except Exception as e:
+            logger.debug(f"LLM query parsing failed: {e}")
+            return None
+
