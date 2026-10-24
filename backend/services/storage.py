@@ -77,7 +77,23 @@ class TenderStorage:
                     FOREIGN KEY (tender_id) REFERENCES tenders (tender_id)
                 )
             """)
-            
+
+            # Add search & discovery columns if not present
+            cursor.execute("PRAGMA table_info(tenders)")
+            existing_cols = {row[1] for row in cursor.fetchall()}
+            search_cols = {
+                "state": "TEXT",
+                "category": "TEXT",
+                "tenure_months": "INTEGER",
+                "emd_amount_inr": "REAL",
+                "location": "TEXT",
+                "portal": "TEXT",
+            }
+            for col_name, col_type in search_cols.items():
+                if col_name not in existing_cols:
+                    cursor.execute(f"ALTER TABLE tenders ADD COLUMN {col_name} {col_type}")
+
+            self._seed_sample_tenders(cursor)
             conn.commit()
 
     @staticmethod
@@ -198,3 +214,142 @@ class TenderStorage:
             "extracted_json_path": str(extracted_path),
             "is_cached": False,
         }
+
+    def _seed_sample_tenders(self, cursor: sqlite3.Cursor) -> None:
+        """Seeds realistic public procurement tenders for Bihar and other key regions."""
+        now = datetime.now(timezone.utc).isoformat()
+        samples = [
+            (
+                "tnd_buidco_patna_sanitation_2026", "org_default", "BUIDCO/2026/S-104",
+                "Engagement of Agency for Comprehensive Sanitation & Solid Waste Management in Patna Municipal Area",
+                "Bihar Urban Infrastructure Development Corporation Limited (BUIDCO)",
+                "2026-11-28T15:00:00+05:30", 34500000.0, "https://eproc2.bihar.gov.in/tender/BUIDCO-2026-S-104",
+                now, now, "Bihar", "Services", 24, 690000.0, "Patna", "eproc2.bihar.gov.in"
+            ),
+            (
+                "tnd_bsphcl_gaya_security_2026", "org_default", "BSPHCL/2026/SEC-412",
+                "Outsourcing of Facility Security, Guarding, and Surveillance Services for Power Sub-stations across Gaya & Bhagalpur",
+                "Bihar State Power Holding Company Limited (BSPHCL)",
+                "2026-11-22T17:00:00+05:30", 18000000.0, "https://eproc2.bihar.gov.in/tender/BSPHCL-2026-SEC-412",
+                now, now, "Bihar", "Services", 12, 360000.0, "Gaya", "eproc2.bihar.gov.in"
+            ),
+            (
+                "tnd_ecr_danapur_rob_2026", "org_default", "ECR/HAJIPUR/CIVIL/2026/09",
+                "Construction of Multi-Span Road Overbridge (ROB) and Approach Roads at Danapur Yard Junction",
+                "East Central Railway (Hajipur Headquarters)",
+                "2026-12-15T15:00:00+05:30", 485000000.0, "https://ireps.gov.in/tender/ECR-DANAPUR-ROB",
+                now, now, "Bihar", "Works", 36, 2425000.0, "Danapur", "ireps.gov.in"
+            ),
+            (
+                "tnd_shsb_medical_supply_2026", "org_default", "SHSB/2026/MED-SUPPLY-77",
+                "Supply and Delivery of Essential Diagnostic Kits and Medical Equipment to District Hospitals in Muzaffarpur",
+                "State Health Society Bihar",
+                "2026-11-18T14:00:00+05:30", 8500000.0, "https://eproc2.bihar.gov.in/tender/SHSB-MED-77",
+                now, now, "Bihar", "Goods", 12, 170000.0, "Muzaffarpur", "eproc2.bihar.gov.in"
+            ),
+            (
+                "tnd_wr_mumbai_cleaning_2026", "org_default", "Mech-TPA-2026",
+                "Comprehensive Mechanized Cleaning of Coaches at Bandra Terminus",
+                "Western Railway Mumbai Central Division (Mechanical Branch)",
+                "2026-11-05T15:00:00+05:30", 522615823.34, "https://ireps.gov.in/tender/Mech-TPA-2026",
+                now, now, "Maharashtra", "Services", 36, 2763100.0, "Mumbai", "ireps.gov.in"
+            ),
+        ]
+
+        cursor.executemany("""
+            INSERT OR IGNORE INTO tenders (
+                tender_id, organization_id, external_id, title, buyer_name,
+                submission_deadline, estimated_value_inr, source_url,
+                created_at, updated_at, state, category, tenure_months,
+                emd_amount_inr, location, portal
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, samples)
+
+    def search_indexed_tenders(
+        self,
+        query: Optional[str] = None,
+        state: Optional[str] = None,
+        category: Optional[str] = None,
+        min_value_inr: Optional[float] = None,
+        max_value_inr: Optional[float] = None,
+        min_tenure_months: Optional[int] = None,
+        max_tenure_months: Optional[int] = None,
+        buyer_name: Optional[str] = None,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> List[Dict[str, Any]]:
+        """
+        Executes multi-criteria search with full-text keyword matching and numeric thresholds.
+        """
+        clauses = ["1=1"]
+        params: List[Any] = []
+
+        if state:
+            clauses.append("state = ?")
+            params.append(state)
+
+        if category:
+            clauses.append("category = ?")
+            params.append(category)
+
+        if min_value_inr is not None:
+            clauses.append("estimated_value_inr >= ?")
+            params.append(min_value_inr)
+
+        if max_value_inr is not None:
+            clauses.append("estimated_value_inr <= ?")
+            params.append(max_value_inr)
+
+        if min_tenure_months is not None:
+            clauses.append("tenure_months >= ?")
+            params.append(min_tenure_months)
+
+        if max_tenure_months is not None:
+            clauses.append("tenure_months <= ?")
+            params.append(max_tenure_months)
+
+        if buyer_name:
+            clauses.append("buyer_name LIKE ?")
+            params.append(f"%{buyer_name}%")
+
+        if query:
+            # Match query against title, buyer_name, or location
+            clauses.append("(title LIKE ? OR buyer_name LIKE ? OR location LIKE ?)")
+            kw = f"%{query}%"
+            params.extend([kw, kw, kw])
+
+        where_sql = " AND ".join(clauses)
+        sql = f"""
+            SELECT tender_id, external_id, title, buyer_name, state, category,
+                   estimated_value_inr, emd_amount_inr, tenure_months,
+                   submission_deadline, portal, source_url
+            FROM tenders
+            WHERE {where_sql}
+            ORDER BY estimated_value_inr DESC
+            LIMIT ? OFFSET ?
+        """
+        params.extend([limit, offset])
+
+        results = []
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute(sql, params)
+            for row in cursor.fetchall():
+                results.append({
+                    "tender_id": row["tender_id"],
+                    "tender_number": row["external_id"],
+                    "title": row["title"],
+                    "buyer_name": row["buyer_name"],
+                    "state": row["state"] or "All India",
+                    "category": row["category"] or "Services",
+                    "estimated_value_inr": row["estimated_value_inr"],
+                    "emd_amount_inr": row["emd_amount_inr"],
+                    "tenure_months": row["tenure_months"],
+                    "submission_deadline": row["submission_deadline"],
+                    "portal": row["portal"] or "Government Portal",
+                    "source_url": row["source_url"],
+                    "status": "ACTIVE",
+                })
+
+        return results

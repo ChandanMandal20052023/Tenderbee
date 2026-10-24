@@ -111,3 +111,69 @@ class RulePackDetailAPIView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
         return Response(rule_pack.model_dump(), status=status.HTTP_200_OK)
+
+
+class TenderSearchAPIView(APIView):
+    """
+    GET  /api/v1/tenders/search/?q=services+in+bihar
+    POST /api/v1/tenders/search/ {"prompt": "services in bihar above 1 cr"}
+    Discovery engine supporting natural language and multi-criteria filters.
+    """
+    def get(self, request, *args, **kwargs):
+        from backend.apps.tenders.search import TenderSearchService, TenderSearchFilter
+
+        prompt = request.query_params.get("q") or request.query_params.get("prompt")
+        service = TenderSearchService()
+        if prompt:
+            res = service.search_by_prompt(prompt)
+            return Response(res, status=status.HTTP_200_OK)
+
+        min_val = None
+        if "min_value" in request.query_params:
+            try:
+                min_val = float(request.query_params["min_value"])
+            except ValueError:
+                pass
+
+        max_val = None
+        if "max_value" in request.query_params:
+            try:
+                max_val = float(request.query_params["max_value"])
+            except ValueError:
+                pass
+
+        tenure = None
+        if "tenure" in request.query_params:
+            try:
+                tenure = int(request.query_params["tenure"])
+            except ValueError:
+                pass
+
+        filters = TenderSearchFilter(
+            query=request.query_params.get("query"),
+            state=request.query_params.get("state"),
+            category=request.query_params.get("category"),
+            min_value_inr=min_val,
+            max_value_inr=max_val,
+            min_tenure_months=tenure,
+            buyer_name=request.query_params.get("buyer"),
+        )
+        res = service.search(filters)
+        return Response(res, status=status.HTTP_200_OK)
+
+    def post(self, request, *args, **kwargs):
+        from backend.apps.tenders.search import TenderSearchService, TenderSearchFilter
+
+        prompt = request.data.get("prompt") or request.data.get("q")
+        service = TenderSearchService()
+        if prompt:
+            res = service.search_by_prompt(prompt)
+            return Response(res, status=status.HTTP_200_OK)
+
+        try:
+            filters = TenderSearchFilter(**request.data)
+            res = service.search(filters)
+            return Response(res, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"success": False, "error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+

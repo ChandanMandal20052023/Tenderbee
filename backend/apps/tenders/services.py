@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from backend.services.scraper import UniversalTenderScraper
 from backend.services.storage import TenderStorage
 from backend.services.tinyfish import BidEasyScraper
 from backend.engine.parser import TenderPDFExtractor
@@ -27,12 +28,12 @@ from backend.engine.schema import (
 class TenderService:
     def __init__(
         self,
-        scraper: Optional[BidEasyScraper] = None,
+        scraper: Optional[Any] = None,
         storage: Optional[TenderStorage] = None,
         pdf_extractor: Optional[TenderPDFExtractor] = None,
     ):
         self.storage = storage or TenderStorage()
-        self.scraper = scraper or BidEasyScraper(storage=self.storage)
+        self.scraper = scraper or UniversalTenderScraper(storage=self.storage)
         self.pdf_extractor = pdf_extractor or TenderPDFExtractor()
 
     def intake_tender(

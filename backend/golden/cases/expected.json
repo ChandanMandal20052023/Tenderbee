@@ -1,0 +1,2323 @@
+{
+  "rule_pack_file": "rules.json",
+  "test_cases": [
+    {
+      "id": "CLEAN-01",
+      "category": "clean",
+      "description": "All documents present, all values well above thresholds (turnover 85Cr, liquidity 3Cr, work exp 20Cr).",
+      "bidder_documents": {
+        "udyam_certificate": {
+          "status": {
+            "value": "ACTIVE",
+            "page": 1,
+            "quote": "Udyam Certificate Status: ACTIVE",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "entity_type": {
+            "value": "Railway PSUs",
+            "page": 1,
+            "quote": "Category: Railway PSUs",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "ca_turnover_certificate": {
+          "status": {
+            "value": "SUBMITTED",
+            "page": 1,
+            "quote": "CA Certificate Submitted",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "average_turnover_inr": {
+            "value": 850000000.0,
+            "page": 2,
+            "quote": "Average Annual Turnover: Rs. 85,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "udin": {
+            "value": "26012345ABCDEF1234",
+            "page": 2,
+            "quote": "UDIN: 26012345ABCDEF1234",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "banking_reference_annexure_x": {
+          "available_credit_facility_inr": {
+            "value": 30000000.0,
+            "page": 1,
+            "quote": "Approved overdraft limit: Rs. 3,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "work_experience_certificate": {
+          "contract_value_inr": {
+            "value": 200000000.0,
+            "page": 1,
+            "quote": "Completed Contract Value: Rs. 20,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "truthfulness_undertaking_annexure_i": {
+          "signed": {
+            "value": true,
+            "page": 1,
+            "quote": "Signed by Managing Director",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        }
+      },
+      "expected": {
+        "readiness": "READY",
+        "blocked_rules": [],
+        "review_rules": [],
+        "must_not_pass": []
+      }
+    },
+    {
+      "id": "CLEAN-02",
+      "category": "clean",
+      "description": "Values exactly at thresholds (turnover exactly 783923735.01, liquidity exactly 26130791.17, work exp exactly 182915538.17).",
+      "bidder_documents": {
+        "udyam_certificate": {
+          "status": {
+            "value": "ACTIVE",
+            "page": 1,
+            "quote": "Udyam Certificate Status: ACTIVE",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "entity_type": {
+            "value": "Railway PSUs",
+            "page": 1,
+            "quote": "Category: Railway PSUs",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "ca_turnover_certificate": {
+          "status": {
+            "value": "SUBMITTED",
+            "page": 1,
+            "quote": "CA Certificate Submitted",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "average_turnover_inr": {
+            "value": 783923735.01,
+            "page": 2,
+            "quote": "Average Annual Turnover: Rs. 78,39,23,735.01",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "udin": {
+            "value": "26012345ABCDEF1234",
+            "page": 2,
+            "quote": "UDIN: 26012345ABCDEF1234",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "banking_reference_annexure_x": {
+          "available_credit_facility_inr": {
+            "value": 26130791.17,
+            "page": 1,
+            "quote": "Approved credit facility: Rs. 2,61,30,791.17",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "work_experience_certificate": {
+          "contract_value_inr": {
+            "value": 182915538.17,
+            "page": 1,
+            "quote": "Completed Contract Value: Rs. 18,29,15,538.17",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "truthfulness_undertaking_annexure_i": {
+          "signed": {
+            "value": true,
+            "page": 1,
+            "quote": "Signed by Managing Director",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        }
+      },
+      "expected": {
+        "readiness": "READY",
+        "blocked_rules": [],
+        "review_rules": [],
+        "must_not_pass": []
+      }
+    },
+    {
+      "id": "CLEAN-03",
+      "category": "clean",
+      "description": "Very high values (turnover 200Cr, etc.).",
+      "bidder_documents": {
+        "udyam_certificate": {
+          "status": {
+            "value": "ACTIVE",
+            "page": 1,
+            "quote": "Udyam Certificate Status: ACTIVE",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "entity_type": {
+            "value": "Railway PSUs",
+            "page": 1,
+            "quote": "Category: Railway PSUs",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "ca_turnover_certificate": {
+          "status": {
+            "value": "SUBMITTED",
+            "page": 1,
+            "quote": "CA Certificate Submitted",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "average_turnover_inr": {
+            "value": 2000000000.0,
+            "page": 2,
+            "quote": "Average Annual Turnover: Rs. 200,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "udin": {
+            "value": "26012345ABCDEF1234",
+            "page": 2,
+            "quote": "UDIN: 26012345ABCDEF1234",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "banking_reference_annexure_x": {
+          "available_credit_facility_inr": {
+            "value": 150000000.0,
+            "page": 1,
+            "quote": "Approved credit facility: Rs. 15,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "work_experience_certificate": {
+          "contract_value_inr": {
+            "value": 500000000.0,
+            "page": 1,
+            "quote": "Completed Contract Value: Rs. 50,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "truthfulness_undertaking_annexure_i": {
+          "signed": {
+            "value": true,
+            "page": 1,
+            "quote": "Signed by Managing Director",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        }
+      },
+      "expected": {
+        "readiness": "READY",
+        "blocked_rules": [],
+        "review_rules": [],
+        "must_not_pass": []
+      }
+    },
+    {
+      "id": "CLEAN-04",
+      "category": "clean",
+      "description": "High liquidity bidder with strong banking line and 100Cr turnover.",
+      "bidder_documents": {
+        "udyam_certificate": {
+          "status": {
+            "value": "ACTIVE",
+            "page": 1,
+            "quote": "Udyam Certificate Status: ACTIVE",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "entity_type": {
+            "value": "Railway PSUs",
+            "page": 1,
+            "quote": "Category: Railway PSUs",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "ca_turnover_certificate": {
+          "status": {
+            "value": "SUBMITTED",
+            "page": 1,
+            "quote": "CA Certificate Submitted",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "average_turnover_inr": {
+            "value": 1000000000.0,
+            "page": 2,
+            "quote": "Average Annual Turnover: Rs. 100,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "udin": {
+            "value": "26012345ABCDEF1234",
+            "page": 2,
+            "quote": "UDIN: 26012345ABCDEF1234",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "banking_reference_annexure_x": {
+          "available_credit_facility_inr": {
+            "value": 250000000.0,
+            "page": 1,
+            "quote": "Approved credit facility: Rs. 25,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "work_experience_certificate": {
+          "contract_value_inr": {
+            "value": 250000000.0,
+            "page": 1,
+            "quote": "Completed Contract Value: Rs. 20,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "truthfulness_undertaking_annexure_i": {
+          "signed": {
+            "value": true,
+            "page": 1,
+            "quote": "Signed by Managing Director",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        }
+      },
+      "expected": {
+        "readiness": "READY",
+        "blocked_rules": [],
+        "review_rules": [],
+        "must_not_pass": []
+      }
+    },
+    {
+      "id": "CLEAN-05",
+      "category": "clean",
+      "description": "Multi-page evidence quotes from multi-annexure submissions.",
+      "bidder_documents": {
+        "udyam_certificate": {
+          "status": {
+            "value": "ACTIVE",
+            "page": 1,
+            "quote": "Udyam Certificate Status: ACTIVE",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "entity_type": {
+            "value": "Railway PSUs",
+            "page": 1,
+            "quote": "Category: Railway PSUs",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "ca_turnover_certificate": {
+          "status": {
+            "value": "SUBMITTED",
+            "page": 1,
+            "quote": "CA Certificate Submitted",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "average_turnover_inr": {
+            "value": 950000000.0,
+            "page": 3,
+            "quote": "Average Annual Turnover: Rs. 85,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "udin": {
+            "value": "26012345ABCDEF1234",
+            "page": 2,
+            "quote": "UDIN: 26012345ABCDEF1234",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "banking_reference_annexure_x": {
+          "available_credit_facility_inr": {
+            "value": 50000000.0,
+            "page": 2,
+            "quote": "Approved overdraft limit: Rs. 3,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "work_experience_certificate": {
+          "contract_value_inr": {
+            "value": 300000000.0,
+            "page": 4,
+            "quote": "Completed Contract Value: Rs. 20,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "truthfulness_undertaking_annexure_i": {
+          "signed": {
+            "value": true,
+            "page": 1,
+            "quote": "Signed by Managing Director",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        }
+      },
+      "expected": {
+        "readiness": "READY",
+        "blocked_rules": [],
+        "review_rules": [],
+        "must_not_pass": []
+      }
+    },
+    {
+      "id": "CLEAN-06",
+      "category": "clean",
+      "description": "Values just above thresholds by 0.01 INR (turnover 783923735.02, liquidity 26130791.18, work exp 182915538.18).",
+      "bidder_documents": {
+        "udyam_certificate": {
+          "status": {
+            "value": "ACTIVE",
+            "page": 1,
+            "quote": "Udyam Certificate Status: ACTIVE",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "entity_type": {
+            "value": "Railway PSUs",
+            "page": 1,
+            "quote": "Category: Railway PSUs",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "ca_turnover_certificate": {
+          "status": {
+            "value": "SUBMITTED",
+            "page": 1,
+            "quote": "CA Certificate Submitted",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "average_turnover_inr": {
+            "value": 783923735.02,
+            "page": 2,
+            "quote": "Average Annual Turnover: Rs. 78,39,23,735.02",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "udin": {
+            "value": "26012345ABCDEF1234",
+            "page": 2,
+            "quote": "UDIN: 26012345ABCDEF1234",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "banking_reference_annexure_x": {
+          "available_credit_facility_inr": {
+            "value": 26130791.18,
+            "page": 1,
+            "quote": "Approved credit facility: Rs. 2,61,30,791.18",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "work_experience_certificate": {
+          "contract_value_inr": {
+            "value": 182915538.18,
+            "page": 1,
+            "quote": "Completed Contract Value: Rs. 18,29,15,538.18",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "truthfulness_undertaking_annexure_i": {
+          "signed": {
+            "value": true,
+            "page": 1,
+            "quote": "Signed by Managing Director",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        }
+      },
+      "expected": {
+        "readiness": "READY",
+        "blocked_rules": [],
+        "review_rules": [],
+        "must_not_pass": []
+      }
+    },
+    {
+      "id": "CLEAN-07",
+      "category": "clean",
+      "description": "Entity type provided as a list containing Railway PSUs.",
+      "bidder_documents": {
+        "udyam_certificate": {
+          "status": {
+            "value": "ACTIVE",
+            "page": 1,
+            "quote": "Udyam Certificate Status: ACTIVE",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "entity_type": {
+            "value": [
+              "Railway PSUs",
+              "Public Sector Undertaking"
+            ],
+            "page": 1,
+            "quote": "Entity Categories: Railway PSUs, Public Sector Undertaking",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "ca_turnover_certificate": {
+          "status": {
+            "value": "SUBMITTED",
+            "page": 1,
+            "quote": "CA Certificate Submitted",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "average_turnover_inr": {
+            "value": 1200000000.0,
+            "page": 2,
+            "quote": "Average Annual Turnover: Rs. 85,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "udin": {
+            "value": "26012345ABCDEF1234",
+            "page": 2,
+            "quote": "UDIN: 26012345ABCDEF1234",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "banking_reference_annexure_x": {
+          "available_credit_facility_inr": {
+            "value": 40000000.0,
+            "page": 1,
+            "quote": "Approved overdraft limit: Rs. 3,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "work_experience_certificate": {
+          "contract_value_inr": {
+            "value": 220000000.0,
+            "page": 1,
+            "quote": "Completed Contract Value: Rs. 20,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "truthfulness_undertaking_annexure_i": {
+          "signed": {
+            "value": true,
+            "page": 1,
+            "quote": "Signed by Managing Director",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        }
+      },
+      "expected": {
+        "readiness": "READY",
+        "blocked_rules": [],
+        "review_rules": [],
+        "must_not_pass": []
+      }
+    },
+    {
+      "id": "CLEAN-08",
+      "category": "clean",
+      "description": "Moderate headroom PSU bidder with 80Cr turnover and 4Cr liquidity.",
+      "bidder_documents": {
+        "udyam_certificate": {
+          "status": {
+            "value": "ACTIVE",
+            "page": 1,
+            "quote": "Udyam Certificate Status: ACTIVE",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "entity_type": {
+            "value": "Railway PSUs",
+            "page": 1,
+            "quote": "Category: Railway PSUs",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "ca_turnover_certificate": {
+          "status": {
+            "value": "SUBMITTED",
+            "page": 1,
+            "quote": "CA Certificate Submitted",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "average_turnover_inr": {
+            "value": 800000000.0,
+            "page": 2,
+            "quote": "Average Annual Turnover: Rs. 85,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "udin": {
+            "value": "26012345ABCDEF1234",
+            "page": 2,
+            "quote": "UDIN: 26012345ABCDEF1234",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "banking_reference_annexure_x": {
+          "available_credit_facility_inr": {
+            "value": 40000000.0,
+            "page": 1,
+            "quote": "Approved overdraft limit: Rs. 3,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "work_experience_certificate": {
+          "contract_value_inr": {
+            "value": 220000000.0,
+            "page": 1,
+            "quote": "Completed Contract Value: Rs. 20,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "truthfulness_undertaking_annexure_i": {
+          "signed": {
+            "value": true,
+            "page": 1,
+            "quote": "Signed by Managing Director",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        }
+      },
+      "expected": {
+        "readiness": "READY",
+        "blocked_rules": [],
+        "review_rules": [],
+        "must_not_pass": []
+      }
+    },
+    {
+      "id": "CLEAN-09",
+      "category": "clean",
+      "description": "Consortium lead PSU bidder with 150Cr turnover and 10Cr liquidity.",
+      "bidder_documents": {
+        "udyam_certificate": {
+          "status": {
+            "value": "ACTIVE",
+            "page": 1,
+            "quote": "Udyam Certificate Status: ACTIVE",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "entity_type": {
+            "value": "Railway PSUs",
+            "page": 1,
+            "quote": "Category: Railway PSUs",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "ca_turnover_certificate": {
+          "status": {
+            "value": "SUBMITTED",
+            "page": 1,
+            "quote": "CA Certificate Submitted",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "average_turnover_inr": {
+            "value": 1500000000.0,
+            "page": 2,
+            "quote": "Average Annual Turnover: Rs. 85,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "udin": {
+            "value": "26012345ABCDEF1234",
+            "page": 2,
+            "quote": "UDIN: 26012345ABCDEF1234",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "banking_reference_annexure_x": {
+          "available_credit_facility_inr": {
+            "value": 100000000.0,
+            "page": 1,
+            "quote": "Approved overdraft limit: Rs. 3,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "work_experience_certificate": {
+          "contract_value_inr": {
+            "value": 350000000.0,
+            "page": 1,
+            "quote": "Completed Contract Value: Rs. 20,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "truthfulness_undertaking_annexure_i": {
+          "signed": {
+            "value": true,
+            "page": 1,
+            "quote": "Signed by Managing Director",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        }
+      },
+      "expected": {
+        "readiness": "READY",
+        "blocked_rules": [],
+        "review_rules": [],
+        "must_not_pass": []
+      }
+    },
+    {
+      "id": "CLEAN-10",
+      "category": "clean",
+      "description": "Established PSU engineering bidder with 110Cr turnover and 28Cr work experience.",
+      "bidder_documents": {
+        "udyam_certificate": {
+          "status": {
+            "value": "ACTIVE",
+            "page": 1,
+            "quote": "Udyam Certificate Status: ACTIVE",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "entity_type": {
+            "value": "Railway PSUs",
+            "page": 1,
+            "quote": "Category: Railway PSUs",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "ca_turnover_certificate": {
+          "status": {
+            "value": "SUBMITTED",
+            "page": 1,
+            "quote": "CA Certificate Submitted",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "average_turnover_inr": {
+            "value": 1100000000.0,
+            "page": 2,
+            "quote": "Average Annual Turnover: Rs. 85,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "udin": {
+            "value": "26012345ABCDEF1234",
+            "page": 2,
+            "quote": "UDIN: 26012345ABCDEF1234",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "banking_reference_annexure_x": {
+          "available_credit_facility_inr": {
+            "value": 60000000.0,
+            "page": 1,
+            "quote": "Approved overdraft limit: Rs. 3,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "work_experience_certificate": {
+          "contract_value_inr": {
+            "value": 280000000.0,
+            "page": 1,
+            "quote": "Completed Contract Value: Rs. 20,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "truthfulness_undertaking_annexure_i": {
+          "signed": {
+            "value": true,
+            "page": 1,
+            "quote": "Signed by Managing Director",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        }
+      },
+      "expected": {
+        "readiness": "READY",
+        "blocked_rules": [],
+        "review_rules": [],
+        "must_not_pass": []
+      }
+    },
+    {
+      "id": "DEFECT-01",
+      "category": "defect",
+      "description": "Missing udyam_certificate entirely.",
+      "bidder_documents": {
+        "ca_turnover_certificate": {
+          "status": {
+            "value": "SUBMITTED",
+            "page": 1,
+            "quote": "CA Certificate Submitted",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "average_turnover_inr": {
+            "value": 850000000.0,
+            "page": 2,
+            "quote": "Average Annual Turnover: Rs. 85,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "udin": {
+            "value": "26012345ABCDEF1234",
+            "page": 2,
+            "quote": "UDIN: 26012345ABCDEF1234",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "banking_reference_annexure_x": {
+          "available_credit_facility_inr": {
+            "value": 30000000.0,
+            "page": 1,
+            "quote": "Approved overdraft limit: Rs. 3,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "work_experience_certificate": {
+          "contract_value_inr": {
+            "value": 200000000.0,
+            "page": 1,
+            "quote": "Completed Contract Value: Rs. 20,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "truthfulness_undertaking_annexure_i": {
+          "signed": {
+            "value": true,
+            "page": 1,
+            "quote": "Signed by Managing Director",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        }
+      },
+      "expected": {
+        "readiness": "BLOCKED",
+        "blocked_rules": [
+          "R-DOC-UDYAM"
+        ],
+        "review_rules": [],
+        "must_not_pass": [
+          "READY"
+        ]
+      }
+    },
+    {
+      "id": "DEFECT-02",
+      "category": "defect",
+      "description": "Turnover 50Cr < 78.39Cr threshold.",
+      "bidder_documents": {
+        "udyam_certificate": {
+          "status": {
+            "value": "ACTIVE",
+            "page": 1,
+            "quote": "Udyam Certificate Status: ACTIVE",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "entity_type": {
+            "value": "Railway PSUs",
+            "page": 1,
+            "quote": "Category: Railway PSUs",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "ca_turnover_certificate": {
+          "status": {
+            "value": "SUBMITTED",
+            "page": 1,
+            "quote": "CA Certificate Submitted",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "average_turnover_inr": {
+            "value": 500000000.0,
+            "page": 2,
+            "quote": "Average Annual Turnover: Rs. 50,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "udin": {
+            "value": "26012345ABCDEF1234",
+            "page": 2,
+            "quote": "UDIN: 26012345ABCDEF1234",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "banking_reference_annexure_x": {
+          "available_credit_facility_inr": {
+            "value": 30000000.0,
+            "page": 1,
+            "quote": "Approved overdraft limit: Rs. 3,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "work_experience_certificate": {
+          "contract_value_inr": {
+            "value": 200000000.0,
+            "page": 1,
+            "quote": "Completed Contract Value: Rs. 20,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "truthfulness_undertaking_annexure_i": {
+          "signed": {
+            "value": true,
+            "page": 1,
+            "quote": "Signed by Managing Director",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        }
+      },
+      "expected": {
+        "readiness": "BLOCKED",
+        "blocked_rules": [
+          "R-TURNOVER-AVG3"
+        ],
+        "review_rules": [],
+        "must_not_pass": [
+          "READY"
+        ]
+      }
+    },
+    {
+      "id": "DEFECT-03",
+      "category": "defect",
+      "description": "Missing UDIN field.",
+      "bidder_documents": {
+        "udyam_certificate": {
+          "status": {
+            "value": "ACTIVE",
+            "page": 1,
+            "quote": "Udyam Certificate Status: ACTIVE",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "entity_type": {
+            "value": "Railway PSUs",
+            "page": 1,
+            "quote": "Category: Railway PSUs",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "ca_turnover_certificate": {
+          "status": {
+            "value": "SUBMITTED",
+            "page": 1,
+            "quote": "CA Certificate Submitted",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "average_turnover_inr": {
+            "value": 850000000.0,
+            "page": 2,
+            "quote": "Average Annual Turnover: Rs. 85,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "banking_reference_annexure_x": {
+          "available_credit_facility_inr": {
+            "value": 30000000.0,
+            "page": 1,
+            "quote": "Approved overdraft limit: Rs. 3,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "work_experience_certificate": {
+          "contract_value_inr": {
+            "value": 200000000.0,
+            "page": 1,
+            "quote": "Completed Contract Value: Rs. 20,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "truthfulness_undertaking_annexure_i": {
+          "signed": {
+            "value": true,
+            "page": 1,
+            "quote": "Signed by Managing Director",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        }
+      },
+      "expected": {
+        "readiness": "BLOCKED",
+        "blocked_rules": [
+          "R-UDIN"
+        ],
+        "review_rules": [],
+        "must_not_pass": [
+          "READY"
+        ]
+      }
+    },
+    {
+      "id": "DEFECT-04",
+      "category": "defect",
+      "description": "Missing CA turnover certificate.",
+      "bidder_documents": {
+        "udyam_certificate": {
+          "status": {
+            "value": "ACTIVE",
+            "page": 1,
+            "quote": "Udyam Certificate Status: ACTIVE",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "entity_type": {
+            "value": "Railway PSUs",
+            "page": 1,
+            "quote": "Category: Railway PSUs",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "banking_reference_annexure_x": {
+          "available_credit_facility_inr": {
+            "value": 30000000.0,
+            "page": 1,
+            "quote": "Approved overdraft limit: Rs. 3,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "work_experience_certificate": {
+          "contract_value_inr": {
+            "value": 200000000.0,
+            "page": 1,
+            "quote": "Completed Contract Value: Rs. 20,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "truthfulness_undertaking_annexure_i": {
+          "signed": {
+            "value": true,
+            "page": 1,
+            "quote": "Signed by Managing Director",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        }
+      },
+      "expected": {
+        "readiness": "BLOCKED",
+        "blocked_rules": [
+          "R-DOC-CA"
+        ],
+        "review_rules": [],
+        "must_not_pass": [
+          "READY"
+        ]
+      }
+    },
+    {
+      "id": "DEFECT-05",
+      "category": "defect",
+      "description": "Liquidity 1Cr < 2.61Cr threshold.",
+      "bidder_documents": {
+        "udyam_certificate": {
+          "status": {
+            "value": "ACTIVE",
+            "page": 1,
+            "quote": "Udyam Certificate Status: ACTIVE",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "entity_type": {
+            "value": "Railway PSUs",
+            "page": 1,
+            "quote": "Category: Railway PSUs",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "ca_turnover_certificate": {
+          "status": {
+            "value": "SUBMITTED",
+            "page": 1,
+            "quote": "CA Certificate Submitted",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "average_turnover_inr": {
+            "value": 850000000.0,
+            "page": 2,
+            "quote": "Average Annual Turnover: Rs. 85,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "udin": {
+            "value": "26012345ABCDEF1234",
+            "page": 2,
+            "quote": "UDIN: 26012345ABCDEF1234",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "banking_reference_annexure_x": {
+          "available_credit_facility_inr": {
+            "value": 10000000.0,
+            "page": 1,
+            "quote": "Approved credit facility: Rs. 1,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "work_experience_certificate": {
+          "contract_value_inr": {
+            "value": 200000000.0,
+            "page": 1,
+            "quote": "Completed Contract Value: Rs. 20,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "truthfulness_undertaking_annexure_i": {
+          "signed": {
+            "value": true,
+            "page": 1,
+            "quote": "Signed by Managing Director",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        }
+      },
+      "expected": {
+        "readiness": "BLOCKED",
+        "blocked_rules": [
+          "R-LIQUIDITY"
+        ],
+        "review_rules": [],
+        "must_not_pass": [
+          "READY"
+        ]
+      }
+    },
+    {
+      "id": "DEFECT-06",
+      "category": "defect",
+      "description": "Work experience 10Cr < 18.29Cr threshold.",
+      "bidder_documents": {
+        "udyam_certificate": {
+          "status": {
+            "value": "ACTIVE",
+            "page": 1,
+            "quote": "Udyam Certificate Status: ACTIVE",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "entity_type": {
+            "value": "Railway PSUs",
+            "page": 1,
+            "quote": "Category: Railway PSUs",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "ca_turnover_certificate": {
+          "status": {
+            "value": "SUBMITTED",
+            "page": 1,
+            "quote": "CA Certificate Submitted",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "average_turnover_inr": {
+            "value": 850000000.0,
+            "page": 2,
+            "quote": "Average Annual Turnover: Rs. 85,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "udin": {
+            "value": "26012345ABCDEF1234",
+            "page": 2,
+            "quote": "UDIN: 26012345ABCDEF1234",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "banking_reference_annexure_x": {
+          "available_credit_facility_inr": {
+            "value": 30000000.0,
+            "page": 1,
+            "quote": "Approved overdraft limit: Rs. 3,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "work_experience_certificate": {
+          "contract_value_inr": {
+            "value": 100000000.0,
+            "page": 1,
+            "quote": "Completed Contract Value: Rs. 10,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "truthfulness_undertaking_annexure_i": {
+          "signed": {
+            "value": true,
+            "page": 1,
+            "quote": "Signed by Managing Director",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        }
+      },
+      "expected": {
+        "readiness": "BLOCKED",
+        "blocked_rules": [
+          "R-WORK-EXP"
+        ],
+        "review_rules": [],
+        "must_not_pass": [
+          "READY"
+        ]
+      }
+    },
+    {
+      "id": "DEFECT-07",
+      "category": "defect",
+      "description": "Entity type \"Private Company\" not in [\"Railway PSUs\"].",
+      "bidder_documents": {
+        "udyam_certificate": {
+          "status": {
+            "value": "ACTIVE",
+            "page": 1,
+            "quote": "Udyam Certificate Status: ACTIVE",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "entity_type": {
+            "value": "Private Company",
+            "page": 1,
+            "quote": "Category: Private Company",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "ca_turnover_certificate": {
+          "status": {
+            "value": "SUBMITTED",
+            "page": 1,
+            "quote": "CA Certificate Submitted",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "average_turnover_inr": {
+            "value": 850000000.0,
+            "page": 2,
+            "quote": "Average Annual Turnover: Rs. 85,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "udin": {
+            "value": "26012345ABCDEF1234",
+            "page": 2,
+            "quote": "UDIN: 26012345ABCDEF1234",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "banking_reference_annexure_x": {
+          "available_credit_facility_inr": {
+            "value": 30000000.0,
+            "page": 1,
+            "quote": "Approved overdraft limit: Rs. 3,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "work_experience_certificate": {
+          "contract_value_inr": {
+            "value": 200000000.0,
+            "page": 1,
+            "quote": "Completed Contract Value: Rs. 20,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "truthfulness_undertaking_annexure_i": {
+          "signed": {
+            "value": true,
+            "page": 1,
+            "quote": "Signed by Managing Director",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        }
+      },
+      "expected": {
+        "readiness": "BLOCKED",
+        "blocked_rules": [
+          "R-ENTITY-ELIGIBILITY"
+        ],
+        "review_rules": [],
+        "must_not_pass": [
+          "READY"
+        ]
+      }
+    },
+    {
+      "id": "DEFECT-08",
+      "category": "defect",
+      "description": "Ungrounded turnover evidence (is_grounded=false).",
+      "bidder_documents": {
+        "udyam_certificate": {
+          "status": {
+            "value": "ACTIVE",
+            "page": 1,
+            "quote": "Udyam Certificate Status: ACTIVE",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "entity_type": {
+            "value": "Railway PSUs",
+            "page": 1,
+            "quote": "Category: Railway PSUs",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "ca_turnover_certificate": {
+          "status": {
+            "value": "SUBMITTED",
+            "page": 1,
+            "quote": "CA Certificate Submitted",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "average_turnover_inr": {
+            "value": 850000000.0,
+            "page": 2,
+            "quote": "Average Annual Turnover: Rs. 85,00,00,000.00",
+            "is_grounded": false,
+            "source": "uploaded_document"
+          },
+          "udin": {
+            "value": "26012345ABCDEF1234",
+            "page": 2,
+            "quote": "UDIN: 26012345ABCDEF1234",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "banking_reference_annexure_x": {
+          "available_credit_facility_inr": {
+            "value": 30000000.0,
+            "page": 1,
+            "quote": "Approved overdraft limit: Rs. 3,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "work_experience_certificate": {
+          "contract_value_inr": {
+            "value": 200000000.0,
+            "page": 1,
+            "quote": "Completed Contract Value: Rs. 20,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "truthfulness_undertaking_annexure_i": {
+          "signed": {
+            "value": true,
+            "page": 1,
+            "quote": "Signed by Managing Director",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        }
+      },
+      "expected": {
+        "readiness": "NEEDS_REVIEW",
+        "blocked_rules": [],
+        "review_rules": [
+          "R-TURNOVER-AVG3"
+        ],
+        "must_not_pass": [
+          "READY"
+        ]
+      }
+    },
+    {
+      "id": "DEFECT-09",
+      "category": "defect",
+      "description": "Missing Annexure-I (truthfulness).",
+      "bidder_documents": {
+        "udyam_certificate": {
+          "status": {
+            "value": "ACTIVE",
+            "page": 1,
+            "quote": "Udyam Certificate Status: ACTIVE",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "entity_type": {
+            "value": "Railway PSUs",
+            "page": 1,
+            "quote": "Category: Railway PSUs",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "ca_turnover_certificate": {
+          "status": {
+            "value": "SUBMITTED",
+            "page": 1,
+            "quote": "CA Certificate Submitted",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "average_turnover_inr": {
+            "value": 850000000.0,
+            "page": 2,
+            "quote": "Average Annual Turnover: Rs. 85,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "udin": {
+            "value": "26012345ABCDEF1234",
+            "page": 2,
+            "quote": "UDIN: 26012345ABCDEF1234",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "banking_reference_annexure_x": {
+          "available_credit_facility_inr": {
+            "value": 30000000.0,
+            "page": 1,
+            "quote": "Approved overdraft limit: Rs. 3,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "work_experience_certificate": {
+          "contract_value_inr": {
+            "value": 200000000.0,
+            "page": 1,
+            "quote": "Completed Contract Value: Rs. 20,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        }
+      },
+      "expected": {
+        "readiness": "BLOCKED",
+        "blocked_rules": [
+          "R-DOC-ANNEXURE-I"
+        ],
+        "review_rules": [],
+        "must_not_pass": [
+          "READY"
+        ]
+      }
+    },
+    {
+      "id": "DEFECT-10",
+      "category": "defect",
+      "description": "Turnover just below threshold (783923735.00 < 783923735.01).",
+      "bidder_documents": {
+        "udyam_certificate": {
+          "status": {
+            "value": "ACTIVE",
+            "page": 1,
+            "quote": "Udyam Certificate Status: ACTIVE",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "entity_type": {
+            "value": "Railway PSUs",
+            "page": 1,
+            "quote": "Category: Railway PSUs",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "ca_turnover_certificate": {
+          "status": {
+            "value": "SUBMITTED",
+            "page": 1,
+            "quote": "CA Certificate Submitted",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "average_turnover_inr": {
+            "value": 783923735.0,
+            "page": 2,
+            "quote": "Average Annual Turnover: Rs. 78,39,23,735.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "udin": {
+            "value": "26012345ABCDEF1234",
+            "page": 2,
+            "quote": "UDIN: 26012345ABCDEF1234",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "banking_reference_annexure_x": {
+          "available_credit_facility_inr": {
+            "value": 30000000.0,
+            "page": 1,
+            "quote": "Approved overdraft limit: Rs. 3,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "work_experience_certificate": {
+          "contract_value_inr": {
+            "value": 200000000.0,
+            "page": 1,
+            "quote": "Completed Contract Value: Rs. 20,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "truthfulness_undertaking_annexure_i": {
+          "signed": {
+            "value": true,
+            "page": 1,
+            "quote": "Signed by Managing Director",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        }
+      },
+      "expected": {
+        "readiness": "BLOCKED",
+        "blocked_rules": [
+          "R-TURNOVER-AVG3"
+        ],
+        "review_rules": [],
+        "must_not_pass": [
+          "READY"
+        ]
+      }
+    },
+    {
+      "id": "MESSY-01",
+      "category": "messy",
+      "description": "Multiple missing docs: missing udyam_certificate and truthfulness_undertaking_annexure_i.",
+      "bidder_documents": {
+        "ca_turnover_certificate": {
+          "status": {
+            "value": "SUBMITTED",
+            "page": 1,
+            "quote": "CA Certificate Submitted",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "average_turnover_inr": {
+            "value": 850000000.0,
+            "page": 2,
+            "quote": "Average Annual Turnover: Rs. 85,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "udin": {
+            "value": "26012345ABCDEF1234",
+            "page": 2,
+            "quote": "UDIN: 26012345ABCDEF1234",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "banking_reference_annexure_x": {
+          "available_credit_facility_inr": {
+            "value": 30000000.0,
+            "page": 1,
+            "quote": "Approved overdraft limit: Rs. 3,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "work_experience_certificate": {
+          "contract_value_inr": {
+            "value": 200000000.0,
+            "page": 1,
+            "quote": "Completed Contract Value: Rs. 20,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        }
+      },
+      "expected": {
+        "readiness": "BLOCKED",
+        "blocked_rules": [
+          "R-DOC-UDYAM",
+          "R-DOC-ANNEXURE-I"
+        ],
+        "review_rules": [],
+        "must_not_pass": [
+          "READY"
+        ]
+      }
+    },
+    {
+      "id": "MESSY-02",
+      "category": "messy",
+      "description": "All fields ungrounded across all submitted documents.",
+      "bidder_documents": {
+        "udyam_certificate": {
+          "status": {
+            "value": "ACTIVE",
+            "page": 1,
+            "quote": "Udyam Certificate Status: ACTIVE",
+            "is_grounded": false,
+            "source": "uploaded_document"
+          },
+          "entity_type": {
+            "value": "Railway PSUs",
+            "page": 1,
+            "quote": "Category: Railway PSUs",
+            "is_grounded": false,
+            "source": "uploaded_document"
+          }
+        },
+        "ca_turnover_certificate": {
+          "status": {
+            "value": "SUBMITTED",
+            "page": 1,
+            "quote": "CA Certificate Submitted",
+            "is_grounded": false,
+            "source": "uploaded_document"
+          },
+          "average_turnover_inr": {
+            "value": 850000000.0,
+            "page": 2,
+            "quote": "Average Annual Turnover: Rs. 85,00,00,000.00",
+            "is_grounded": false,
+            "source": "uploaded_document"
+          },
+          "udin": {
+            "value": "26012345ABCDEF1234",
+            "page": 2,
+            "quote": "UDIN: 26012345ABCDEF1234",
+            "is_grounded": false,
+            "source": "uploaded_document"
+          }
+        },
+        "banking_reference_annexure_x": {
+          "available_credit_facility_inr": {
+            "value": 30000000.0,
+            "page": 1,
+            "quote": "Approved overdraft limit: Rs. 3,00,00,000.00",
+            "is_grounded": false,
+            "source": "uploaded_document"
+          }
+        },
+        "work_experience_certificate": {
+          "contract_value_inr": {
+            "value": 200000000.0,
+            "page": 1,
+            "quote": "Completed Contract Value: Rs. 20,00,00,000.00",
+            "is_grounded": false,
+            "source": "uploaded_document"
+          }
+        },
+        "truthfulness_undertaking_annexure_i": {
+          "signed": {
+            "value": true,
+            "page": 1,
+            "quote": "Signed by Managing Director",
+            "is_grounded": false,
+            "source": "uploaded_document"
+          }
+        }
+      },
+      "expected": {
+        "readiness": "NEEDS_REVIEW",
+        "blocked_rules": [],
+        "review_rules": [
+          "R-DOC-UDYAM",
+          "R-DOC-CA",
+          "R-TURNOVER-AVG3",
+          "R-UDIN",
+          "R-LIQUIDITY",
+          "R-WORK-EXP",
+          "R-DOC-ANNEXURE-I",
+          "R-ENTITY-ELIGIBILITY"
+        ],
+        "must_not_pass": [
+          "READY"
+        ]
+      }
+    },
+    {
+      "id": "MESSY-03",
+      "category": "messy",
+      "description": "Turnover value=0.",
+      "bidder_documents": {
+        "udyam_certificate": {
+          "status": {
+            "value": "ACTIVE",
+            "page": 1,
+            "quote": "Udyam Certificate Status: ACTIVE",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "entity_type": {
+            "value": "Railway PSUs",
+            "page": 1,
+            "quote": "Category: Railway PSUs",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "ca_turnover_certificate": {
+          "status": {
+            "value": "SUBMITTED",
+            "page": 1,
+            "quote": "CA Certificate Submitted",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "average_turnover_inr": {
+            "value": 0.0,
+            "page": 2,
+            "quote": "Average Annual Turnover: Rs. 0.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "udin": {
+            "value": "26012345ABCDEF1234",
+            "page": 2,
+            "quote": "UDIN: 26012345ABCDEF1234",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "banking_reference_annexure_x": {
+          "available_credit_facility_inr": {
+            "value": 30000000.0,
+            "page": 1,
+            "quote": "Approved overdraft limit: Rs. 3,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "work_experience_certificate": {
+          "contract_value_inr": {
+            "value": 200000000.0,
+            "page": 1,
+            "quote": "Completed Contract Value: Rs. 20,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "truthfulness_undertaking_annexure_i": {
+          "signed": {
+            "value": true,
+            "page": 1,
+            "quote": "Signed by Managing Director",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        }
+      },
+      "expected": {
+        "readiness": "BLOCKED",
+        "blocked_rules": [
+          "R-TURNOVER-AVG3"
+        ],
+        "review_rules": [],
+        "must_not_pass": [
+          "READY"
+        ]
+      }
+    },
+    {
+      "id": "MESSY-04",
+      "category": "messy",
+      "description": "UDIN ungrounded.",
+      "bidder_documents": {
+        "udyam_certificate": {
+          "status": {
+            "value": "ACTIVE",
+            "page": 1,
+            "quote": "Udyam Certificate Status: ACTIVE",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "entity_type": {
+            "value": "Railway PSUs",
+            "page": 1,
+            "quote": "Category: Railway PSUs",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "ca_turnover_certificate": {
+          "status": {
+            "value": "SUBMITTED",
+            "page": 1,
+            "quote": "CA Certificate Submitted",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "average_turnover_inr": {
+            "value": 850000000.0,
+            "page": 2,
+            "quote": "Average Annual Turnover: Rs. 85,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "udin": {
+            "value": "26012345ABCDEF1234",
+            "page": 2,
+            "quote": "UDIN: 26012345ABCDEF1234",
+            "is_grounded": false,
+            "source": "uploaded_document"
+          }
+        },
+        "banking_reference_annexure_x": {
+          "available_credit_facility_inr": {
+            "value": 30000000.0,
+            "page": 1,
+            "quote": "Approved overdraft limit: Rs. 3,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "work_experience_certificate": {
+          "contract_value_inr": {
+            "value": 200000000.0,
+            "page": 1,
+            "quote": "Completed Contract Value: Rs. 20,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "truthfulness_undertaking_annexure_i": {
+          "signed": {
+            "value": true,
+            "page": 1,
+            "quote": "Signed by Managing Director",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        }
+      },
+      "expected": {
+        "readiness": "NEEDS_REVIEW",
+        "blocked_rules": [],
+        "review_rules": [
+          "R-UDIN"
+        ],
+        "must_not_pass": [
+          "READY"
+        ]
+      }
+    },
+    {
+      "id": "MESSY-05",
+      "category": "messy",
+      "description": "Entity type missing entirely.",
+      "bidder_documents": {
+        "udyam_certificate": {
+          "status": {
+            "value": "ACTIVE",
+            "page": 1,
+            "quote": "Udyam Certificate Status: ACTIVE",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "ca_turnover_certificate": {
+          "status": {
+            "value": "SUBMITTED",
+            "page": 1,
+            "quote": "CA Certificate Submitted",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "average_turnover_inr": {
+            "value": 850000000.0,
+            "page": 2,
+            "quote": "Average Annual Turnover: Rs. 85,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "udin": {
+            "value": "26012345ABCDEF1234",
+            "page": 2,
+            "quote": "UDIN: 26012345ABCDEF1234",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "banking_reference_annexure_x": {
+          "available_credit_facility_inr": {
+            "value": 30000000.0,
+            "page": 1,
+            "quote": "Approved overdraft limit: Rs. 3,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "work_experience_certificate": {
+          "contract_value_inr": {
+            "value": 200000000.0,
+            "page": 1,
+            "quote": "Completed Contract Value: Rs. 20,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "truthfulness_undertaking_annexure_i": {
+          "signed": {
+            "value": true,
+            "page": 1,
+            "quote": "Signed by Managing Director",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        }
+      },
+      "expected": {
+        "readiness": "BLOCKED",
+        "blocked_rules": [
+          "R-ENTITY-ELIGIBILITY"
+        ],
+        "review_rules": [],
+        "must_not_pass": [
+          "READY"
+        ]
+      }
+    },
+    {
+      "id": "MESSY-06",
+      "category": "messy",
+      "description": "Mixed: some passing, some failing, some ungrounded -> BLOCKED (worst wins).",
+      "bidder_documents": {
+        "udyam_certificate": {
+          "status": {
+            "value": "ACTIVE",
+            "page": 1,
+            "quote": "Udyam Certificate Status: ACTIVE",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "entity_type": {
+            "value": "Railway PSUs",
+            "page": 1,
+            "quote": "Category: Railway PSUs",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "ca_turnover_certificate": {
+          "status": {
+            "value": "SUBMITTED",
+            "page": 1,
+            "quote": "CA Certificate Submitted",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "average_turnover_inr": {
+            "value": 500000000.0,
+            "page": 2,
+            "quote": "Average Annual Turnover: Rs. 85,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "udin": {
+            "value": "26012345ABCDEF1234",
+            "page": 2,
+            "quote": "UDIN: 26012345ABCDEF1234",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "banking_reference_annexure_x": {
+          "available_credit_facility_inr": {
+            "value": 30000000.0,
+            "page": 1,
+            "quote": "Approved overdraft limit: Rs. 3,00,00,000.00",
+            "is_grounded": false,
+            "source": "uploaded_document"
+          }
+        },
+        "work_experience_certificate": {
+          "contract_value_inr": {
+            "value": 200000000.0,
+            "page": 1,
+            "quote": "Completed Contract Value: Rs. 20,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "truthfulness_undertaking_annexure_i": {
+          "signed": {
+            "value": true,
+            "page": 1,
+            "quote": "Signed by Managing Director",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        }
+      },
+      "expected": {
+        "readiness": "BLOCKED",
+        "blocked_rules": [
+          "R-TURNOVER-AVG3"
+        ],
+        "review_rules": [
+          "R-LIQUIDITY"
+        ],
+        "must_not_pass": [
+          "READY"
+        ]
+      }
+    },
+    {
+      "id": "MESSY-07",
+      "category": "messy",
+      "description": "All docs present but turnover AND liquidity fail.",
+      "bidder_documents": {
+        "udyam_certificate": {
+          "status": {
+            "value": "ACTIVE",
+            "page": 1,
+            "quote": "Udyam Certificate Status: ACTIVE",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "entity_type": {
+            "value": "Railway PSUs",
+            "page": 1,
+            "quote": "Category: Railway PSUs",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "ca_turnover_certificate": {
+          "status": {
+            "value": "SUBMITTED",
+            "page": 1,
+            "quote": "CA Certificate Submitted",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "average_turnover_inr": {
+            "value": 500000000.0,
+            "page": 2,
+            "quote": "Average Annual Turnover: Rs. 85,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "udin": {
+            "value": "26012345ABCDEF1234",
+            "page": 2,
+            "quote": "UDIN: 26012345ABCDEF1234",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "banking_reference_annexure_x": {
+          "available_credit_facility_inr": {
+            "value": 10000000.0,
+            "page": 1,
+            "quote": "Approved overdraft limit: Rs. 3,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "work_experience_certificate": {
+          "contract_value_inr": {
+            "value": 200000000.0,
+            "page": 1,
+            "quote": "Completed Contract Value: Rs. 20,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "truthfulness_undertaking_annexure_i": {
+          "signed": {
+            "value": true,
+            "page": 1,
+            "quote": "Signed by Managing Director",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        }
+      },
+      "expected": {
+        "readiness": "BLOCKED",
+        "blocked_rules": [
+          "R-TURNOVER-AVG3",
+          "R-LIQUIDITY"
+        ],
+        "review_rules": [],
+        "must_not_pass": [
+          "READY"
+        ]
+      }
+    },
+    {
+      "id": "MESSY-08",
+      "category": "messy",
+      "description": "Signed field is False instead of True.",
+      "bidder_documents": {
+        "udyam_certificate": {
+          "status": {
+            "value": "ACTIVE",
+            "page": 1,
+            "quote": "Udyam Certificate Status: ACTIVE",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "entity_type": {
+            "value": "Railway PSUs",
+            "page": 1,
+            "quote": "Category: Railway PSUs",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "ca_turnover_certificate": {
+          "status": {
+            "value": "SUBMITTED",
+            "page": 1,
+            "quote": "CA Certificate Submitted",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "average_turnover_inr": {
+            "value": 850000000.0,
+            "page": 2,
+            "quote": "Average Annual Turnover: Rs. 85,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "udin": {
+            "value": "26012345ABCDEF1234",
+            "page": 2,
+            "quote": "UDIN: 26012345ABCDEF1234",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "banking_reference_annexure_x": {
+          "available_credit_facility_inr": {
+            "value": 30000000.0,
+            "page": 1,
+            "quote": "Approved overdraft limit: Rs. 3,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "work_experience_certificate": {
+          "contract_value_inr": {
+            "value": 200000000.0,
+            "page": 1,
+            "quote": "Completed Contract Value: Rs. 20,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "truthfulness_undertaking_annexure_i": {
+          "signed": {
+            "value": false,
+            "page": 1,
+            "quote": "Undertaking not signed",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        }
+      },
+      "expected": {
+        "readiness": "BLOCKED",
+        "blocked_rules": [
+          "R-DOC-ANNEXURE-I"
+        ],
+        "review_rules": [],
+        "must_not_pass": [
+          "READY"
+        ]
+      }
+    },
+    {
+      "id": "MESSY-09",
+      "category": "messy",
+      "description": "Empty bidder documents.",
+      "bidder_documents": {},
+      "expected": {
+        "readiness": "BLOCKED",
+        "blocked_rules": [
+          "R-DOC-UDYAM",
+          "R-DOC-CA",
+          "R-UDIN",
+          "R-DOC-ANNEXURE-I",
+          "R-ENTITY-ELIGIBILITY"
+        ],
+        "review_rules": [
+          "R-TURNOVER-AVG3",
+          "R-LIQUIDITY",
+          "R-WORK-EXP"
+        ],
+        "must_not_pass": [
+          "READY"
+        ]
+      }
+    },
+    {
+      "id": "MESSY-10",
+      "category": "messy",
+      "description": "All values present and passing but entity type is empty list.",
+      "bidder_documents": {
+        "udyam_certificate": {
+          "status": {
+            "value": "ACTIVE",
+            "page": 1,
+            "quote": "Udyam Certificate Status: ACTIVE",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "entity_type": {
+            "value": [],
+            "page": 1,
+            "quote": "Category: None",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "ca_turnover_certificate": {
+          "status": {
+            "value": "SUBMITTED",
+            "page": 1,
+            "quote": "CA Certificate Submitted",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "average_turnover_inr": {
+            "value": 850000000.0,
+            "page": 2,
+            "quote": "Average Annual Turnover: Rs. 85,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          },
+          "udin": {
+            "value": "26012345ABCDEF1234",
+            "page": 2,
+            "quote": "UDIN: 26012345ABCDEF1234",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "banking_reference_annexure_x": {
+          "available_credit_facility_inr": {
+            "value": 30000000.0,
+            "page": 1,
+            "quote": "Approved overdraft limit: Rs. 3,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "work_experience_certificate": {
+          "contract_value_inr": {
+            "value": 200000000.0,
+            "page": 1,
+            "quote": "Completed Contract Value: Rs. 20,00,00,000.00",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        },
+        "truthfulness_undertaking_annexure_i": {
+          "signed": {
+            "value": true,
+            "page": 1,
+            "quote": "Signed by Managing Director",
+            "is_grounded": true,
+            "source": "uploaded_document"
+          }
+        }
+      },
+      "expected": {
+        "readiness": "BLOCKED",
+        "blocked_rules": [
+          "R-ENTITY-ELIGIBILITY"
+        ],
+        "review_rules": [],
+        "must_not_pass": [
+          "READY"
+        ]
+      }
+    }
+  ]
+}
