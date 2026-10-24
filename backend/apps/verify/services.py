@@ -13,6 +13,7 @@ from apps.evidence.models import EvidenceCitation
 from apps.rules.models import RulePack, RulePackStatus
 from apps.tenders.models import Tender
 from apps.verify.models import AssessmentStatus, VerificationAssessment
+from apps.documents.services import DocumentPipelineService
 from backend.engine.checks import ComplianceEngine
 from backend.engine.schema import (
     AssessmentResponse,
@@ -68,6 +69,11 @@ class VerificationService:
 
         if not rule_pack_obj:
             return {"success": False, "error": "No RulePack found for this tender. Please intake tender first."}
+        if not rule_pack_obj.has_valid_frozen_integrity():
+            return {
+                "success": False,
+                "error": "RulePack is not frozen or its SHA-256 integrity check failed.",
+            }
 
         # 2. Gather Bidder Documents and build facts payload
         docs = BidderDocument.objects.filter(
@@ -77,6 +83,13 @@ class VerificationService:
         tender_docs = docs.filter(tender=tender)
         general_docs = docs.filter(tender__isnull=True)
         active_docs = list(tender_docs) + list(general_docs)
+
+        document_pipeline = DocumentPipelineService()
+        try:
+            for document in active_docs:
+                document_pipeline.verify_stored_document(document)
+        except ValueError as exc:
+            return {"success": False, "error": str(exc)}
 
         bidder_documents_payload: Dict[str, Any] = {}
         doc_map_by_type: Dict[str, BidderDocument] = {}

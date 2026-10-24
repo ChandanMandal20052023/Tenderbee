@@ -394,3 +394,157 @@ def ground_field(
         "reason_code": None,
         "confidence_adjustment": 0.0,
     }
+
+
+class DocumentGroundingPolicy:
+    """Shared document-text normalization, injection screening, and evidence extraction."""
+
+    _FACT_PATTERNS = (
+        (
+            "udyam_registration_number",
+            r"\b(UDYAM[-\s]*[A-Z]{2}[-/][A-Z0-9/-]+)",
+            lambda value: value.replace(" ", ""),
+        ),
+        ("udin", r"\bUDIN\s*[:\-]?\s*([A-Z0-9]{6,})", lambda value: value),
+        (
+            "average_turnover_inr",
+            r"average\s+annual\s+turnover\s*[:\-]?\s*(?:rs\.?|inr|₹)\s*([0-9,]+(?:\.\d+)?)",
+            lambda value: float(value.replace(",", "")),
+        ),
+        (
+            "available_credit_facility_inr",
+            r"(?:working\s+capital|credit\s+facility)\s*[:\-]?\s*(?:rs\.?|inr|₹)\s*([0-9,]+(?:\.\d+)?)",
+            lambda value: float(value.replace(",", "")),
+        ),
+    )
+    _INJECTION_REGEXES = (
+        r"\bignore\b.{0,80}\b(?:instructions?|rules?|polic(?:y|ies)|system\s+prompt)\b",
+        r"\b(?:system|developer|hidden|secret)\s+(?:prompt|instructions?)\b",
+        r"\b(?:override|bypass|disregard|forget)\b.{0,60}\b(?:instructions?|rules?|safety|validation|policy|checks?)\b",
+        r"\b(?:you\s+are\s+now|act\s+as\s+(?:an?\s+)?|pretend\s+to\s+be)\b",
+        r"\b(?:reveal|print|show|dump|exfiltrate|leak)\b.{0,60}\b(?:secret|api\s*key|credential|hidden\s+prompt|system\s+prompt)\b",
+        r"\b(?:call|invoke|run|execute)\b.{0,50}\b(?:tool|function|command|shell|api)\b",
+        r"\b(?:send|upload|forward|transmit)\b.{0,60}\b(?:document|data|contents?|credentials?)\b",
+        r"\b(?:output|respond|return)\b.{0,50}\b(?:only|exactly)\b.{0,30}\b(?:pass|fail|ready|approved|json|eligible|verified)\b",
+        r"<\s*/?\s*(?:system|developer|assistant|tool)\s*>",
+        r"\[\s*(?:system|developer|assistant|tool)\s*\]",
+    )
+
+    @staticmethod
+    def sanitize_text(raw_text: str) -> str:
+        if not isinstance(raw_text, str) or not raw_text:
+            return ""
+        cleaned = unicodedata.normalize("NFKC", raw_text)
+        cleaned = re.sub(r"[\u200b-\u200f\u202a-\u202e\u2060\ufeff]", "", cleaned)
+        cleaned = cleaned.replace("\x00", " ")
+        cleaned = re.sub(r"[\x00-\x1f\x7f]+", " ", cleaned)
+        return re.sub(r"\s+", " ", cleaned).strip()
+
+    @staticmethod
+    def sanitize_page_text(raw_text: str) -> str:
+        if not isinstance(raw_text, str) or not raw_text:
+            return ""
+        cleaned = unicodedata.normalize("NFKC", raw_text).replace("\x00", " ")
+        cleaned = re.sub(r"[\u200b-\u200f\u202a-\u202e\u2060\ufeff]", "", cleaned)
+        cleaned = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]+", " ", cleaned)
+        cleaned = re.sub(r"[ \t]+", " ", cleaned)
+        cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+        return cleaned.strip()
+
+    @staticmethod
+    def detect_prompt_injection(raw_text: str) -> list[str]:
+        text = DocumentGroundingPolicy.sanitize_text(raw_text)
+        matches = [
+            pattern for pattern in DocumentGroundingPolicy._INJECTION_REGEXES
+            if re.search(pattern, text, flags=re.IGNORECASE)
+        ]
+        from backend.engine.ocr_policy import scan_for_injection
+
+        matches.extend(scan_for_injection(text)["patterns_found"])
+        return list(dict.fromkeys(matches))
+
+    @staticmethod
+    def _find_value(patterns: list[str], text: str) -> tuple[bool, str]:
+        for pattern in patterns:
+            match = re.search(pattern, text, flags=re.IGNORECASE)
+            if match:
+                return True, match.group(0)
+        return False, ""
+
+    @staticmethod
+    def extract_document_facts(
+        raw_text: str,
+        page_number: int = 1,
+        confidence: float = 1.0,
+    ) -> dict[str, Any]:
+        text = DocumentGroundingPolicy.sanitize_text(raw_text)
+        facts: dict[str, Any] = {
+            "suspicious_prompt_patterns": DocumentGroundingPolicy.detect_prompt_injection(text),
+            "document_type": "unknown",
+            "fields": {},
+            "field_evidence": {},
+            "grounded_quotes": [],
+        }
+        lower_text = text.casefold()
+        if "udyam" in lower_text or "msme" in lower_text:
+            facts["document_type"] = "udyam_certificate"
+        elif "turnover" in lower_text and (
+            "chartered accountant" in lower_text or "udin" in lower_text
+        ):
+            facts["document_type"] = "ca_turnover_certificate"
+        elif "nsic" in lower_text:
+            facts["document_type"] = "nsic_registration"
+        elif "work experience" in lower_text or "completed contract value" in lower_text:
+            facts["document_type"] = "work_experience_certificate"
+
+        for key, pattern, convert in DocumentGroundingPolicy._FACT_PATTERNS:
+            match = re.search(pattern, text, flags=re.IGNORECASE)
+            if not match:
+                continue
+            try:
+                value = convert(match.group(1).strip())
+            except (ValueError, TypeError):
+                continue
+            facts["fields"][key] = value
+            facts["grounded_quotes"].append(match.group(0))
+            facts["field_evidence"][key] = {
+                "value": value,
+                "page": page_number,
+                "quote": match.group(0),
+                "is_grounded": confidence >= 0.60,
+                "confidence": confidence,
+            }
+
+        entity_match = re.search(
+            r"(?:entity\s+type|bidder\s+category)\s*[:\-]\s*([A-Za-z][A-Za-z0-9 &/-]+)",
+            text,
+            flags=re.IGNORECASE,
+        )
+        if entity_match:
+            value = entity_match.group(1).strip()
+            facts["fields"]["entity_type"] = value
+            facts["field_evidence"]["entity_type"] = {
+                "value": value,
+                "page": page_number,
+                "quote": entity_match.group(0),
+                "is_grounded": confidence >= 0.60,
+                "confidence": confidence,
+            }
+
+        status_match = re.search(
+            r"(?:certificate\s+status|status)\s*[:\-]\s*(ACTIVE|SUBMITTED)\b"
+            r"|certificate\s+is\s+(ACTIVE|SUBMITTED)\b",
+            text,
+            flags=re.IGNORECASE,
+        )
+        if status_match:
+            value = (status_match.group(1) or status_match.group(2)).upper()
+            facts["fields"]["status"] = value
+            facts["field_evidence"]["status"] = {
+                "value": value,
+                "page": page_number,
+                "quote": status_match.group(0),
+                "is_grounded": confidence >= 0.60,
+                "confidence": confidence,
+            }
+        return facts

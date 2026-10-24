@@ -52,17 +52,62 @@ class RulePack(TenantAwareModel):
         serialized = json.dumps(
             {"rules": self.rules_data, "reference_dates": self.reference_dates},
             sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
         )
         return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+
+    def compute_frozen_hash(self) -> str:
+        items = list(
+            self.items.order_by("rule_id", "id").values(
+                "rule_id",
+                "rule_type",
+                "description",
+                "document_type",
+                "parameters",
+                "quote",
+                "page",
+                "is_mandatory",
+                "is_dismissed",
+            )
+        )
+        payload = {
+            "rule_pack_id": self.pk,
+            "tender_id": self.tender_id,
+            "version": self.version,
+            "content_hash": self.content_hash,
+            "confirmed_by": self.confirmed_by,
+            "confirmed_at": self.confirmed_at.isoformat() if self.confirmed_at else None,
+            "items": items,
+        }
+        serialized = json.dumps(
+            payload,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+        )
+        return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+
+    def has_valid_frozen_integrity(self) -> bool:
+        return bool(
+            self.status == RulePackStatus.FROZEN
+            and self.confirmed_by
+            and self.confirmed_at
+            and self.content_hash == self.compute_hash()
+            and self.frozen_hash
+            and self.frozen_hash == self.compute_frozen_hash()
+        )
 
     def freeze(self, confirmed_by_name: str):
         """Freezes the RulePack, rendering it immutable for compliance audits."""
         from django.utils import timezone
+        if not confirmed_by_name or not confirmed_by_name.strip():
+            raise ValueError("A non-empty reviewer identity is required to freeze a rule pack.")
         self.status = RulePackStatus.FROZEN
-        self.confirmed_by = confirmed_by_name
+        self.confirmed_by = confirmed_by_name.strip()
         self.confirmed_at = timezone.now()
         self.content_hash = self.compute_hash()
-        self.frozen_hash = self.content_hash
+        self.frozen_hash = self.compute_frozen_hash()
         self.save()
 
     def __str__(self):

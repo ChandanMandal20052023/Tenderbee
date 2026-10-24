@@ -7,20 +7,28 @@ import hashlib
 import io
 import json
 import logging
+import os
 import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+from urllib.parse import unquote, urlsplit
 
 from pypdf import PdfReader
 from django.conf import settings
 
 from apps.audit.models import AuditEventType, AuditLogEntry
 from apps.documents.models import BidderDocument, DocumentTypeEnum
+from backend.engine.grounding import DocumentGroundingPolicy
+from backend.services.document_ai import DocumentAISafeExtractor
 from backend.engine.parser import is_grounded, norm
 from backend.services.llm import (
     CATurnoverCertificateExtraction,
     FinancialYearTurnover,
     GroundedField,
+    LLMAdapter,
+    LLM_DOCUMENT_SCHEMAS,
+    LLMExtractionBlocked,
+    LLMExtractionError,
     NSICRegistrationExtraction,
     UdyamCertificateExtraction,
 )
@@ -28,6 +36,7 @@ from backend.services.llm import (
 from backend.services.r2_storage import CloudflareR2Storage, get_object_storage
 
 logger = logging.getLogger(__name__)
+MAX_DOCUMENT_BYTES = 20 * 1024 * 1024
 
 
 class DocumentPipelineService:
@@ -57,6 +66,11 @@ class DocumentPipelineService:
             with open(file_obj, "rb") as f:
                 content = f.read()
 
+        if not content or len(content) > MAX_DOCUMENT_BYTES:
+            raise ValueError("PDF must be between 1 byte and 20 MiB.")
+        if not content.startswith(b"%PDF-"):
+            raise ValueError("Uploaded file is not a valid PDF.")
+
         file_size = len(content)
         sha256_hash = hashlib.sha256(content).hexdigest()
 
@@ -74,7 +88,8 @@ class DocumentPipelineService:
         is_signed, sig_valid, sig_details = self._verify_pyhanko_signature(content)
 
         # Stage 2: OCR & High-Fidelity Text Extraction
-        raw_text, pages = self._extract_pdf_pages(content)
+        document_extraction = DocumentAISafeExtractor.extract_from_bytes(content)
+        raw_text, pages = self._pages_to_text(document_extraction)
 
         # Stage 3: Schema-Constrained Document AI Extraction
         extracted_data = self._extract_structured_facts(
@@ -82,6 +97,15 @@ class DocumentPipelineService:
             raw_text=raw_text,
             pages=pages,
         )
+        injection_indicators = DocumentGroundingPolicy.detect_prompt_injection(raw_text)
+        llm_result = self._extract_llm_facts(document_type, document_extraction)
+        extracted_data["__metadata__"] = {
+            "document_sha256": sha256_hash,
+            "ocr_used": document_extraction["ocr_used"],
+            "needs_review": document_extraction["needs_review"] or bool(injection_indicators),
+            "suspicious_prompt_patterns": injection_indicators,
+            "llm_extraction": llm_result,
+        }
 
         # Persist BidderDocument record
         doc = BidderDocument.objects.create(
@@ -167,18 +191,63 @@ class DocumentPipelineService:
 
     def _extract_pdf_pages(self, pdf_bytes: bytes) -> Tuple[str, List[Dict[str, Any]]]:
         """Extracts text content per page with 1-based indexing."""
-        pages = []
-        combined_text = []
+        extraction = DocumentAISafeExtractor.extract_from_bytes(pdf_bytes)
+        return self._pages_to_text(extraction)
+
+    @staticmethod
+    def _pages_to_text(extraction: Dict[str, Any]) -> Tuple[str, List[Dict[str, Any]]]:
+        pages = [
+            {"page_number": page["page"], "text": page["text"]}
+            for page in extraction["pages"]
+        ]
+        combined_text = [
+            f"--- PAGE {page['page_number']} ---\n{page['text']}"
+            for page in pages
+        ]
+        return "\n".join(combined_text), pages
+
+    def verify_stored_document(self, document: BidderDocument) -> None:
+        """Fail closed if the stored source PDF is unavailable or no longer matches its digest."""
+        stored_path = str(document.file_path)
+        path = Path(stored_path)
+        if path.is_file():
+            content = path.read_bytes()
+        else:
+            parsed = urlsplit(stored_path)
+            key = unquote(parsed.path).lstrip("/") if parsed.scheme else stored_path.lstrip("/")
+            bucket = getattr(self.r2_storage, "bucket_name", None)
+            if bucket and key.startswith(f"{bucket}/"):
+                key = key[len(bucket) + 1:]
+            content = self.r2_storage.download_bytes(key)
+
+        if not content:
+            raise ValueError("Stored source PDF is unavailable; refusing verification.")
+        if hashlib.sha256(content).hexdigest() != document.sha256_hash:
+            raise ValueError("Stored source PDF SHA-256 integrity check failed.")
+
+    @staticmethod
+    def _extract_llm_facts(
+        document_type: str,
+        extraction: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        if os.getenv("ENABLE_LLM_EXTRACTION", "").casefold() not in {"1", "true", "yes"}:
+            return {"status": "disabled"}
+        if extraction.get("suspicious_prompt_patterns"):
+            return {"status": "blocked", "reason": "prompt_injection_indicators"}
+        schema_and_instructions = LLM_DOCUMENT_SCHEMAS.get(document_type)
+        if schema_and_instructions is None:
+            return {"status": "skipped", "reason": "unsupported_document_type"}
+
+        response_schema, instructions = schema_and_instructions
+        pages = [(page["page"], page["text"]) for page in extraction["pages"]]
         try:
-            reader = PdfReader(io.BytesIO(pdf_bytes))
-            for i, page in enumerate(reader.pages):
-                text = page.extract_text() or ""
-                pages.append({"page_number": i + 1, "text": text})
-                combined_text.append(f"--- PAGE {i + 1} ---\n{text}")
-            return "\n".join(combined_text), pages
-        except Exception as e:
-            logger.warning("PDF text extraction error: %s", e)
-            return "", []
+            result = LLMAdapter().extract_structured(pages, instructions, response_schema)
+        except LLMExtractionBlocked:
+            return {"status": "blocked", "reason": "prompt_injection_indicators"}
+        except (LLMExtractionError, ValueError) as exc:
+            logger.error("LLM extraction failed for document type %s: %s", document_type, exc)
+            return {"status": "failed", "error": str(exc)}
+        return {"status": "completed", "data": result.model_dump(mode="json")}
 
     def _extract_structured_facts(
         self,

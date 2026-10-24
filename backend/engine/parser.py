@@ -13,6 +13,8 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from pypdf import PdfReader
 from rapidfuzz import fuzz
 
+from backend.engine.grounding import DocumentGroundingPolicy
+from backend.engine.ocr_policy import OCRPolicy
 from backend.engine.schema import (
     TenderClauseQuote,
     TenderEligibilityRules,
@@ -101,6 +103,7 @@ class TenderPDFExtractor:
         pages_data: List[TenderPDFPage] = []
         full_text_by_page: List[Tuple[int, str]] = []
         digital_pages = 0
+        pdf_bytes = self._read_pdf_bytes(pdf_input)
 
         # Step 1: Extract text layer page by page
         for idx, page in enumerate(reader.pages):
@@ -110,6 +113,9 @@ class TenderPDFExtractor:
             char_count = len(cleaned_text)
 
             is_scanned = char_count < self.min_char_threshold
+            if is_scanned:
+                cleaned_text, _ = OCRPolicy.ocr_page(pdf_bytes, idx)
+                cleaned_text = re.sub(r"[ \t]+", " ", cleaned_text).strip()
             if not is_scanned:
                 digital_pages += 1
 
@@ -181,6 +187,13 @@ class TenderPDFExtractor:
                 return
 
         if not adapter or not getattr(adapter, "api_key", None):
+            return
+
+        if any(
+            DocumentGroundingPolicy.detect_prompt_injection(text)
+            for _, text in full_text_by_page
+        ):
+            logger.warning("Skipping tender LLM extraction because document text matched injection indicators.")
             return
 
         try:
@@ -256,9 +269,19 @@ class TenderPDFExtractor:
                         pass
 
             if getattr(llm_result, "mandatory_documents", None):
-                for doc in llm_result.mandatory_documents:
-                    if doc not in mandatory_docs:
-                        mandatory_docs.append(doc)
+                for extracted_doc in llm_result.mandatory_documents:
+                    if (
+                        not extracted_doc
+                        or not extracted_doc.value
+                        or not extracted_doc.quote
+                    ):
+                        continue
+                    page_text = page_dict.get(extracted_doc.page, "")
+                    if (
+                        is_grounded(extracted_doc.quote, page_text)
+                        and extracted_doc.value not in mandatory_docs
+                    ):
+                        mandatory_docs.append(extracted_doc.value)
 
         except Exception as e:
             logger.warning("LLM extraction enhancement encountered an error: %s", e)
@@ -266,6 +289,16 @@ class TenderPDFExtractor:
     def get_json_schema(self) -> Dict[str, Any]:
         """Returns the canonical Pydantic JSON schema."""
         return TenderPDFExtractionResult.model_json_schema()
+
+    @staticmethod
+    def _read_pdf_bytes(pdf_input: Union[str, Path, bytes, io.BytesIO]) -> bytes:
+        if isinstance(pdf_input, bytes):
+            return pdf_input
+        if isinstance(pdf_input, io.BytesIO):
+            return pdf_input.getvalue()
+        if isinstance(pdf_input, (str, Path)):
+            return Path(pdf_input).read_bytes()
+        raise TypeError(f"Unsupported PDF input type: {type(pdf_input)}")
 
     def _load_reader(self, pdf_input: Union[str, Path, bytes, io.BytesIO]) -> PdfReader:
         if isinstance(pdf_input, (str, Path)):

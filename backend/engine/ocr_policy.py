@@ -11,7 +11,10 @@ This module enforces:
 from __future__ import annotations
 
 import re
-from typing import Any
+import os
+from io import BytesIO
+from pathlib import Path
+from typing import Any, Optional, Tuple
 
 # ==============================================================================
 # CONSTANTS & POLICIES
@@ -33,19 +36,43 @@ INJECTION_PATTERNS: tuple[str, ...] = (
     "ignore all previous",
     "disregard above",
     "disregard all",
+    "disregard instructions",
     "you are now",
     "new instructions",
     "system prompt",
+    "reveal the api key",
+    "show the api key",
+    "call the tool",
+    "execute shell command",
+    "transmit the document contents",
+    "send the document contents",
     "mark as eligible",
     "mark everything",
     "mark as verified",
+    "return only approved",
     "override",
+    "override validation",
     "forget everything",
     "act as",
     "pretend to be",
     "do not follow",
     "bypass",
+    "bypass checks",
 )
+
+try:
+    import pymupdf as fitz
+except ModuleNotFoundError:  # pragma: no cover - optional until OCR is configured
+    fitz = None
+
+try:
+    from PIL import Image
+    import pytesseract
+    from pytesseract import Output
+except ModuleNotFoundError:  # pragma: no cover - optional until OCR is configured
+    Image = None
+    pytesseract = None
+    Output = None
 
 
 # ==============================================================================
@@ -304,3 +331,75 @@ def assess_page(page: dict[str, Any]) -> dict[str, Any]:
         "status": status,
         "reasons": reasons,
     }
+
+
+class OCRPolicy:
+    """Scanned-page OCR execution policy and confidence calculation."""
+
+    @staticmethod
+    def ocr_page(
+        pdf_bytes: bytes,
+        page_index: int,
+        language: str = "eng",
+    ) -> Tuple[str, Optional[float]]:
+        if fitz is None or Image is None or pytesseract is None or Output is None:
+            raise ModuleNotFoundError(
+                "Scanned PDF OCR requires PyMuPDF, Pillow, pytesseract, and the Tesseract OCR executable."
+            )
+        if not pdf_bytes.startswith(b"%PDF-"):
+            raise ValueError("Uploaded file is not a valid PDF.")
+        if page_index < 0:
+            raise ValueError("OCR page index must be zero or greater.")
+        if not re.fullmatch(r"[A-Za-z0-9_+]+", language):
+            raise ValueError("OCR language must contain only letters, numbers, underscores, and plus signs.")
+
+        document = fitz.open(stream=pdf_bytes, filetype="pdf")
+        try:
+            if page_index >= len(document):
+                raise ValueError("OCR page index is outside the PDF page range.")
+            configured_tesseract = os.getenv("TESSERACT_CMD")
+            if configured_tesseract:
+                pytesseract.pytesseract.tesseract_cmd = configured_tesseract
+            elif os.name == "nt":
+                for candidate in (
+                    Path(r"C:\Program Files\Tesseract-OCR\tesseract.exe"),
+                    Path(r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe"),
+                ):
+                    if candidate.is_file():
+                        pytesseract.pytesseract.tesseract_cmd = str(candidate)
+                        break
+            page = document.load_page(page_index)
+            pixmap = page.get_pixmap(matrix=fitz.Matrix(2, 2), alpha=False)
+            image = Image.open(BytesIO(pixmap.tobytes("png")))
+            data = pytesseract.image_to_data(
+                image,
+                lang=language,
+                output_type=Output.DICT,
+                timeout=30,
+            )
+            text = pytesseract.image_to_string(image, lang=language, timeout=30)
+        finally:
+            document.close()
+
+        confidences = []
+        for word, confidence in zip(data["text"], data["conf"]):
+            try:
+                score = float(confidence)
+            except (TypeError, ValueError):
+                continue
+            if word.strip() and score >= 0:
+                confidences.append(score / 100.0)
+        average_confidence = (
+            round(sum(confidences) / len(confidences), 3) if confidences else 0.0
+        )
+        from backend.engine.grounding import DocumentGroundingPolicy
+
+        return DocumentGroundingPolicy.sanitize_page_text(text), average_confidence
+
+    @staticmethod
+    def ocr_page_text(
+        pdf_bytes: bytes,
+        page_index: int,
+        language: str = "eng",
+    ) -> Tuple[str, Optional[float]]:
+        return OCRPolicy.ocr_page(pdf_bytes, page_index, language)

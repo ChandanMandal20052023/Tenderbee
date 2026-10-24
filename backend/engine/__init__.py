@@ -2,6 +2,8 @@
 Deterministic rules engine package for TenderBee.
 """
 from backend.engine.checks import ComplianceEngine
+from backend.engine.grounding import DocumentGroundingPolicy
+from backend.engine.ocr_policy import OCRPolicy
 from backend.engine.parser import TenderPDFExtractor, is_grounded, norm
 from backend.engine.rules import (
     ReferenceDates,
@@ -43,6 +45,8 @@ from backend.engine.schema import (
 
 __all__ = [
     "ComplianceEngine",
+    "DocumentGroundingPolicy",
+    "OCRPolicy",
     "TenderPDFExtractor",
     "norm",
     "is_grounded",
