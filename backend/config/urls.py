@@ -1,1 +1,1 @@
-# Root routing configuration mapping API routes to Django apps
+# Root URL router mounting each app urls under /api/

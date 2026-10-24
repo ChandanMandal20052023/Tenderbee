@@ -1,1 +1,0 @@
-# Accounts Django app initialization

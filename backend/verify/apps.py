@@ -1,1 +1,0 @@
-# Verify module app configuration

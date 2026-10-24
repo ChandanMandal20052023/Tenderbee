@@ -1,1 +1,1 @@
-# WSGI entry point for backend service
+# WSGI application entrypoint

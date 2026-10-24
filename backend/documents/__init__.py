@@ -1,1 +1,0 @@
-# Documents Django app initialization

@@ -1,1 +1,0 @@
-# Audit Django app initialization

@@ -1,1 +1,1 @@
-# Backend configuration package initialization
+# Configuration package initialization

@@ -1,1 +1,1 @@
-# Celery application initialization and task routing configuration
+# Celery application initialization and task broker routing

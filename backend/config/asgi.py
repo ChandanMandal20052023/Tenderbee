@@ -1,1 +1,1 @@
-# ASGI configuration for backend service
+# ASGI application entrypoint

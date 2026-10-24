@@ -1,1 +1,1 @@
-# Django settings configured with Neon conn_max_age lifetime and dj-database-url
+# Project settings: reads .env, Neon serverless config via dj-database-url (short conn_max_age)

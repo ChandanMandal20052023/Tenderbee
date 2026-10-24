@@ -1,1 +1,0 @@
-// Frontend component and integration tests

@@ -1,1 +1,0 @@
-# Evidence Django app initialization

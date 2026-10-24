@@ -1,17 +1,17 @@
 # Monorepo task automation
 
-.PHONY: migrate test dev
+.PHONY: run migrate test
 
-# Migrations run strictly against Neon direct connection (DIRECT_URL)
+# Run local development environment
+run:
+	docker compose up
+
+# Run migrations against Neon direct connection (DIRECT_URL)
 migrate:
 	DATABASE_URL=$${DIRECT_URL} python backend/manage.py migrate
 
-# Development services startup
-dev:
-	docker compose up
-
-# Run test suites across layers
+# Run test suites across engine, backend apps, and frontend
 test:
-	python -m unittest discover -s core/engine/tests
-	python backend/manage.py test backend
+	python -m unittest discover -s backend/engine/tests
+	python backend/manage.py test backend/apps
 	npm --prefix frontend test

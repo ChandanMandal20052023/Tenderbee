@@ -1,1 +1,0 @@
-# Tenders Django app initialization
