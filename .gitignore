@@ -2,6 +2,8 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
+.Python
 *.env
 .venv/
 env/
@@ -19,10 +21,18 @@ dist/
 .env
 .env.*
 !.env.example
+data/
+*.db
 *.sqlite3
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
 
 # IDE & OS
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
+*.swp
