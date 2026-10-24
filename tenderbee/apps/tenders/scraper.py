@@ -14,6 +14,7 @@ load_dotenv(os.path.expanduser("~/.env"))
 
 from tinyfish import TinyFish
 from tenderbee.apps.tenders.storage import TenderStorage
+from tenderbee.apps.tenders.validators import validate_identifier
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +83,18 @@ class BidEasyScraper:
         3. Commits immutable snapshot and relational metadata to storage.
         """
         identifier = identifier.strip()
-        is_url = identifier.startswith("http://") or identifier.startswith("https://")
+        
+        # 0. Format and Security Validation
+        validation = validate_identifier(identifier)
+        if not validation.is_valid:
+            return {
+                "success": False,
+                "error": validation.error_message,
+                "input_type": validation.input_type,
+                "is_cached": False,
+            }
+
+        is_url = validation.input_type == "URL"
 
         # 1. Cache lookup
         if not force_refresh:
