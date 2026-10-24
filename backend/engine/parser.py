@@ -375,23 +375,28 @@ class TenderPDFExtractor:
 
         clause_specs = [
             (
-                r"(Aggregate financial turnover not less than.*?Rs\.?\s*([0-9,]+(?:\.[0-9]+)?))",
+                r"((?:Average Annual Turnover|Aggregate financial turnover|Annual turnover|Turnover Requirement|financial turnover not less than).*?(?:Rs\.?|INR|₹)\s*([0-9,]+(?:\.[0-9]+)?))",
                 "turnover_requirement",
                 "turnover",
             ),
             (
-                r"(T2:\s*Minimum 5% of the estimated bid value.*?Rs\.?\s*([0-9,]+(?:\.[0-9]+)?))",
+                r"((?:T2:\s*Minimum 5% of the estimated bid value|Minimum 5% of the estimated|Working capital|Liquid assets|Banking solvency|Solvency certificate).*?(?:Rs\.?|INR|₹)\s*([0-9,]+(?:\.[0-9]+)?))",
                 "liquidity_requirement",
                 "liquidity",
             ),
             (
-                r"(Completed work:\s*One similar single service contract.*?Rs\.?\s*([0-9,]+(?:\.[0-9]+)?))",
+                r"((?:Completed work:\s*One similar single service contract|One similar single service contract|Similar single work contract|Completed work).*?(?:Rs\.?|INR|₹)\s*([0-9,]+(?:\.[0-9]+)?))",
                 "work_experience_requirement",
                 "work_exp",
             ),
             (
-                r"(Audited Balance Sheet.*?reflecting financial turnover certified by Chartered Accountant.*?(?:membership number|UDIN))",
+                r"(Audited Balance Sheet.*?reflecting financial turnover certified by Chartered Accountant.*?(?:membership number|UDIN)?)",
                 "ca_balance_sheet_requirement",
+                "ca_sheet",
+            ),
+            (
+                r"((?:UDIN|Unique Document Identification Number).*?(?:mandatory|compulsory|certified))",
+                "ca_udin_mandatory_requirement",
                 "ca_sheet",
             ),
             (
@@ -400,7 +405,7 @@ class TenderPDFExtractor:
                 "psu_restriction",
             ),
             (
-                r"(MSEs registered with.*?exempted from payment of(?: minimum)? EMD.*?\.)",
+                r"((?:MSEs registered with|MSEs|MSME|Micro and Small Enterprises).*?exempted from payment of(?: minimum)? EMD.*?\.)",
                 "mse_emd_exemption_clause",
                 "mse_emd",
             ),

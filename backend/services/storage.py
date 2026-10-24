@@ -154,12 +154,23 @@ class TenderStorage:
         estimated_value_inr: Optional[float],
         extracted_data: Dict[str, Any],
         raw_text_payload: str,
+        tender_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Stores tender metadata and commits an immutable snapshot to tiered storage.
         """
         content_hash = self.compute_sha256(raw_text_payload or json.dumps(extracted_data, sort_keys=True))
-        tender_id = f"tnd_{self.compute_sha256(tender_number)[:12]}"
+        if not tender_id:
+            # Check if tender already exists in SQLite by external_id
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT tender_id FROM tenders WHERE external_id = ? LIMIT 1", (tender_number,))
+                row = cursor.fetchone()
+                if row:
+                    tender_id = row[0]
+                else:
+                    tender_id = f"tnd_{self.compute_sha256(tender_number)[:12]}"
+
         snapshot_id = f"snp_{content_hash[:16]}"
         now = datetime.now(timezone.utc).isoformat()
 
@@ -375,9 +386,9 @@ class TenderStorage:
 
             cursor.execute("""
                 SELECT extracted_json_path, content_hash, fetched_at FROM tender_snapshots
-                WHERE tender_id = ?
+                WHERE tender_id = ? OR tender_id = ?
                 ORDER BY fetched_at DESC LIMIT 1
-            """, (row["tender_id"],))
+            """, (row["tender_id"], f"tnd_{self.compute_sha256(row['external_id'])[:12]}"))
             snap_row = cursor.fetchone()
             has_snapshot = snap_row is not None
 

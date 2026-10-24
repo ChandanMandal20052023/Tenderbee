@@ -107,6 +107,7 @@ class TenderService:
         self,
         pdf_path: str,
         org_id: str = "org_default",
+        tender_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Production Tender PDF Intake:
@@ -138,6 +139,7 @@ class TenderService:
             estimated_value_inr=extraction.estimated_value_inr,
             extracted_data=tender_data,
             raw_text_payload=raw_text_summary,
+            tender_id=tender_id,
         )
 
         # Draft compliance RulePack from extracted clauses
@@ -440,9 +442,16 @@ class TenderService:
         with sqlite3.connect(self.storage.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
+            cursor.execute("SELECT external_id FROM tenders WHERE tender_id = ?", (tender_id,))
+            t_row = cursor.fetchone()
+            ext_id = t_row["external_id"] if t_row else None
+            alt_id = f"tnd_{self.storage.compute_sha256(ext_id)[:12]}" if ext_id else None
+
             cursor.execute(
-                "SELECT rule_pack_id FROM rule_packs WHERE tender_id = ? ORDER BY version DESC LIMIT 1",
-                (tender_id,),
+                """SELECT rule_pack_id FROM rule_packs 
+                   WHERE tender_id = ? OR (tender_id = ? AND ? IS NOT NULL)
+                   ORDER BY version DESC LIMIT 1""",
+                (tender_id, alt_id, alt_id),
             )
             row = cursor.fetchone()
             if not row:

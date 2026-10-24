@@ -389,7 +389,7 @@ class TenderSearchService:
 
         tender = self.storage.get_tender(identifier, mode=mode)
 
-        # If detailed mode requested and no PDF has been parsed yet, try to acquire & parse it
+        # If detailed mode requested and no PDF has been parsed yet, robustly acquire & parse it
         if mode == "detailed":
             if identifier.endswith(".pdf") or (os.path.exists(identifier) and not os.path.isdir(identifier)):
                 service = TenderService(storage=self.storage)
@@ -398,32 +398,32 @@ class TenderSearchService:
                     tender = self.storage.get_tender(intake_res["tender_id"], mode="detailed")
                     if tender:
                         tender["rule_pack"] = intake_res.get("rule_pack")
-            elif not tender:
-                service = TenderService(storage=self.storage)
-                intake_res = service.intake_tender(identifier)
-                if intake_res.get("success"):
-                    tender = self.storage.get_tender(intake_res["tender_id"], mode="detailed")
-                    if tender:
-                        tender["rule_pack"] = intake_res.get("rule_pack")
-            elif tender.get("pdf_status") == "PENDING_INTAKE":
-                # Check if a matching PDF exists in samples directory
-                clean_id = re.sub(r"[^\w]", "", identifier.lower())
-                samples_dir = Path(__file__).resolve().parents[3] / "samples"
-                target_pdf = None
-                if samples_dir.exists():
-                    for sample_pdf in samples_dir.glob("*.pdf"):
-                        clean_name = re.sub(r"[^\w]", "", sample_pdf.stem.lower())
-                        if clean_id in clean_name or clean_name in clean_id:
-                            target_pdf = str(sample_pdf)
-                            break
-                if target_pdf:
+            else:
+                if not tender:
                     service = TenderService(storage=self.storage)
-                    intake_res = service.intake_tender_pdf(target_pdf)
+                    intake_res = service.intake_tender(identifier)
                     if intake_res.get("success"):
                         tender = self.storage.get_tender(intake_res["tender_id"], mode="detailed")
                         if tender:
                             tender["rule_pack"] = intake_res.get("rule_pack")
-            elif tender and tender.get("has_pdf_document"):
+
+                # If tender exists but has no parsed snapshot or clauses, robustly acquire and parse PDF
+                if tender and (tender.get("pdf_status") != "PARSED" or not tender.get("extraction")):
+                    from backend.services.pdf_resolver import TenderPDFResolver
+                    resolver = TenderPDFResolver(storage=self.storage)
+                    resolved_pdf = resolver.resolve_and_acquire_pdf(tender)
+                    if resolved_pdf:
+                        service = TenderService(storage=self.storage)
+                        intake_res = service.intake_tender_pdf(
+                            resolved_pdf,
+                            tender_id=tender.get("tender_id"),
+                        )
+                        if intake_res.get("success"):
+                            tender = self.storage.get_tender(tender["tender_id"], mode="detailed")
+                            if tender:
+                                tender["rule_pack"] = intake_res.get("rule_pack")
+
+            if tender and tender.get("has_pdf_document") and "rule_pack" not in tender:
                 service = TenderService(storage=self.storage)
                 rule_pack = service.get_rule_pack_by_tender_id(tender["tender_id"])
                 if rule_pack:
