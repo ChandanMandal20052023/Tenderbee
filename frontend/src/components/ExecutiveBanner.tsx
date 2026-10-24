@@ -19,14 +19,14 @@ export default function ExecutiveBanner() {
         <div className="flex flex-col max-w-3xl">
           {/* Metadata Tags */}
           <div className="flex flex-wrap items-center gap-2 mb-3">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary-fixed text-on-secondary-fixed text-xs font-semibold">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full neu-flat-sm bg-secondary-fixed text-on-secondary-fixed text-xs font-semibold">
               <span className="w-1.5 h-1.5 rounded-full bg-secondary" />
               MSE Class 1
             </span>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container text-on-surface-variant text-xs">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full neu-flat-sm text-on-surface-variant text-xs">
               GeM: <strong className="font-semibold text-on-surface">GEM/2024/FAC/89410</strong>
             </span>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-high text-on-surface-variant text-xs font-mono">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full neu-flat-sm text-on-surface-variant text-xs font-mono">
               UDYAM: MH-02-0049182
             </span>
           </div>
@@ -46,7 +46,7 @@ export default function ExecutiveBanner() {
         <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={handleSync}
-            className="group flex items-center gap-2.5 pl-4 pr-3 py-2 rounded-full bg-surface-container-lowest text-on-surface shadow-[0_12px_32px_-4px_rgba(59,0,102,0.06)] hover:bg-surface-container-low border border-outline-variant/30 transition-all cursor-pointer"
+            className="group flex items-center gap-2.5 pl-4 pr-3 py-2 rounded-full neu-button text-on-surface cursor-pointer"
             id="sync-portal-btn"
             type="button"
           >
@@ -56,14 +56,14 @@ export default function ExecutiveBanner() {
             <span className="text-xs font-semibold">
               {syncing ? "Syncing..." : "Sync Portals"}
             </span>
-            <span className="w-5 h-5 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant text-[10px] font-mono">
+            <span className="w-5 h-5 rounded-full neu-pressed-sm flex items-center justify-center text-on-surface-variant text-[10px] font-mono">
               ⌘S
             </span>
           </button>
 
           <Link
             href="/audit"
-            className="group flex items-center gap-2 pl-4 pr-2 py-1.5 rounded-full bg-primary-container text-on-primary shadow-[0_12px_32px_-4px_rgba(59,0,102,0.2)] hover:bg-primary transition-all cursor-pointer"
+            className="group flex items-center gap-2 pl-4 pr-2 py-1.5 rounded-full neu-button-primary cursor-pointer"
           >
             <span className="text-xs font-semibold">Upload for Audit</span>
             <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center text-on-secondary shadow-sm transition-transform group-hover:translate-x-0.5">

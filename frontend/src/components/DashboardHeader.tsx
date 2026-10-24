@@ -9,32 +9,32 @@ export default function DashboardHeader() {
 
   return (
     <>
-      <header className="fixed top-0 left-0 lg:left-72 right-0 h-16 bg-surface/90 backdrop-blur-xl z-40 border-b border-outline-variant/30 px-4 sm:px-8 flex items-center justify-between">
+      <header className="fixed top-0 left-0 lg:left-72 right-0 h-16 bg-surface-container-low/90 backdrop-blur-xl z-40 border-b border-white/60 shadow-[0_4px_16px_rgba(162,176,200,0.16)] px-4 sm:px-8 flex items-center justify-between">
         {/* Mobile Brand Toggle */}
         <div className="flex items-center gap-2 lg:hidden">
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-1.5 rounded-lg text-on-surface hover:bg-surface-container cursor-pointer"
+            className="p-2 rounded-xl neu-button text-on-surface cursor-pointer"
             aria-label="Toggle Navigation"
           >
             <span className="material-symbols-outlined text-2xl">menu</span>
           </button>
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center border border-outline-variant/30 bg-surface-container-low shadow-xs">
+            <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center neu-flat-sm bg-surface-container-lowest">
               <Image src="/logo.png" alt="TenderBee" width={32} height={32} className="w-full h-full object-contain scale-[1.3]" priority />
             </div>
             <span className="font-serif text-xl font-bold text-primary">TenderBee</span>
           </Link>
         </div>
 
-        {/* Global Search Bar */}
+        {/* Global Search Bar - Neumorphic Debossed Field */}
         <div className="hidden sm:flex items-center gap-4 flex-1 max-w-xl">
           <div className="relative w-full">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg">
+            <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg">
               search
             </span>
             <input
-              className="w-full pl-10 pr-4 py-2 bg-surface-container-low rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:bg-surface-container-lowest focus:ring-1 focus:ring-secondary/30 transition-all border border-outline-variant/20"
+              className="w-full pl-10 pr-4 py-2 neu-pressed rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-1 focus:ring-secondary/40 transition-all"
               placeholder="Search tenders, NITs, docs (⌘K)..."
               type="text"
             />
@@ -44,7 +44,7 @@ export default function DashboardHeader() {
         {/* Header Right Cluster */}
         <div className="flex items-center gap-3 sm:gap-4">
           {/* GeM & CPPP Synced Badge */}
-          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container-low border border-outline-variant/30">
+          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full neu-flat-sm">
             <div className="w-2 h-2 rounded-full bg-secondary animate-ping" />
             <span className="text-[10px] uppercase tracking-wider font-semibold text-on-surface-variant">
               GeM &amp; CPPP
@@ -54,9 +54,9 @@ export default function DashboardHeader() {
             </span>
           </div>
 
-          {/* Notifications */}
+          {/* Notifications Button */}
           <button
-            className="relative p-2 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
+            className="relative p-2 rounded-full neu-button text-on-surface-variant hover:text-on-surface cursor-pointer"
             type="button"
             aria-label="View notifications"
           >
@@ -64,7 +64,7 @@ export default function DashboardHeader() {
             <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-secondary" />
           </button>
 
-          <div className="h-6 w-px bg-surface-container-high hidden sm:block" />
+          <div className="h-6 w-px bg-white/70 shadow-sm hidden sm:block" />
 
           {/* User Profile */}
           <Link href="/settings" className="flex items-center gap-2.5 pl-1 group cursor-pointer">
@@ -77,7 +77,7 @@ export default function DashboardHeader() {
               </span>
             </div>
             {/* User Avatar */}
-            <div className="w-9 h-9 rounded-full bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed font-bold text-xs ring-2 ring-white shadow-sm overflow-hidden group-hover:ring-primary/20 transition-all">
+            <div className="w-9 h-9 rounded-full neu-flat-sm flex items-center justify-center text-on-secondary-fixed bg-secondary-fixed font-bold text-xs ring-2 ring-white shadow-sm overflow-hidden group-hover:scale-105 transition-all">
               <span className="material-symbols-outlined text-lg">person</span>
             </div>
           </Link>

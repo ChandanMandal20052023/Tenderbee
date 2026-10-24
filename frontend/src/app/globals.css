@@ -24,15 +24,15 @@
   --color-brand-charcoal: #17161A;
   --color-brand-muted: #5F5D6B;
 
-  /* Material 3 Enterprise Tokens (Dashboard & Audit) */
-  --color-surface: #f8f9ff;
-  --color-surface-dim: #d8dae1;
-  --color-surface-bright: #f8f9ff;
-  --color-surface-container-lowest: #ffffff;
-  --color-surface-container-low: #f2f3fa;
-  --color-surface-container: #ecedf5;
-  --color-surface-container-high: #e6e8ef;
-  --color-surface-container-highest: #e1e2e9;
+  /* Material 3 Enterprise Tokens (Neumorphic Soft UI Tuning) */
+  --color-surface: #edf1f7;
+  --color-surface-dim: #d7deea;
+  --color-surface-bright: #f6f8fc;
+  --color-surface-container-lowest: #f2f5fb;
+  --color-surface-container-low: #e8ecf4;
+  --color-surface-container: #e1e7f1;
+  --color-surface-container-high: #d9e0eb;
+  --color-surface-container-highest: #d0d8e5;
   --color-on-surface: #191c21;
   --color-on-surface-variant: #4c4450;
   --color-inverse-surface: #2e3036;
@@ -79,10 +79,107 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ==========================================================================
+   NEUMORPHIC (SOFT UI) DESIGN SYSTEM UTILITIES
+   ========================================================================== */
+
+/* Extruded raised surface (cards, major panels) */
+.neu-flat {
+  background-color: var(--color-surface-container-lowest);
+  box-shadow: 8px 8px 20px rgba(162, 176, 200, 0.38), -8px -8px 20px #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+/* Small raised surface (chips, badge frames, floating indicators) */
+.neu-flat-sm {
+  background-color: var(--color-surface-container-lowest);
+  box-shadow: 4px 4px 10px rgba(162, 176, 200, 0.32), -4px -4px 10px #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+/* Sunken / Inset surface (inputs, debossed ribbons, log items) */
+.neu-pressed {
+  background-color: var(--color-surface-container-low);
+  box-shadow: inset 4px 4px 9px rgba(162, 176, 200, 0.35), inset -4px -4px 9px #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+/* Small inset surface (search inputs, tags, micro-wells) */
+.neu-pressed-sm {
+  background-color: var(--color-surface-container-low);
+  box-shadow: inset 2px 2px 6px rgba(162, 176, 200, 0.32), inset -2px -2px 6px #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+/* Tactile button with press animation */
+.neu-button {
+  background-color: var(--color-surface-container-lowest);
+  box-shadow: 4px 4px 10px rgba(162, 176, 200, 0.35), -4px -4px 10px #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.neu-button:hover {
+  box-shadow: 6px 6px 14px rgba(162, 176, 200, 0.42), -6px -6px 14px #ffffff;
+  transform: translateY(-1px);
+}
+
+.neu-button:active {
+  box-shadow: inset 3px 3px 6px rgba(162, 176, 200, 0.42), inset -3px -3px 6px #ffffff;
+  transform: translateY(1px);
+}
+
+/* Primary Accent Neumorphic Button */
+.neu-button-primary {
+  background: linear-gradient(135deg, #5b13ec 0%, #3e0aa8 100%);
+  color: #ffffff;
+  box-shadow: 5px 5px 14px rgba(91, 19, 236, 0.36), -4px -4px 10px #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.neu-button-primary:hover {
+  box-shadow: 7px 7px 18px rgba(91, 19, 236, 0.46), -5px -5px 12px #ffffff;
+  transform: translateY(-1px);
+}
+
+.neu-button-primary:active {
+  box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.35), inset -2px -2px 5px rgba(255, 255, 255, 0.15);
+  transform: translateY(1px);
+}
+
+/* Convex tactile gradient */
+.neu-convex {
+  background: linear-gradient(145deg, #f8faff, #e5eaf3);
+  box-shadow: 6px 6px 14px rgba(162, 176, 200, 0.35), -6px -6px 14px #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+/* Concave tactile gradient */
+.neu-concave {
+  background: linear-gradient(145deg, #e5eaf3, #f8faff);
+  box-shadow: 6px 6px 14px rgba(162, 176, 200, 0.35), -6px -6px 14px #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+/* Neumorphic Rounded Pill */
+.neu-pill {
+  border-radius: 9999px;
+  background-color: var(--color-surface-container-lowest);
+  box-shadow: 3px 3px 8px rgba(162, 176, 200, 0.28), -3px -3px 8px #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+/* Automatic Neumorphic enhancement for standard cards */
+.bg-surface-container-lowest {
+  box-shadow: 8px 8px 22px rgba(162, 176, 200, 0.32), -8px -8px 22px #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+}
+
 /* Custom Background Patterns & Accents */
 .bg-wave-pattern {
-  background-color: #D6DAF9;
-  background-image: radial-gradient(rgba(102, 116, 204, 0.18) 1.25px, transparent 0);
+  background-color: #e8ecf6;
+  background-image: radial-gradient(rgba(102, 116, 204, 0.15) 1.25px, transparent 0);
   background-size: 24px 24px;
 }
 
@@ -92,7 +189,7 @@ body {
 }
 
 .mockup-shadow {
-  box-shadow: 0 24px 60px -15px rgba(35, 23, 85, 0.18), 0 0 0 1px rgba(255, 255, 255, 0.4);
+  box-shadow: 14px 14px 32px rgba(162, 176, 200, 0.4), -14px -14px 32px #ffffff, 0 0 0 1px rgba(255, 255, 255, 0.8);
 }
 
 /* Seamless Continuous Ticker for Government Portals */

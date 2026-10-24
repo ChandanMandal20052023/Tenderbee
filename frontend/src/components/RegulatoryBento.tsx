@@ -43,7 +43,7 @@ export default function RegulatoryBento() {
       </div>
 
       <button
-        className="w-full bg-secondary text-on-secondary py-2.5 px-4 rounded-full text-xs font-bold flex items-center justify-center gap-2 hover:bg-secondary-container transition-all cursor-pointer shadow-sm active:scale-98"
+        className="w-full neu-button-primary py-2.5 px-4 rounded-full text-xs font-bold flex items-center justify-center gap-2 cursor-pointer"
         type="button"
       >
         <span>Inspect Rule Engine Traces</span>

@@ -30,11 +30,11 @@ export default function Sidebar({ activeTab, activeRoute }: SidebarProps) {
   ];
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-72 bg-surface-container-low flex flex-col justify-between py-6 px-4 z-50 shadow-[0_1px_8px_rgba(0,0,0,0.04)] border-r border-outline-variant/30 hidden lg:flex">
+    <aside className="fixed left-0 top-0 h-screen w-72 bg-surface-container-low flex flex-col justify-between py-6 px-4 z-50 shadow-[6px_0_20px_rgba(162,176,200,0.22)] border-r border-white/60 hidden lg:flex">
       <div className="flex flex-col gap-6">
-        {/* Brand Logo & Intelligence Tagline with Official logo.png */}
+        {/* Brand Logo with Official logo.png */}
         <Link href="/" className="flex items-center gap-3 px-2 group">
-          <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-xs border border-outline-variant/30 bg-surface-container-low">
+          <div className="w-11 h-11 rounded-xl overflow-hidden flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform neu-flat-sm bg-surface-container-lowest">
             <Image
               src="/logo.png"
               alt="TenderBee"
@@ -54,21 +54,21 @@ export default function Sidebar({ activeTab, activeRoute }: SidebarProps) {
           </div>
         </Link>
 
-        {/* Autonomous Radar Status Pill */}
+        {/* Autonomous Radar Status Pill - Neumorphic Inset */}
         <div className="px-1">
-          <div className="bg-surface-container rounded-xl p-2.5 flex items-center justify-between border border-outline-variant/20">
+          <div className="neu-pressed-sm rounded-xl p-2.5 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
               <span className="text-xs text-on-surface font-semibold">Autonomous Radar</span>
             </div>
-            <span className="text-[10px] font-bold bg-surface-container-lowest text-primary px-2 py-0.5 rounded-full border border-primary/10">
+            <span className="text-[10px] font-bold neu-flat-sm text-primary px-2 py-0.5 rounded-full">
               v2.4 Active
             </span>
           </div>
         </div>
 
         {/* Navigation Items */}
-        <nav className="flex flex-col gap-1.5">
+        <nav className="flex flex-col gap-2">
           {navItems.map((item) => {
             const active = isCurrent(item.path, item.tab);
             return (
@@ -77,8 +77,8 @@ export default function Sidebar({ activeTab, activeRoute }: SidebarProps) {
                 href={item.path}
                 className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all text-sm font-medium ${
                   active
-                    ? "bg-primary text-on-primary font-semibold shadow-sm"
-                    : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
+                    ? "neu-button-primary font-semibold"
+                    : "text-on-surface-variant hover:neu-flat-sm hover:text-on-surface hover:translate-x-0.5"
                 }`}
               >
                 <span className="material-symbols-outlined text-xl">{item.icon}</span>
@@ -91,7 +91,7 @@ export default function Sidebar({ activeTab, activeRoute }: SidebarProps) {
 
       {/* Bottom Sync Information Card */}
       <div className="flex flex-col gap-3 px-1">
-        <div className="p-3 rounded-xl bg-surface-container-lowest shadow-[0_12px_32px_-4px_rgba(59,0,102,0.08)] border border-outline-variant/30 flex flex-col gap-1.5">
+        <div className="p-3.5 rounded-xl neu-flat flex flex-col gap-1.5">
           <div className="flex items-center gap-2 text-secondary">
             <span className="material-symbols-outlined text-lg">hub</span>
             <span className="text-[10px] uppercase tracking-wider font-bold text-secondary">
@@ -103,7 +103,7 @@ export default function Sidebar({ activeTab, activeRoute }: SidebarProps) {
           </p>
           <div className="flex items-center justify-between pt-0.5">
             <span className="text-[11px] font-medium text-on-surface-variant">Active</span>
-            <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-sm" />
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
           </div>
         </div>
 

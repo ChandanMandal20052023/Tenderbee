@@ -2,7 +2,7 @@ import React from "react";
 
 export default function EvidenceInspector() {
   return (
-    <section className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm border border-outline-variant/30 flex flex-col gap-4">
+    <section className="bg-surface-container-lowest neu-flat rounded-2xl p-6 flex flex-col gap-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex flex-col">
@@ -13,13 +13,13 @@ export default function EvidenceInspector() {
             Autonomous Extraction Snippet
           </h3>
         </div>
-        <span className="text-[10px] bg-secondary-fixed text-on-secondary-fixed px-2.5 py-0.5 rounded-full font-bold">
+        <span className="text-[10px] neu-flat-sm bg-secondary-fixed text-on-secondary-fixed px-2.5 py-0.5 rounded-full font-bold">
           99.4% Match
         </span>
       </div>
 
       {/* Evidence Card */}
-      <div className="bg-surface-container-low rounded-2xl p-4 sm:p-5 flex flex-col gap-3 relative overflow-hidden border border-outline-variant/20">
+      <div className="neu-pressed rounded-2xl p-4 sm:p-5 flex flex-col gap-3 relative overflow-hidden">
         <div className="flex items-center justify-between text-on-surface-variant text-[10px] font-mono uppercase tracking-wider font-semibold">
           <span>Doc: CA_Audited_Turnover_FY24.pdf</span>
           <span>Page 2 · Clause 3.1</span>

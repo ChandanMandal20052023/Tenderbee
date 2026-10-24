@@ -60,7 +60,7 @@ export default function SettingsPage() {
             <button
               type="button"
               onClick={handleSave}
-              className="flex items-center gap-2 rounded-xl bg-[#480870] px-5 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#3B0066]"
+              className="flex items-center gap-2 rounded-xl neu-button-primary px-5 py-2.5 text-xs font-semibold cursor-pointer"
             >
               <span className="material-symbols-outlined text-sm">save</span>
               Save Preferences
@@ -69,7 +69,7 @@ export default function SettingsPage() {
 
           {/* Save feedback banner */}
           {isSaved && (
-            <div className="mb-6 flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900 transition">
+            <div className="mb-6 flex items-center justify-between rounded-xl neu-flat bg-emerald-50/90 p-4 text-emerald-900 transition">
               <div className="flex items-center gap-3">
                 <span className="material-symbols-outlined text-emerald-600">check_circle</span>
                 <p className="text-sm font-semibold">Settings and portal sync parameters saved successfully!</p>
@@ -81,14 +81,14 @@ export default function SettingsPage() {
           )}
 
           {/* Settings Tabs */}
-          <div className="mb-6 flex flex-wrap items-center gap-2 border-b border-[#E9DFE4] pb-4">
+          <div className="mb-6 flex flex-wrap items-center gap-2.5 border-b border-white/60 pb-4">
             <button
               type="button"
               onClick={() => setActiveTab("profile")}
-              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition ${
+              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition cursor-pointer ${
                 activeTab === "profile"
-                  ? "bg-[#480870] text-white shadow-xs"
-                  : "bg-white text-[#735368] hover:bg-[#F3EBF0] hover:text-[#1e1b18]"
+                  ? "neu-button-primary"
+                  : "neu-button text-on-surface-variant"
               }`}
             >
               <span className="material-symbols-outlined text-sm">business</span>
@@ -98,10 +98,10 @@ export default function SettingsPage() {
             <button
               type="button"
               onClick={() => setActiveTab("portals")}
-              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition ${
+              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition cursor-pointer ${
                 activeTab === "portals"
-                  ? "bg-[#480870] text-white shadow-xs"
-                  : "bg-white text-[#735368] hover:bg-[#F3EBF0] hover:text-[#1e1b18]"
+                  ? "neu-button-primary"
+                  : "neu-button text-on-surface-variant"
               }`}
             >
               <span className="material-symbols-outlined text-sm">hub</span>
@@ -111,10 +111,10 @@ export default function SettingsPage() {
             <button
               type="button"
               onClick={() => setActiveTab("audit")}
-              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition ${
+              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition cursor-pointer ${
                 activeTab === "audit"
-                  ? "bg-[#480870] text-white shadow-xs"
-                  : "bg-white text-[#735368] hover:bg-[#F3EBF0] hover:text-[#1e1b18]"
+                  ? "neu-button-primary"
+                  : "neu-button text-on-surface-variant"
               }`}
             >
               <span className="material-symbols-outlined text-sm">verified_user</span>
@@ -124,10 +124,10 @@ export default function SettingsPage() {
             <button
               type="button"
               onClick={() => setActiveTab("notifications")}
-              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition ${
+              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition cursor-pointer ${
                 activeTab === "notifications"
-                  ? "bg-[#480870] text-white shadow-xs"
-                  : "bg-white text-[#735368] hover:bg-[#F3EBF0] hover:text-[#1e1b18]"
+                  ? "neu-button-primary"
+                  : "neu-button text-on-surface-variant"
               }`}
             >
               <span className="material-symbols-outlined text-sm">notifications</span>
@@ -137,10 +137,10 @@ export default function SettingsPage() {
             <button
               type="button"
               onClick={() => setActiveTab("team")}
-              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition ${
+              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition cursor-pointer ${
                 activeTab === "team"
-                  ? "bg-[#480870] text-white shadow-xs"
-                  : "bg-white text-[#735368] hover:bg-[#F3EBF0] hover:text-[#1e1b18]"
+                  ? "neu-button-primary"
+                  : "neu-button text-on-surface-variant"
               }`}
             >
               <span className="material-symbols-outlined text-sm">group</span>

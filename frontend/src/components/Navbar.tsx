@@ -8,11 +8,11 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100" data-purpose="site-header">
+    <header className="sticky top-0 z-50 bg-surface/90 backdrop-blur-md shadow-[0_4px_16px_rgba(162,176,200,0.18)] border-b border-white/60" data-purpose="site-header">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
         {/* Brand Logo with Official public/logo.png */}
         <Link href="/" aria-label="TenderBee Home" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-xs border border-outline-variant/30 bg-surface-container-low">
+          <div className="w-11 h-11 rounded-xl overflow-hidden flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform neu-flat-sm bg-surface-container-lowest">
             <Image
               src="/logo.png"
               alt="TenderBee Logo"
@@ -62,13 +62,13 @@ export default function Navbar() {
         <div className="hidden sm:flex items-center space-x-3">
           <Link
             href="/dashboard"
-            className="px-4 py-2 text-xs sm:text-sm font-semibold text-brand-charcoal border border-gray-300 rounded-full hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 text-xs sm:text-sm font-semibold text-brand-charcoal neu-button rounded-full transition-all"
           >
             Log in
           </Link>
           <Link
             href="/dashboard"
-            className="inline-flex items-center pl-5 pr-2 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white bg-brand-purple hover:bg-brand-hover rounded-full transition-all group shadow-sm hover:shadow"
+            className="inline-flex items-center pl-5 pr-2 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white neu-button-primary rounded-full group cursor-pointer"
           >
             <span>Get started</span>
             <span className="w-7 h-7 sm:w-8 sm:h-8 ml-2 rounded-full bg-white/20 group-hover:bg-white/30 flex items-center justify-center transition-colors">
@@ -82,7 +82,7 @@ export default function Navbar() {
         {/* Mobile menu button */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="md:hidden p-2 text-gray-700 hover:text-brand-purple transition-colors"
+          className="md:hidden p-2 neu-button rounded-xl text-gray-700 hover:text-brand-purple transition-colors"
           aria-label="Toggle mobile menu"
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -4,7 +4,7 @@ import React from "react";
 
 export default function ReadinessGaugeCard() {
   return (
-    <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm border border-outline-variant/30 flex flex-col justify-between h-full">
+    <div className="bg-surface-container-lowest neu-flat rounded-2xl p-6 flex flex-col justify-between h-full">
       {/* Card Header */}
       <div className="flex items-start justify-between flex-wrap gap-2">
         <div className="flex flex-col">
@@ -15,7 +15,7 @@ export default function ReadinessGaugeCard() {
             Autonomous Envelope Readiness Index
           </h2>
         </div>
-        <div className="flex items-center gap-2 bg-surface-container-low px-3 py-1 rounded-full border border-outline-variant/20">
+        <div className="flex items-center gap-2 neu-pressed-sm px-3 py-1 rounded-full">
           <span className="w-2 h-2 rounded-full bg-error animate-ping" />
           <span className="text-[10px] text-on-surface font-bold uppercase">
             Submission Lock Engaged
@@ -27,7 +27,7 @@ export default function ReadinessGaugeCard() {
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 my-6 items-center">
         {/* Circular / Numeric Gauge Visual (5 cols) */}
         <div className="md:col-span-5 flex items-center gap-4">
-          <div className="relative w-36 h-36 flex items-center justify-center shrink-0">
+          <div className="relative w-36 h-36 flex items-center justify-center shrink-0 neu-pressed rounded-full p-2">
             {/* SVG Radial Gauge */}
             <svg className="w-full h-full transform -rotate-90" viewBox="0 0 120 120">
               <circle

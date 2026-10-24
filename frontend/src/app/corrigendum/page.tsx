@@ -155,14 +155,14 @@ export default function CorrigendumRadarPage() {
             </div>
 
             <div className="flex items-center gap-3">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800">
+              <span className="inline-flex items-center gap-1.5 rounded-full neu-flat-sm bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800">
                 <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500"></span>
                 Webhook Radar Active (Every 15s)
               </span>
 
               <button
                 type="button"
-                className="flex items-center gap-2 rounded-xl bg-[#480870] px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#3B0066]"
+                className="flex items-center gap-2 rounded-xl neu-button-primary px-4 py-2.5 text-xs font-semibold cursor-pointer"
               >
                 <span className="material-symbols-outlined text-sm">refresh</span>
                 Force Sync Portals
@@ -172,24 +172,24 @@ export default function CorrigendumRadarPage() {
 
           {/* Metric Overview Strip */}
           <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-2xl border border-[#E9DFE4] bg-white p-5 shadow-xs">
+            <div className="rounded-2xl neu-flat p-5">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#735368]">Amendments (7 Days)</span>
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAE0EB] text-[#480870]">
+                <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Amendments (7 Days)</span>
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg neu-flat-sm bg-secondary-fixed text-on-secondary-fixed">
                   <span className="material-symbols-outlined text-base">breaking_news_alt_1</span>
                 </span>
               </div>
-              <p className="mt-3 text-2xl font-bold tracking-tight text-[#1e1b18]">12 Detected</p>
-              <p className="mt-1 text-xs text-emerald-700 flex items-center gap-1">
+              <p className="mt-3 text-2xl font-bold tracking-tight text-primary">12 Detected</p>
+              <p className="mt-1 text-xs text-emerald-700 flex items-center gap-1 font-medium">
                 <span className="material-symbols-outlined text-xs">done_all</span>
                 All cross-referenced with your bid pipeline
               </p>
             </div>
 
-            <div className="rounded-2xl border border-red-200 bg-red-50/60 p-5 shadow-xs">
+            <div className="rounded-2xl neu-flat p-5">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold uppercase tracking-wider text-red-800">Critical BOQ/Date Shifts</span>
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100 text-red-700">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg neu-flat-sm bg-red-100 text-red-700">
                   <span className="material-symbols-outlined text-base">priority_high</span>
                 </span>
               </div>
@@ -197,26 +197,26 @@ export default function CorrigendumRadarPage() {
               <p className="mt-1 text-xs text-red-700">Requires re-audit of bid documents</p>
             </div>
 
-            <div className="rounded-2xl border border-[#E9DFE4] bg-white p-5 shadow-xs">
+            <div className="rounded-2xl neu-flat p-5">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#735368]">Deadlines Extended</span>
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700">
+                <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Deadlines Extended</span>
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg neu-flat-sm bg-indigo-100 text-indigo-700">
                   <span className="material-symbols-outlined text-base">more_time</span>
                 </span>
               </div>
-              <p className="mt-3 text-2xl font-bold tracking-tight text-[#1e1b18]">+5 Days Avg</p>
-              <p className="mt-1 text-xs text-[#735368]">CPWD & DMRC deadlines widened</p>
+              <p className="mt-3 text-2xl font-bold tracking-tight text-primary">+5 Days Avg</p>
+              <p className="mt-1 text-xs text-on-surface-variant">CPWD & DMRC deadlines widened</p>
             </div>
 
-            <div className="rounded-2xl border border-[#E9DFE4] bg-white p-5 shadow-xs">
+            <div className="rounded-2xl neu-flat p-5">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#735368]">Monitored Tenders</span>
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAE0EB] text-[#480870]">
+                <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Monitored Tenders</span>
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg neu-flat-sm bg-secondary-fixed text-on-secondary-fixed">
                   <span className="material-symbols-outlined text-base">radar</span>
                 </span>
               </div>
-              <p className="mt-3 text-2xl font-bold tracking-tight text-[#1e1b18]">24 Active</p>
-              <p className="mt-1 text-xs text-[#735368]">Across GeM, CPPP, IREPS & DMRC</p>
+              <p className="mt-3 text-2xl font-bold tracking-tight text-primary">24 Active</p>
+              <p className="mt-1 text-xs text-on-surface-variant">Across GeM, CPPP, IREPS & DMRC</p>
             </div>
           </div>
 

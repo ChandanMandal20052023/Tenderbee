@@ -17,7 +17,7 @@ export default function TendersList() {
           </h2>
         </div>
         <div className="flex items-center gap-2">
-          <button className="px-3 py-1.5 rounded-full bg-surface-container-high text-on-surface text-xs font-semibold flex items-center gap-1.5 hover:bg-surface-container transition-colors cursor-pointer border border-outline-variant/30">
+          <button className="px-3 py-1.5 rounded-full neu-button text-on-surface text-xs font-semibold flex items-center gap-1.5 cursor-pointer">
             <span className="material-symbols-outlined text-base">filter_list</span>
             <span>Filter (3)</span>
           </button>
@@ -25,18 +25,18 @@ export default function TendersList() {
       </div>
 
       {/* Tender Card 1: CPWD Integrated Facility Management */}
-      <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-[0_12px_32px_-4px_rgba(59,0,102,0.06)] border border-outline-variant/30 flex flex-col gap-4 hover:shadow-md transition-shadow">
+      <div className="bg-surface-container-lowest neu-flat rounded-2xl p-6 flex flex-col gap-4 hover:-translate-y-0.5 transition-transform">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="flex items-start gap-3">
-            <div className="w-11 h-11 rounded-xl bg-primary-container text-on-primary flex items-center justify-center shrink-0 shadow-sm">
+            <div className="w-12 h-12 rounded-xl neu-flat-sm bg-primary-container text-on-primary flex items-center justify-center shrink-0">
               <span className="material-symbols-outlined text-2xl">corporate_fare</span>
             </div>
             <div className="flex flex-col">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant font-mono font-medium">
+                <span className="text-[10px] px-2 py-0.5 rounded-full neu-pressed-sm text-on-surface-variant font-mono font-medium">
                   CPWD/NZ/2024/718
                 </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-bold">
+                <span className="text-[10px] px-2 py-0.5 rounded-full neu-flat-sm bg-secondary-fixed text-on-secondary-fixed font-bold">
                   GeM Custom
                 </span>
                 <span className="text-[10px] text-on-surface-variant flex items-center gap-1 font-medium">
@@ -59,8 +59,8 @@ export default function TendersList() {
           </div>
         </div>
 
-        {/* Compliance Ribbon */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/20">
+        {/* Compliance Ribbon - Neumorphic Well */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 rounded-xl neu-pressed">
           <div className="flex flex-col">
             <span className="text-[10px] text-on-surface-variant uppercase font-semibold">
               Readiness
@@ -101,12 +101,12 @@ export default function TendersList() {
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <button className="px-3.5 py-1.5 rounded-full bg-surface-container text-on-surface text-xs font-semibold hover:bg-surface-container-high transition-colors cursor-pointer">
+            <button className="px-3.5 py-1.5 rounded-full neu-button text-on-surface text-xs font-semibold cursor-pointer">
               BOQ
             </button>
             <Link
               href="/audit"
-              className="px-4 py-1.5 rounded-full bg-primary text-on-primary text-xs font-semibold hover:bg-primary-container transition-all flex items-center gap-1 shadow-sm"
+              className="px-4 py-1.5 rounded-full neu-button-primary text-xs font-semibold flex items-center gap-1"
             >
               <span>Audit Verdict</span>
               <span className="material-symbols-outlined text-base">chevron_right</span>
@@ -116,18 +116,18 @@ export default function TendersList() {
       </div>
 
       {/* Tender Card 2: Indian Railways Housekeeping */}
-      <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-[0_12px_32px_-4px_rgba(59,0,102,0.06)] border border-outline-variant/30 flex flex-col gap-4 hover:shadow-md transition-shadow">
+      <div className="bg-surface-container-lowest neu-flat rounded-2xl p-6 flex flex-col gap-4 hover:-translate-y-0.5 transition-transform">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="flex items-start gap-3">
-            <div className="w-11 h-11 rounded-xl bg-tertiary-container text-tertiary-fixed flex items-center justify-center shrink-0 shadow-sm">
+            <div className="w-12 h-12 rounded-xl neu-flat-sm bg-tertiary-container text-tertiary-fixed flex items-center justify-center shrink-0">
               <span className="material-symbols-outlined text-2xl">train</span>
             </div>
             <div className="flex flex-col">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant font-mono font-medium">
+                <span className="text-[10px] px-2 py-0.5 rounded-full neu-pressed-sm text-on-surface-variant font-mono font-medium">
                   IREPS/NR/HK-2024
                 </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-error-container text-on-error-container font-bold">
+                <span className="text-[10px] px-2 py-0.5 rounded-full neu-flat-sm bg-error-container text-on-error-container font-bold">
                   Action Required
                 </span>
                 <span className="text-[10px] text-on-surface-variant flex items-center gap-1 font-medium">
@@ -150,8 +150,8 @@ export default function TendersList() {
           </div>
         </div>
 
-        {/* Warning Callout Box */}
-        <div className="p-3.5 rounded-xl bg-surface-container-low flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-outline-variant/20">
+        {/* Warning Callout Box - Neumorphic Well */}
+        <div className="p-3.5 rounded-xl neu-pressed flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-start gap-3">
             <span className="material-symbols-outlined text-error text-xl shrink-0 mt-0.5">warning</span>
             <div className="flex flex-col">
@@ -163,7 +163,7 @@ export default function TendersList() {
           </div>
           <Link
             href="/audit"
-            className="px-3.5 py-1.5 rounded-full bg-surface-container-highest text-primary text-xs font-semibold hover:bg-surface-container transition-colors shrink-0 self-start sm:self-auto border border-outline-variant/30 text-center"
+            className="px-3.5 py-1.5 rounded-full neu-button text-primary text-xs font-semibold shrink-0 self-start sm:self-auto text-center"
           >
             Upload Doc
           </Link>
@@ -180,13 +180,13 @@ export default function TendersList() {
           <div className="flex items-center gap-2">
             <Link
               href="/audit"
-              className="px-3.5 py-1.5 rounded-full bg-surface-container text-on-surface text-xs font-semibold hover:bg-surface-container-high transition-colors"
+              className="px-3.5 py-1.5 rounded-full neu-button text-on-surface text-xs font-semibold"
             >
               Audit Details
             </Link>
             <Link
               href="/audit"
-              className="px-4 py-1.5 rounded-full bg-primary text-on-primary text-xs font-semibold hover:bg-primary-container transition-all flex items-center gap-1 shadow-sm"
+              className="px-4 py-1.5 rounded-full neu-button-primary text-xs font-semibold flex items-center gap-1"
             >
               <span>Resolve</span>
               <span className="material-symbols-outlined text-base">arrow_forward</span>
@@ -196,18 +196,18 @@ export default function TendersList() {
       </div>
 
       {/* Tender Card 3: AIIMS Sanitization */}
-      <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-[0_12px_32px_-4px_rgba(59,0,102,0.06)] border border-outline-variant/30 flex flex-col gap-4 hover:shadow-md transition-shadow">
+      <div className="bg-surface-container-lowest neu-flat rounded-2xl p-6 flex flex-col gap-4 hover:-translate-y-0.5 transition-transform">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="flex items-start gap-3">
-            <div className="w-11 h-11 rounded-xl bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center shrink-0 shadow-sm">
+            <div className="w-12 h-12 rounded-xl neu-flat-sm bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center shrink-0">
               <span className="material-symbols-outlined text-2xl">local_hospital</span>
             </div>
             <div className="flex flex-col">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant font-mono font-medium">
+                <span className="text-[10px] px-2 py-0.5 rounded-full neu-pressed-sm text-on-surface-variant font-mono font-medium">
                   AIIMS-DELHI/2024/SAN-41
                 </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-bold">
+                <span className="text-[10px] px-2 py-0.5 rounded-full neu-flat-sm text-on-surface-variant font-bold">
                   Technical Ready
                 </span>
                 <span className="text-[10px] text-on-surface-variant flex items-center gap-1 font-medium">
@@ -230,8 +230,8 @@ export default function TendersList() {
           </div>
         </div>
 
-        {/* Compliance Ribbon */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/20">
+        {/* Compliance Ribbon - Neumorphic Well */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 rounded-xl neu-pressed">
           <div className="flex flex-col">
             <span className="text-[10px] text-on-surface-variant uppercase font-semibold">Audit</span>
             <span className="text-xs font-bold text-secondary mt-0.5 flex items-center gap-1">
@@ -260,10 +260,10 @@ export default function TendersList() {
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <button className="px-3.5 py-1.5 rounded-full bg-surface-container text-on-surface text-xs font-semibold hover:bg-surface-container-high transition-colors cursor-pointer">
+            <button className="px-3.5 py-1.5 rounded-full neu-button text-on-surface text-xs font-semibold cursor-pointer">
               Review
             </button>
-            <button className="px-4 py-1.5 rounded-full bg-secondary text-on-secondary text-xs font-semibold hover:bg-secondary-container transition-all flex items-center gap-1 shadow-sm cursor-pointer">
+            <button className="px-4 py-1.5 rounded-full neu-button-primary text-xs font-semibold flex items-center gap-1 cursor-pointer">
               <span>Sign (Class-3 DSC)</span>
               <span className="material-symbols-outlined text-base">enhanced_encryption</span>
             </button>

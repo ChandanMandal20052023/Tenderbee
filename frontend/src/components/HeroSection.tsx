@@ -71,23 +71,23 @@ export default function HeroSection() {
           Discover relevant opportunities, understand eligibility, and stay prepared with intelligent tender insights.
         </p>
 
-        {/* Pill Action Form Input */}
+        {/* Pill Action Form Input - Neumorphic Inset & Raised Button */}
         <div ref={formRef} className="mt-8 max-w-xl mx-auto">
           <form
             onSubmit={(e) => {
               e.preventDefault();
               router.push("/dashboard");
             }}
-            className="bg-white p-1.5 sm:p-2 rounded-full shadow-lg border border-indigo-100 flex items-center justify-between"
+            className="neu-flat p-2 sm:p-2.5 rounded-full flex items-center justify-between gap-2"
           >
             <input
-              className="w-full bg-transparent border-0 focus:ring-0 text-sm sm:text-base text-brand-charcoal placeholder-gray-400 pl-4 pr-2 outline-none"
+              className="w-full neu-pressed-sm rounded-full py-2.5 pl-5 pr-3 text-sm sm:text-base text-brand-charcoal placeholder-gray-400 outline-none"
               placeholder="Enter your work email or tender category..."
               required
               type="text"
             />
             <button
-              className="flex-shrink-0 inline-flex items-center pl-5 pr-2 py-2 text-xs sm:text-sm font-semibold text-white bg-brand-purple hover:bg-brand-hover rounded-full transition-all group shadow-sm cursor-pointer"
+              className="flex-shrink-0 inline-flex items-center pl-5 pr-2 py-2 text-xs sm:text-sm font-semibold text-white neu-button-primary rounded-full group cursor-pointer"
               type="submit"
             >
               <span>Explore Tenders</span>
@@ -102,27 +102,27 @@ export default function HeroSection() {
 
         {/* Hero Dashboard Visual Mockup */}
         <div ref={mockupRef} className="mt-12 sm:mt-16 max-w-3xl mx-auto">
-          <div className="bg-[#8E9BEE]/70 p-3 sm:p-5 rounded-3xl mockup-shadow border border-white/50 backdrop-blur-sm">
+          <div className="neu-flat bg-gradient-to-br from-surface-container-low to-surface-container p-3 sm:p-5 rounded-3xl border border-white/80">
             {/* Top Window Controls */}
-            <div className="flex items-center space-x-1.5 mb-4 px-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-white/60"></span>
-              <span className="w-2.5 h-2.5 rounded-full bg-white/60"></span>
-              <span className="w-2.5 h-2.5 rounded-full bg-white/60"></span>
+            <div className="flex items-center space-x-2 mb-4 px-2">
+              <span className="w-3 h-3 rounded-full neu-pressed-sm bg-rose-400/80"></span>
+              <span className="w-3 h-3 rounded-full neu-pressed-sm bg-amber-400/80"></span>
+              <span className="w-3 h-3 rounded-full neu-pressed-sm bg-emerald-400/80"></span>
             </div>
 
             {/* Tender Mockup Center Card Stack */}
-            <div className="bg-[#99A6F4]/90 rounded-2xl p-6 sm:p-10 flex flex-col items-center justify-center min-h-[260px] sm:min-h-[310px] relative">
+            <div className="neu-pressed rounded-2xl p-6 sm:p-10 flex flex-col items-center justify-center min-h-[260px] sm:min-h-[310px] relative">
               {/* Source Integration Badges */}
               <div className="flex items-center justify-center gap-2 mb-4 flex-wrap">
-                <div className="bg-white/95 rounded-xl px-3 py-1.5 text-xs font-semibold flex items-center gap-2 shadow-sm text-gray-700">
+                <div className="neu-flat-sm rounded-xl px-3 py-1.5 text-xs font-semibold flex items-center gap-2 text-gray-700 bg-surface-container-lowest">
                   <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                   <span>GeM Portal</span>
                 </div>
-                <div className="bg-white/95 rounded-xl px-3 py-1.5 text-xs font-semibold flex items-center gap-2 shadow-sm text-gray-700">
+                <div className="neu-flat-sm rounded-xl px-3 py-1.5 text-xs font-semibold flex items-center gap-2 text-gray-700 bg-surface-container-lowest">
                   <span className="w-2 h-2 rounded-full bg-blue-500"></span>
                   <span>CPPP National</span>
                 </div>
-                <div className="bg-white/95 rounded-xl px-3 py-1.5 text-xs font-semibold flex items-center gap-2 shadow-sm text-gray-700">
+                <div className="neu-flat-sm rounded-xl px-3 py-1.5 text-xs font-semibold flex items-center gap-2 text-gray-700 bg-surface-container-lowest">
                   <span className="w-2 h-2 rounded-full bg-amber-500"></span>
                   <span>State Feeds</span>
                 </div>
@@ -131,11 +131,11 @@ export default function HeroSection() {
               {/* Foreground Live Tender Card Indicator */}
               <Link
                 href="/audit"
-                className="w-full max-w-md bg-white rounded-2xl p-4 shadow-xl border border-indigo-50 transform hover:-translate-y-1 transition-transform text-left cursor-pointer group block"
+                className="w-full max-w-md neu-flat rounded-2xl p-4 transform hover:-translate-y-1 transition-transform text-left cursor-pointer group block"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center text-brand-purple group-hover:bg-brand-purple group-hover:text-white transition-colors">
+                    <div className="w-10 h-10 rounded-xl neu-flat-sm bg-purple-50 flex items-center justify-center text-brand-purple group-hover:bg-brand-purple group-hover:text-white transition-colors">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
                       </svg>
@@ -145,7 +145,7 @@ export default function HeroSection() {
                       <p className="text-[11px] text-gray-500">Ref: GEM/2025/B/91280 • ₹1.84 Cr</p>
                     </div>
                   </div>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold neu-flat-sm bg-emerald-100 text-emerald-800">
                     94% Match
                   </span>
                 </div>
@@ -158,12 +158,9 @@ export default function HeroSection() {
                     </svg>
                     Eligibility criteria qualified
                   </span>
-                  <span className="font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md">3 days remaining</span>
+                  <span className="font-medium text-amber-600 neu-pressed-sm px-2 py-0.5 rounded-md">3 days remaining</span>
                 </div>
               </Link>
-
-              {/* Floating Sub-layer for Depth */}
-              <div className="w-[85%] max-w-sm h-3 bg-white/40 rounded-b-2xl mx-auto"></div>
             </div>
           </div>
         </div>

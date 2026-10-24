@@ -31,7 +31,7 @@ export default function MetricCards() {
     <section ref={containerRef} className="px-4 sm:px-8 xl:px-12 pb-8">
       <div ref={gridRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* 1. Overall Bid Readiness Index */}
-        <div className="relative bg-surface-container-lowest rounded-2xl p-6 shadow-[0_12px_32px_-4px_rgba(59,0,102,0.05)] border border-outline-variant/30 flex flex-col justify-between min-h-[240px] overflow-hidden group">
+        <div className="relative bg-surface-container-lowest neu-flat rounded-2xl p-6 flex flex-col justify-between min-h-[240px] overflow-hidden group hover:-translate-y-0.5 transition-transform">
           <div className="absolute -top-12 -right-12 w-32 h-32 bg-secondary-fixed/40 rounded-full blur-2xl group-hover:scale-125 transition-transform" />
           <div className="flex items-start justify-between relative z-10">
             <div>
@@ -40,17 +40,17 @@ export default function MetricCards() {
               </span>
               <span className="font-serif text-xl font-bold text-primary">Readiness Index</span>
             </div>
-            <span className="p-2 rounded-full bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center">
+            <span className="p-2.5 rounded-xl neu-flat-sm bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center">
               <span className="material-symbols-outlined text-xl">fact_check</span>
             </span>
           </div>
 
           <div className="flex items-center gap-4 my-3 relative z-10">
             {/* Circular Progress Gauge */}
-            <div className="relative w-20 h-20 shrink-0">
+            <div className="relative w-20 h-20 shrink-0 neu-pressed-sm rounded-full p-1 flex items-center justify-center">
               <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                 <path
-                  className="text-surface-container"
+                  className="text-surface-container/60"
                   d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                   fill="none"
                   stroke="currentColor"
@@ -87,7 +87,7 @@ export default function MetricCards() {
         </div>
 
         {/* 2. Active Pipeline Value */}
-        <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-[0_12px_32px_-4px_rgba(59,0,102,0.05)] border border-outline-variant/30 flex flex-col justify-between min-h-[240px]">
+        <div className="bg-surface-container-lowest neu-flat rounded-2xl p-6 flex flex-col justify-between min-h-[240px] hover:-translate-y-0.5 transition-transform">
           <div className="flex items-start justify-between">
             <div>
               <span className="text-[10px] text-on-surface-variant uppercase tracking-wider block font-semibold">
@@ -95,7 +95,7 @@ export default function MetricCards() {
               </span>
               <span className="font-serif text-xl font-bold text-primary">Tenders Tracked</span>
             </div>
-            <span className="p-2 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center">
+            <span className="p-2.5 rounded-xl neu-flat-sm text-on-surface-variant flex items-center justify-center">
               <span className="material-symbols-outlined text-xl">gavel</span>
             </span>
           </div>
@@ -106,15 +106,15 @@ export default function MetricCards() {
               <span className="text-sm font-medium text-on-surface-variant">Live Bids</span>
             </div>
             <div className="mt-2 flex items-center gap-2 flex-wrap">
-              <span className="px-2.5 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed text-[11px] font-bold">
+              <span className="px-2.5 py-0.5 rounded-full neu-flat-sm bg-secondary-fixed text-on-secondary-fixed text-[11px] font-bold">
                 ₹18.4 Cr
               </span>
               <span className="text-xs text-on-surface-variant">4 closing &lt;48h</span>
             </div>
           </div>
 
-          {/* Inline Visual Spark-Bars */}
-          <div className="flex items-end gap-1.5 h-6 w-full pt-1">
+          {/* Inline Visual Spark-Bars with Neumorphic Well */}
+          <div className="neu-pressed-sm p-1.5 rounded-lg flex items-end gap-1.5 h-7 w-full">
             <div className="h-3 w-1/6 bg-secondary-fixed rounded-t-sm" title="CPWD" />
             <div className="h-5 w-1/6 bg-secondary rounded-t-sm" title="Railways" />
             <div className="h-4 w-1/6 bg-secondary-fixed rounded-t-sm" title="AIIMS" />
@@ -125,7 +125,7 @@ export default function MetricCards() {
         </div>
 
         {/* 3. Compliance Health */}
-        <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-[0_12px_32px_-4px_rgba(59,0,102,0.05)] border border-outline-variant/30 flex flex-col justify-between min-h-[240px]">
+        <div className="bg-surface-container-lowest neu-flat rounded-2xl p-6 flex flex-col justify-between min-h-[240px] hover:-translate-y-0.5 transition-transform">
           <div className="flex items-start justify-between">
             <div>
               <span className="text-[10px] text-on-surface-variant uppercase tracking-wider block font-semibold">
@@ -133,7 +133,7 @@ export default function MetricCards() {
               </span>
               <span className="font-serif text-xl font-bold text-primary">Compliance Health</span>
             </div>
-            <span className="p-2 rounded-full bg-surface-container-high text-on-surface-variant flex items-center justify-center">
+            <span className="p-2.5 rounded-xl neu-flat-sm text-on-surface-variant flex items-center justify-center">
               <span className="material-symbols-outlined text-xl">rule</span>
             </span>
           </div>
@@ -141,7 +141,7 @@ export default function MetricCards() {
           <div className="my-3">
             <div className="flex items-baseline gap-2">
               <span className="font-serif text-4xl text-primary font-bold leading-none">99.2%</span>
-              <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-surface-container text-on-surface-variant">
+              <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded neu-pressed-sm text-on-surface-variant">
                 Verified
               </span>
             </div>
@@ -151,14 +151,14 @@ export default function MetricCards() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 p-2 rounded-xl bg-surface-container-low text-on-surface border border-outline-variant/20">
+          <div className="flex items-center gap-2 p-2 rounded-xl neu-pressed-sm text-on-surface">
             <span className="material-symbols-outlined text-base text-error">priority_high</span>
             <span className="text-xs truncate font-medium">1 pending: CSPO exemption</span>
           </div>
         </div>
 
         {/* 4. Corrigendum Alerts */}
-        <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-[0_12px_32px_-4px_rgba(59,0,102,0.05)] border border-outline-variant/30 flex flex-col justify-between min-h-[240px]">
+        <div className="bg-surface-container-lowest neu-flat rounded-2xl p-6 flex flex-col justify-between min-h-[240px] hover:-translate-y-0.5 transition-transform">
           <div className="flex items-start justify-between">
             <div>
               <span className="text-[10px] text-on-surface-variant uppercase tracking-wider block font-semibold">
@@ -167,7 +167,7 @@ export default function MetricCards() {
               <span className="font-serif text-xl font-bold text-primary">Corrigenda</span>
             </div>
             <div className="relative">
-              <span className="p-2 rounded-full bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center">
+              <span className="p-2.5 rounded-xl neu-flat-sm bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center">
                 <span className="material-symbols-outlined text-xl">radar</span>
               </span>
               <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-secondary rounded-full animate-ping" />

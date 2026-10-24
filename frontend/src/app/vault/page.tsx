@@ -222,7 +222,7 @@ export default function DocumentVaultPage() {
                 type="button"
                 onClick={handleSimulateUpload}
                 disabled={isUploading}
-                className="flex items-center gap-2 rounded-xl bg-[#480870] px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#3B0066] disabled:opacity-50"
+                className="flex items-center gap-2 rounded-xl neu-button-primary px-4 py-2.5 text-xs font-semibold disabled:opacity-50 cursor-pointer"
               >
                 <span className="material-symbols-outlined text-sm">
                   {isUploading ? "progress_activity" : "upload_file"}
@@ -232,7 +232,7 @@ export default function DocumentVaultPage() {
 
               <button
                 type="button"
-                className="flex items-center gap-2 rounded-xl border border-[#E9DFE4] bg-white px-4 py-2.5 text-xs font-semibold text-[#1e1b18] shadow-sm transition hover:bg-[#F3EBF0]"
+                className="flex items-center gap-2 rounded-xl neu-button px-4 py-2.5 text-xs font-semibold text-on-surface cursor-pointer"
               >
                 <span className="material-symbols-outlined text-sm text-[#480870]">download</span>
                 Export Full Dossier
@@ -242,7 +242,7 @@ export default function DocumentVaultPage() {
 
           {/* Success Banner if uploaded */}
           {uploadSuccess && (
-            <div className="mb-6 flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900 transition">
+            <div className="mb-6 flex items-center justify-between rounded-xl neu-flat bg-emerald-50/80 p-4 text-emerald-900 transition">
               <div className="flex items-center gap-3">
                 <span className="material-symbols-outlined text-emerald-600">verified</span>
                 <div>
@@ -260,46 +260,46 @@ export default function DocumentVaultPage() {
 
           {/* Metric Overview Strip */}
           <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-2xl border border-[#E9DFE4] bg-white p-5 shadow-xs">
+            <div className="rounded-2xl neu-flat p-5">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#735368]">Vault Integrity</span>
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAE0EB] text-[#480870]">
+                <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Vault Integrity</span>
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg neu-flat-sm bg-secondary-fixed text-on-secondary-fixed">
                   <span className="material-symbols-outlined text-base">verified_user</span>
                 </span>
               </div>
-              <p className="mt-3 text-2xl font-bold tracking-tight text-[#1e1b18]">98.2%</p>
-              <p className="mt-1 text-xs text-emerald-700 flex items-center gap-1">
+              <p className="mt-3 text-2xl font-bold tracking-tight text-primary">98.2%</p>
+              <p className="mt-1 text-xs text-emerald-700 flex items-center gap-1 font-medium">
                 <span className="material-symbols-outlined text-xs">check_circle</span>
                 18 of 19 credentials fully valid
               </p>
             </div>
 
-            <div className="rounded-2xl border border-[#E9DFE4] bg-white p-5 shadow-xs">
+            <div className="rounded-2xl neu-flat p-5">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#735368]">UDIN Live Match</span>
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+                <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">UDIN Live Match</span>
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg neu-flat-sm bg-emerald-100 text-emerald-700">
                   <span className="material-symbols-outlined text-base">fact_check</span>
                 </span>
               </div>
-              <p className="mt-3 text-2xl font-bold tracking-tight text-[#1e1b18]">100% Active</p>
-              <p className="mt-1 text-xs text-[#735368]">Synced with ICAI & MSME registry</p>
+              <p className="mt-3 text-2xl font-bold tracking-tight text-primary">100% Active</p>
+              <p className="mt-1 text-xs text-on-surface-variant">Synced with ICAI & MSME registry</p>
             </div>
 
-            <div className="rounded-2xl border border-[#E9DFE4] bg-white p-5 shadow-xs">
+            <div className="rounded-2xl neu-flat p-5">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#735368]">Class-3 DSC Token</span>
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700">
+                <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Class-3 DSC Token</span>
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg neu-flat-sm bg-indigo-100 text-indigo-700">
                   <span className="material-symbols-outlined text-base">token</span>
                 </span>
               </div>
-              <p className="mt-3 text-2xl font-bold tracking-tight text-[#1e1b18]">Active (Director)</p>
-              <p className="mt-1 text-xs text-[#735368]">Valid through June 2025</p>
+              <p className="mt-3 text-2xl font-bold tracking-tight text-primary">Active (Director)</p>
+              <p className="mt-1 text-xs text-on-surface-variant">Valid through June 2025</p>
             </div>
 
-            <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-5 shadow-xs">
+            <div className="rounded-2xl neu-flat p-5">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold uppercase tracking-wider text-amber-800">Action Required</span>
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-200 text-amber-900">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg neu-flat-sm bg-amber-200 text-amber-900">
                   <span className="material-symbols-outlined text-base">notification_important</span>
                 </span>
               </div>
@@ -309,23 +309,23 @@ export default function DocumentVaultPage() {
           </div>
 
           {/* Quick Drag & Drop Upload Strip */}
-          <div className="mb-8 rounded-2xl border-2 border-dashed border-[#D5C2CF] bg-white/70 p-6 text-center transition hover:border-[#480870] hover:bg-white">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-[#EAE0EB] text-[#480870]">
+          <div className="mb-8 rounded-2xl neu-pressed p-6 text-center transition">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl neu-flat-sm text-secondary bg-surface-container-lowest">
               <span className="material-symbols-outlined text-2xl">cloud_upload</span>
             </div>
-            <p className="mt-3 font-semibold text-[#1e1b18]">Drag and drop your tender compliance documents here</p>
-            <p className="mt-1 text-xs text-[#735368]">
+            <p className="mt-3 font-semibold text-primary">Drag and drop your tender compliance documents here</p>
+            <p className="mt-1 text-xs text-on-surface-variant">
               Accepts PDF, P7S, ZIP up to 50MB. Auto-runs OCR, UDIN cross-match, and digital signature validation.
             </p>
             <div className="mt-4 flex items-center justify-center gap-3">
               <button
                 type="button"
                 onClick={handleSimulateUpload}
-                className="rounded-lg bg-[#480870] px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-[#3B0066]"
+                className="rounded-lg neu-button-primary px-4 py-2 text-xs font-semibold cursor-pointer"
               >
                 Browse Local Files
               </button>
-              <span className="text-xs text-[#735368]">or select from Google Drive / DigiLocker</span>
+              <span className="text-xs text-on-surface-variant">or select from Google Drive / DigiLocker</span>
             </div>
           </div>
 
@@ -337,10 +337,10 @@ export default function DocumentVaultPage() {
                   key={cat}
                   type="button"
                   onClick={() => setSelectedCategory(cat)}
-                  className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${
+                  className={`rounded-full px-4 py-1.5 text-xs font-semibold transition cursor-pointer ${
                     selectedCategory === cat
-                      ? "bg-[#480870] text-white shadow-xs"
-                      : "border border-[#E9DFE4] bg-white text-[#735368] hover:bg-[#F3EBF0] hover:text-[#1e1b18]"
+                      ? "neu-button-primary"
+                      : "neu-button text-on-surface-variant"
                   }`}
                 >
                   {cat}
@@ -349,7 +349,7 @@ export default function DocumentVaultPage() {
             </div>
 
             <div className="relative w-full sm:w-72">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#735368]">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-sm text-on-surface-variant">
                 search
               </span>
               <input
@@ -357,13 +357,13 @@ export default function DocumentVaultPage() {
                 placeholder="Search certificate, UDIN, ref..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-xl border border-[#E9DFE4] bg-white py-2 pl-9 pr-4 text-xs font-medium text-[#1e1b18] placeholder-[#735368] outline-none transition focus:border-[#480870] focus:ring-1 focus:ring-[#480870]"
+                className="w-full rounded-xl neu-pressed py-2 pl-9 pr-4 text-xs font-medium text-on-surface placeholder:text-on-surface-variant outline-none transition focus:ring-1 focus:ring-secondary/40"
               />
             </div>
           </div>
 
           {/* Document Table / List */}
-          <div className="overflow-hidden rounded-2xl border border-[#E9DFE4] bg-white shadow-xs">
+          <div className="overflow-hidden rounded-2xl neu-flat">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>

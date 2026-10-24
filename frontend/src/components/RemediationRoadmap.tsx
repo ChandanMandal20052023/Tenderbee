@@ -8,7 +8,7 @@ export default function RemediationRoadmap() {
   const [acknowledged, setAcknowledged] = useState(false);
 
   return (
-    <section className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm border border-outline-variant/30 flex flex-col gap-4">
+    <section className="bg-surface-container-lowest neu-flat rounded-2xl p-6 flex flex-col gap-4">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
@@ -19,14 +19,14 @@ export default function RemediationRoadmap() {
             Ranked Remediation Roadmap
           </h3>
         </div>
-        <span className="text-xs font-semibold bg-surface-container px-3 py-1 rounded-full text-on-surface-variant border border-outline-variant/30">
+        <span className="text-xs font-semibold neu-flat-sm px-3 py-1 rounded-full text-on-surface-variant">
           {attached && signed ? "All Tasks Cleared" : `${2 - (attached ? 1 : 0) - (signed ? 1 : 0)} Tasks to Unlock`}
         </span>
       </div>
 
       <div className="flex flex-col gap-3">
         {/* Critical Item 1 */}
-        <div className="bg-surface-container-low p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all border border-outline-variant/20">
+        <div className="neu-pressed p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all">
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 rounded-full bg-error text-on-error flex items-center justify-center shrink-0 mt-0.5 font-bold text-sm shadow-sm">
               {attached ? "✓" : "!"}
@@ -36,7 +36,7 @@ export default function RemediationRoadmap() {
                 <span className="text-xs sm:text-sm font-bold text-on-surface">
                   Upload CSPO or NSIC Competency Certificate
                 </span>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold neu-flat-sm ${
                   attached ? "bg-emerald-100 text-emerald-800" : "bg-error-container text-on-error-container"
                 }`}>
                   {attached ? "Attached (+8 PTS)" : "Blocker (+8 PTS)"}
@@ -53,10 +53,10 @@ export default function RemediationRoadmap() {
           <div className="flex sm:flex-col items-center gap-2 shrink-0 self-end sm:self-center">
             <button
               onClick={() => setAttached(!attached)}
-              className={`w-full px-4 py-2 rounded-full text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer ${
+              className={`w-full px-4 py-2 rounded-full text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                 attached
-                  ? "bg-emerald-600 text-white"
-                  : "bg-primary text-on-primary hover:bg-primary-container"
+                  ? "bg-emerald-600 text-white shadow-sm"
+                  : "neu-button-primary"
               }`}
               type="button"
             >

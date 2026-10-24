@@ -25,14 +25,14 @@ export default function TelemetryFeed() {
   ];
 
   return (
-    <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-[0_12px_32px_-4px_rgba(59,0,102,0.06)] border border-outline-variant/30 flex flex-col gap-4">
+    <div className="bg-surface-container-lowest neu-flat rounded-2xl p-6 flex flex-col gap-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-secondary animate-pulse" />
           <h2 className="font-serif text-xl font-bold text-primary">Telemetry Feed</h2>
         </div>
-        <span className="text-[10px] font-mono text-on-surface-variant uppercase tracking-wider font-semibold">
+        <span className="text-[10px] font-mono neu-flat-sm px-2 py-0.5 rounded-full text-on-surface-variant uppercase tracking-wider font-semibold">
           LIVE STREAM
         </span>
       </div>
@@ -42,7 +42,7 @@ export default function TelemetryFeed() {
         {telemetryItems.map((item, idx) => (
           <div
             key={idx}
-            className="p-3 rounded-xl bg-surface-container-low border border-outline-variant/20 flex flex-col gap-0.5 hover:bg-surface-container transition-colors"
+            className="p-3 rounded-xl neu-pressed-sm flex flex-col gap-0.5 hover:bg-surface-container transition-colors"
           >
             <div className="flex items-center justify-between text-on-surface-variant">
               <span className="text-secondary font-bold text-[10px] tracking-wide">{item.title}</span>
@@ -55,7 +55,7 @@ export default function TelemetryFeed() {
 
       {/* Security Protocol Footer */}
       <div className="pt-2 text-center border-t border-outline-variant/20">
-        <span className="text-[9px] uppercase tracking-widest text-on-surface-variant font-semibold">
+        <span className="text-[9px] uppercase tracking-widest text-on-surface-variant font-semibold neu-pressed-sm px-3 py-1 rounded-full inline-block">
           2048-bit Class 3 DSC Encrypted
         </span>
       </div>

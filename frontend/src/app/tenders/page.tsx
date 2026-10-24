@@ -149,49 +149,49 @@ export default function OpenTendersPage() {
 
             {/* Quick Metrics Bar */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/30 shadow-xs flex items-center justify-between">
+              <div className="bg-surface-container-lowest neu-flat p-5 rounded-2xl flex items-center justify-between">
                 <div>
                   <span className="text-[10px] uppercase font-bold text-on-surface-variant">Active Tracking</span>
                   <p className="font-serif text-2xl font-bold text-primary mt-0.5">14 Bids Live</p>
                 </div>
-                <div className="w-10 h-10 rounded-xl bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed">
+                <div className="w-10 h-10 rounded-xl neu-flat-sm bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed">
                   <span className="material-symbols-outlined text-xl">gavel</span>
                 </div>
               </div>
 
-              <div className="bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/30 shadow-xs flex items-center justify-between">
+              <div className="bg-surface-container-lowest neu-flat p-5 rounded-2xl flex items-center justify-between">
                 <div>
                   <span className="text-[10px] uppercase font-bold text-on-surface-variant">Pipeline Volume</span>
                   <p className="font-serif text-2xl font-bold text-secondary mt-0.5">₹18.4 Cr</p>
                 </div>
-                <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-brand-purple">
+                <div className="w-10 h-10 rounded-xl neu-flat-sm bg-purple-50 flex items-center justify-center text-brand-purple">
                   <span className="material-symbols-outlined text-xl">account_balance_wallet</span>
                 </div>
               </div>
 
-              <div className="bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/30 shadow-xs flex items-center justify-between">
+              <div className="bg-surface-container-lowest neu-flat p-5 rounded-2xl flex items-center justify-between">
                 <div>
                   <span className="text-[10px] uppercase font-bold text-on-surface-variant">Urgent Closures</span>
                   <p className="font-serif text-2xl font-bold text-error mt-0.5">4 Closing &lt;48h</p>
                 </div>
-                <div className="w-10 h-10 rounded-xl bg-error-container flex items-center justify-center text-on-error-container">
+                <div className="w-10 h-10 rounded-xl neu-flat-sm bg-error-container flex items-center justify-center text-on-error-container">
                   <span className="material-symbols-outlined text-xl">timer</span>
                 </div>
               </div>
             </div>
 
             {/* Filter Bar */}
-            <div className="bg-surface-container-lowest p-4 sm:p-5 rounded-2xl border border-outline-variant/30 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+            <div className="bg-surface-container-lowest neu-flat p-4 sm:p-5 rounded-2xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
               {/* Portal Selector Tabs */}
               <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
                 {["All", "GeM", "CPPP", "IREPS", "State"].map((portal) => (
                   <button
                     key={portal}
                     onClick={() => setSelectedPortal(portal)}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                    className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                       selectedPortal === portal
-                        ? "bg-primary text-on-primary shadow-xs"
-                        : "bg-surface-container-low text-on-surface-variant hover:bg-surface-container"
+                        ? "neu-button-primary font-semibold"
+                        : "neu-button text-on-surface-variant"
                     }`}
                   >
                     {portal}
@@ -209,7 +209,7 @@ export default function OpenTendersPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Filter by keyword, Ref ID, department..."
-                  className="w-full pl-10 pr-4 py-2 bg-surface-container-low rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:bg-surface-container-lowest focus:ring-1 focus:ring-secondary/30 transition-all border border-outline-variant/20"
+                  className="w-full pl-10 pr-4 py-2.5 neu-pressed rounded-xl text-xs sm:text-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-1 focus:ring-secondary/30 transition-all"
                 />
               </div>
             </div>
@@ -219,7 +219,7 @@ export default function OpenTendersPage() {
               {filtered.map((tender) => (
                 <div
                   key={tender.id}
-                  className="bg-surface-container-lowest rounded-2xl p-5 sm:p-6 border border-outline-variant/30 shadow-xs hover:shadow-md transition-all flex flex-col gap-4"
+                  className="bg-surface-container-lowest neu-flat rounded-2xl p-5 sm:p-6 hover:-translate-y-0.5 transition-all flex flex-col gap-4"
                 >
                   <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                     <div className="flex items-start gap-3.5">
@@ -265,8 +265,8 @@ export default function OpenTendersPage() {
                     </div>
                   </div>
 
-                  {/* Badges Ribbon */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 p-3 rounded-xl bg-surface-container-low border border-outline-variant/20 text-xs">
+                  {/* Badges Ribbon - Neumorphic Inset */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 p-3 rounded-xl neu-pressed text-xs">
                     <div className="flex items-center justify-between">
                       <span className="text-on-surface-variant text-[11px]">Match Score:</span>
                       <span className={`font-bold ${
@@ -275,11 +275,11 @@ export default function OpenTendersPage() {
                         {tender.matchScore}% Qualified
                       </span>
                     </div>
-                    <div className="flex items-center justify-between border-t sm:border-t-0 sm:border-l border-gray-200/60 pt-1.5 sm:pt-0 sm:pl-3">
+                    <div className="flex items-center justify-between border-t sm:border-t-0 sm:border-l border-white/60 pt-1.5 sm:pt-0 sm:pl-3">
                       <span className="text-on-surface-variant text-[11px]">EMD Exemption:</span>
                       <span className="font-semibold text-on-surface truncate">{tender.emdStatus}</span>
                     </div>
-                    <div className="flex items-center justify-between border-t sm:border-t-0 sm:border-l border-gray-200/60 pt-1.5 sm:pt-0 sm:pl-3">
+                    <div className="flex items-center justify-between border-t sm:border-t-0 sm:border-l border-white/60 pt-1.5 sm:pt-0 sm:pl-3">
                       <span className="text-on-surface-variant text-[11px]">Corrigenda:</span>
                       <Link href="/corrigendum" className="font-bold text-secondary hover:underline">
                         {tender.corrigendaCount} Logged
@@ -295,7 +295,7 @@ export default function OpenTendersPage() {
                     <div className="flex items-center gap-2">
                       <Link
                         href="/audit"
-                        className="px-4 py-1.5 rounded-full bg-primary text-on-primary text-xs font-bold hover:bg-primary-container transition-all flex items-center gap-1 shadow-xs"
+                        className="px-4 py-1.5 rounded-full neu-button-primary text-xs font-bold flex items-center gap-1"
                       >
                         <span>Audit Verdict</span>
                         <span className="material-symbols-outlined text-base">chevron_right</span>
