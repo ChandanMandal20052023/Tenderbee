@@ -54,8 +54,10 @@ def main():
         print(f"Title       : {result.get('title')}")
         print(f"Buyer       : {result.get('buyer_name')}")
         print(f"Location    : {result.get('state')} | Category: {result.get('category')}")
-        print(f"Value       : ₹{result.get('estimated_value_inr', 0):,.2f}")
-        print(f"EMD         : ₹{result.get('emd_amount_inr', 0):,.2f}")
+        val = result.get('estimated_value_inr') or 0
+        emd = result.get('emd_amount_inr') or 0
+        print(f"Value       : ₹{val:,.2f}")
+        print(f"EMD         : ₹{emd:,.2f}")
         print(f"Tenure      : {result.get('tenure_months')} Months")
         print(f"Deadline    : {result.get('submission_deadline')}")
         print(f"Portal      : {result.get('portal')}")
@@ -66,7 +68,8 @@ def main():
             ext = result.get("extraction")
             if ext:
                 print(f"Total Pages : {ext.get('total_pages')}")
-                print(f"Coverage    : {ext.get('digital_text_coverage') * 100:.1f}%")
+                cov = ext.get('digital_text_coverage') or 0
+                print(f"Coverage    : {cov * 100:.1f}%")
                 clauses = ext.get("verbatim_clauses", [])
                 print(f"Clauses     : {len(clauses)} verbatim clauses extracted")
                 for c in clauses[:4]:
