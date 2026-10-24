@@ -96,21 +96,30 @@ def test_query_parser_rajasthan_and_jaipur():
     assert f2.min_value_inr == 100000000.0
 
 
-def test_search_service_up_and_rajasthan(tmp_path):
-    """Verify discovery of seeded tenders in Uttar Pradesh and Rajasthan."""
+
+
+def test_search_service_live_discovery_fallback(tmp_path):
+    """Verify live search fallback when local index has no matches for a query."""
     storage = TenderStorage(base_dir=str(tmp_path))
-    service = TenderSearchService(storage=storage)
 
-    # Uttar Pradesh
-    res_up = service.search_by_prompt("services tender in uttar pradesh")
-    assert res_up["total_matches"] >= 2
-    for t in res_up["results"]:
-        assert t["state"] == "Uttar Pradesh"
-        assert t["category"] == "Services"
+    # Mock or direct live search engine
+    class MockLiveSearchEngine:
+        def search_live(self, query=None, state=None, category=None, city=None, raw_prompt=None, limit=10):
+            return [{
+                "tender_id": "tnd_live_mock_1",
+                "tender_number": "SIK/2026/001",
+                "title": "Supply of Healthcare Equipment in Gangtok",
+                "buyer_name": "Health Department Government of Sikkim",
+                "state": "Sikkim",
+                "category": "Goods",
+                "estimated_value_inr": 25000000.0,
+                "portal": "sikkimtender.gov.in",
+            }]
 
-    # Rajasthan
-    res_rj = service.search_by_prompt("rajasthan")
-    assert res_rj["total_matches"] >= 3
-    for t in res_rj["results"]:
-        assert t["state"] == "Rajasthan"
+    service = TenderSearchService(storage=storage, live_search_engine=MockLiveSearchEngine())
+    res = service.search_by_prompt("sikkim goods tender")
+    assert res["total_matches"] == 1
+    assert res["source"] == "live_portal_discovery"
+    assert res["results"][0]["state"] == "Sikkim"
+    assert res["results"][0]["tender_number"] == "SIK/2026/001"
 

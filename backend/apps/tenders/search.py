@@ -289,7 +289,12 @@ class TenderSearchService:
     live GeM portal search, and state e-procurement systems (like eproc2.bihar.gov.in).
     """
 
-    def __init__(self, storage: Optional[TenderStorage] = None, llm_adapter: Optional[Any] = None):
+    def __init__(
+        self,
+        storage: Optional[TenderStorage] = None,
+        llm_adapter: Optional[Any] = None,
+        live_search_engine: Optional[Any] = None,
+    ):
         self.storage = storage or TenderStorage()
         if llm_adapter is not None:
             self.llm_adapter = llm_adapter
@@ -300,11 +305,20 @@ class TenderSearchService:
             except Exception:
                 self.llm_adapter = None
 
-    def search(self, filters: TenderSearchFilter) -> Dict[str, Any]:
+        if live_search_engine is not None:
+            self.live_search_engine = live_search_engine
+        else:
+            try:
+                from backend.services.live_search import LiveTenderSearchEngine
+                self.live_search_engine = LiveTenderSearchEngine(storage=self.storage)
+            except Exception:
+                self.live_search_engine = None
+
+    def search(self, filters: TenderSearchFilter, raw_prompt: Optional[str] = None) -> Dict[str, Any]:
         """
         Execute search query across local index and connected portals.
         """
-        # Search local indexed database
+        # 1. Search local indexed database
         local_results = self.storage.search_indexed_tenders(
             query=filters.query,
             state=filters.state,
@@ -319,12 +333,35 @@ class TenderSearchService:
 
         total_count = len(local_results)
 
+        # 2. If no local matches, automatically trigger live procurement portal search!
+        if total_count == 0 and self.live_search_engine:
+            logger.info("No local match found. Dispatching live portal search for filters %s", filters.model_dump())
+            live_tenders = self.live_search_engine.search_live(
+                query=filters.query,
+                state=filters.state,
+                category=filters.category,
+                city=filters.city_or_district,
+                raw_prompt=raw_prompt,
+                limit=filters.limit,
+            )
+            if live_tenders:
+                return {
+                    "success": True,
+                    "applied_filters": filters.model_dump(),
+                    "total_matches": len(live_tenders),
+                    "page": filters.page,
+                    "limit": filters.limit,
+                    "source": "live_portal_discovery",
+                    "results": live_tenders,
+                }
+
         return {
             "success": True,
             "applied_filters": filters.model_dump(),
             "total_matches": total_count,
             "page": filters.page,
             "limit": filters.limit,
+            "source": "local_index",
             "results": local_results,
         }
 
@@ -332,12 +369,12 @@ class TenderSearchService:
         """
         End-to-end natural language search:
         1. Parses prompt to structured filters using LLM with deterministic fallback.
-        2. Executes multi-criteria search.
+        2. Executes multi-criteria search with live portal discovery.
         3. Returns ranked tenders.
         """
         parsed_filters = QueryParser.parse(prompt, llm_adapter=self.llm_adapter)
         logger.info("Parsed prompt '%s' to filters: %s", prompt, parsed_filters.model_dump())
-        res = self.search(parsed_filters)
+        res = self.search(parsed_filters, raw_prompt=prompt)
         res["interpreted_prompt"] = prompt
         return res
 
