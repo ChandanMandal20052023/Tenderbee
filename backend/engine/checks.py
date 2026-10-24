@@ -3,6 +3,7 @@ Deterministic compliance rules evaluation engine with no external dependencies.
 Takes a frozen RulePack and extracted bidder documents, evaluating rules strictly
 in pure Python without LLM hallucination risk.
 """
+import math
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -17,6 +18,7 @@ from backend.engine.schema import (
     Rule,
     RulePack,
     RulePackMeta,
+    RuleStatus,
     RuleType,
     Verdict,
     VerdictStatus,
@@ -39,6 +41,24 @@ class ComplianceEngine:
         Evaluates a frozen RulePack against bidder's extracted documents.
         Returns full audit-ready AssessmentResponse.
         """
+        if rule_pack.status != RuleStatus.FROZEN:
+            raise ValueError("Compliance evaluation requires a frozen rule pack.")
+        for rule in rule_pack.rules:
+            if (rule.type or rule.rule_type) != RuleType.NUMERIC_THRESHOLD:
+                continue
+            threshold = (
+                rule.value
+                if rule.value is not None
+                else rule.params.get("threshold_inr")
+            )
+            if (
+                not isinstance(threshold, (int, float))
+                or isinstance(threshold, bool)
+                or not math.isfinite(float(threshold))
+                or threshold < 0
+            ):
+                raise ValueError("Numeric rules require a finite non-negative threshold.")
+
         verdicts: List[Verdict] = []
         missing_docs: List[MissingDocument] = []
         fix_list: List[FixListItem] = []
@@ -111,6 +131,19 @@ class ComplianceEngine:
         raw_target_doc = rule.document_type or params.get("document_type")
         target_doc = raw_target_doc.value if hasattr(raw_target_doc, "value") else str(raw_target_doc or "")
         target_field = rule.field or params.get("field", "")
+        document_data = bidder_docs.get(target_doc, {})
+        metadata = document_data.get("__metadata__", {}) if isinstance(document_data, dict) else {}
+        if isinstance(metadata, dict) and (
+            metadata.get("needs_review")
+            or metadata.get("suspicious_prompt_patterns")
+        ):
+            return Verdict(
+                rule_id=rule.rule_id,
+                status=VerdictStatus.NEEDS_REVIEW,
+                reason_code=ReasonCode.UNGROUNDED_EVIDENCE,
+                message=f"Document '{target_doc}' requires human review before its evidence can be used.",
+                evidence=[],
+            )
 
         # 1. Document Required Rule
         if rtype == RuleType.DOCUMENT_REQUIRED:
@@ -251,6 +284,14 @@ class ComplianceEngine:
                     message=f"Could not parse numeric amounts: actual='{actual_amount}', threshold='{threshold}'.",
                     evidence=[],
                 )
+            if not math.isfinite(actual_num) or not math.isfinite(threshold_num):
+                return Verdict(
+                    rule_id=rule.rule_id,
+                    status=VerdictStatus.NEEDS_REVIEW,
+                    reason_code=ReasonCode.DATA_UNAVAILABLE,
+                    message="Non-finite numeric evidence or threshold requires human review.",
+                    evidence=[],
+                )
 
             if actual_num >= threshold_num:
                 return Verdict(
@@ -305,13 +346,20 @@ class ComplianceEngine:
             actual_val = getattr(field_obj, "value", field_obj)
             
             # Check match
-            matches = False
+            if not isinstance(allowed_set, list) or not allowed_set:
+                return Verdict(
+                    rule_id=rule.rule_id,
+                    status=VerdictStatus.NEEDS_REVIEW,
+                    reason_code=ReasonCode.DATA_UNAVAILABLE,
+                    message=f"Rule {rule.rule_id} has no valid approved values.",
+                    evidence=[],
+                )
             if isinstance(actual_val, list):
-                matches = any(item in allowed_set or any(str(item).startswith(str(p)) for p in allowed_set) for item in actual_val)
+                matches = any(item in allowed_set for item in actual_val)
             else:
-                matches = actual_val in allowed_set or any(str(actual_val).startswith(str(p)) for p in allowed_set)
+                matches = actual_val in allowed_set
 
-            if matches or not allowed_set:
+            if matches:
                 return Verdict(
                     rule_id=rule.rule_id,
                     status=VerdictStatus.READY,

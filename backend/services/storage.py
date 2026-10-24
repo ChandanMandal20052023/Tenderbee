@@ -93,7 +93,6 @@ class TenderStorage:
                 if col_name not in existing_cols:
                     cursor.execute(f"ALTER TABLE tenders ADD COLUMN {col_name} {col_type}")
 
-            self._seed_sample_tenders(cursor)
             conn.commit()
 
     @staticmethod
@@ -155,6 +154,12 @@ class TenderStorage:
         extracted_data: Dict[str, Any],
         raw_text_payload: str,
         tender_id: Optional[str] = None,
+        state: Optional[str] = None,
+        category: Optional[str] = None,
+        portal: Optional[str] = None,
+        tenure_months: Optional[int] = None,
+        emd_amount_inr: Optional[float] = None,
+        location: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Stores tender metadata and commits an immutable snapshot to tiered storage.
@@ -188,20 +193,29 @@ class TenderStorage:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             
-            # Upsert master tender record
+            # Upsert master tender record with search attributes
             cursor.execute("""
                 INSERT INTO tenders (
                     tender_id, organization_id, external_id, title, buyer_name,
-                    submission_deadline, estimated_value_inr, source_url, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    submission_deadline, estimated_value_inr, source_url, created_at, updated_at,
+                    state, category, tenure_months, emd_amount_inr, location, portal
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(tender_id) DO UPDATE SET
                     title = excluded.title,
-                    buyer_name = excluded.buyer_name,
-                    submission_deadline = excluded.submission_deadline,
+                    buyer_name = COALESCE(excluded.buyer_name, tenders.buyer_name),
+                    submission_deadline = COALESCE(excluded.submission_deadline, tenders.submission_deadline),
+                    estimated_value_inr = COALESCE(excluded.estimated_value_inr, tenders.estimated_value_inr),
+                    state = COALESCE(excluded.state, tenders.state),
+                    category = COALESCE(excluded.category, tenders.category),
+                    tenure_months = COALESCE(excluded.tenure_months, tenders.tenure_months),
+                    emd_amount_inr = COALESCE(excluded.emd_amount_inr, tenders.emd_amount_inr),
+                    location = COALESCE(excluded.location, tenders.location),
+                    portal = COALESCE(excluded.portal, tenders.portal),
                     updated_at = excluded.updated_at
             """, (
                 tender_id, org_id, tender_number, tender_title, buyer_name,
-                submission_deadline, estimated_value_inr, source_url, now, now
+                submission_deadline, estimated_value_inr, source_url, now, now,
+                state, category, tenure_months, emd_amount_inr, location, portal
             ))
             
             # Append immutable snapshot
@@ -226,59 +240,10 @@ class TenderStorage:
             "is_cached": False,
         }
 
-    def _seed_sample_tenders(self, cursor: sqlite3.Cursor) -> None:
-        """Seeds realistic public procurement tenders for Bihar and other key regions."""
-        now = datetime.now(timezone.utc).isoformat()
-        samples = [
-            (
-                "tnd_buidco_patna_sanitation_2026", "org_default", "BUIDCO/2026/S-104",
-                "Engagement of Agency for Comprehensive Sanitation & Solid Waste Management in Patna Municipal Area",
-                "Bihar Urban Infrastructure Development Corporation Limited (BUIDCO)",
-                "2026-11-28T15:00:00+05:30", 34500000.0, "https://eproc2.bihar.gov.in/tender/BUIDCO-2026-S-104",
-                now, now, "Bihar", "Services", 24, 690000.0, "Patna", "eproc2.bihar.gov.in"
-            ),
-            (
-                "tnd_bsphcl_gaya_security_2026", "org_default", "BSPHCL/2026/SEC-412",
-                "Outsourcing of Facility Security, Guarding, and Surveillance Services for Power Sub-stations across Gaya & Bhagalpur",
-                "Bihar State Power Holding Company Limited (BSPHCL)",
-                "2026-11-22T17:00:00+05:30", 18000000.0, "https://eproc2.bihar.gov.in/tender/BSPHCL-2026-SEC-412",
-                now, now, "Bihar", "Services", 12, 360000.0, "Gaya", "eproc2.bihar.gov.in"
-            ),
-            (
-                "tnd_ecr_danapur_rob_2026", "org_default", "ECR/HAJIPUR/CIVIL/2026/09",
-                "Construction of Multi-Span Road Overbridge (ROB) and Approach Roads at Danapur Yard Junction",
-                "East Central Railway (Hajipur Headquarters)",
-                "2026-12-15T15:00:00+05:30", 485000000.0, "https://ireps.gov.in/tender/ECR-DANAPUR-ROB",
-                now, now, "Bihar", "Works", 36, 2425000.0, "Danapur", "ireps.gov.in"
-            ),
-            (
-                "tnd_shsb_medical_supply_2026", "org_default", "SHSB/2026/MED-SUPPLY-77",
-                "Supply and Delivery of Essential Diagnostic Kits and Medical Equipment to District Hospitals in Muzaffarpur",
-                "State Health Society Bihar",
-                "2026-11-18T14:00:00+05:30", 8500000.0, "https://eproc2.bihar.gov.in/tender/SHSB-MED-77",
-                now, now, "Bihar", "Goods", 12, 170000.0, "Muzaffarpur", "eproc2.bihar.gov.in"
-            ),
-            (
-                "tnd_wr_mumbai_cleaning_2026", "org_default", "Mech-TPA-2026",
-                "Comprehensive Mechanized Cleaning of Coaches at Bandra Terminus",
-                "Western Railway Mumbai Central Division (Mechanical Branch)",
-                "2026-11-05T15:00:00+05:30", 522615823.34, "https://ireps.gov.in/tender/Mech-TPA-2026",
-                now, now, "Maharashtra", "Services", 36, 2763100.0, "Mumbai", "ireps.gov.in"
-            ),
-        ]
-
-        cursor.executemany("""
-            INSERT OR IGNORE INTO tenders (
-                tender_id, organization_id, external_id, title, buyer_name,
-                submission_deadline, estimated_value_inr, source_url,
-                created_at, updated_at, state, category, tenure_months,
-                emd_amount_inr, location, portal
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, samples)
-
     def search_indexed_tenders(
         self,
         query: Optional[str] = None,
+        tender_number: Optional[str] = None,
         state: Optional[str] = None,
         category: Optional[str] = None,
         min_value_inr: Optional[float] = None,
@@ -290,10 +255,15 @@ class TenderStorage:
         offset: int = 0,
     ) -> List[Dict[str, Any]]:
         """
-        Executes multi-criteria search with full-text keyword matching and numeric thresholds.
+        Executes multi-criteria search with full-text keyword matching, tender number lookup, and numeric thresholds.
         """
         clauses = ["1=1"]
         params: List[Any] = []
+
+        if tender_number:
+            clauses.append("(external_id LIKE ? OR tender_id LIKE ?)")
+            t_kw = f"%{tender_number}%"
+            params.extend([t_kw, t_kw])
 
         if state:
             clauses.append("state = ?")
@@ -324,10 +294,10 @@ class TenderStorage:
             params.append(f"%{buyer_name}%")
 
         if query:
-            # Match query against title, buyer_name, or location
-            clauses.append("(title LIKE ? OR buyer_name LIKE ? OR location LIKE ?)")
+            # Match query against external_id, tender_id, title, buyer_name, or location
+            clauses.append("(external_id LIKE ? OR tender_id LIKE ? OR title LIKE ? OR buyer_name LIKE ? OR location LIKE ?)")
             kw = f"%{query}%"
-            params.extend([kw, kw, kw])
+            params.extend([kw, kw, kw, kw, kw])
 
         where_sql = " AND ".join(clauses)
         sql = f"""
@@ -368,18 +338,26 @@ class TenderStorage:
     def get_tender(self, identifier: str, mode: str = "skim") -> Optional[Dict[str, Any]]:
         """
         Retrieves a tender by its tender_id or external tender_number.
+        Supports exact match and prefix/partial number match.
         Supports two viewing modes:
         - 'skim': Fast high-level overview (financials, buyer, deadline, tenure, status)
         - 'detailed': Complete breakdown including extracted clauses, page citations, and rule pack.
         """
+        clean_id = (identifier or "").strip()
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             cursor.execute("""
                 SELECT * FROM tenders
-                WHERE tender_id = ? OR external_id = ?
+                WHERE tender_id = ? OR external_id = ? OR external_id LIKE ? OR tender_id LIKE ?
+                ORDER BY CASE
+                    WHEN external_id = ? THEN 1
+                    WHEN tender_id = ? THEN 2
+                    WHEN external_id LIKE ? THEN 3
+                    ELSE 4
+                END
                 LIMIT 1
-            """, (identifier, identifier))
+            """, (clean_id, clean_id, f"%{clean_id}%", f"%{clean_id}%", clean_id, clean_id, f"%{clean_id}%"))
             row = cursor.fetchone()
             if not row:
                 return None
@@ -397,7 +375,7 @@ class TenderStorage:
             state = row["state"] or "All India"
             cat = row["category"] or "Services"
 
-            val_str = f"₹{val:,.2f}" if val else "Not Specified"
+            val_str = f"â‚¹{val:,.2f}" if val else "Not Specified"
             summary_str = f"{val_str} | {tenure}M | {cat} in {state}" if tenure else f"{val_str} | {cat} in {state}"
 
             tender_dict = {
@@ -419,29 +397,185 @@ class TenderStorage:
                 "has_pdf_document": has_snapshot,
             }
 
-            if mode == "skim":
-                return tender_dict
-
-            # mode == "detailed":
+            snap_data = None
             if snap_row:
                 extracted_path = Path(snap_row["extracted_json_path"])
                 tender_dict["extracted_json_path"] = str(extracted_path)
                 if extracted_path.exists():
                     try:
                         with open(extracted_path, "r", encoding="utf-8") as f:
-                            tender_dict["extraction"] = json.load(f)
+                            snap_data = json.load(f)
+                            if isinstance(snap_data, dict):
+                                for k in (
+                                    "tender_fee_inr", "processing_fee_inr", "dealing_officer",
+                                    "org_hierarchy", "mandatory_documents", "attachments",
+                                    "nit_attachment", "boq_attachment", "preview_details", "currenttenderid"
+                                ):
+                                    if k in snap_data and k not in tender_dict:
+                                        tender_dict[k] = snap_data[k]
                     except Exception:
                         pass
                 tender_dict["content_hash"] = snap_row["content_hash"]
                 tender_dict["fetched_at"] = snap_row["fetched_at"]
-                tender_dict["pdf_status"] = "PARSED"
+
+            if mode == "skim":
+                return tender_dict
+
+            # mode == "detailed":
+            if snap_row and snap_data:
+                tender_dict["extraction"] = snap_data
+
+                # Check if the snapshot contains actual parsed PDF clauses/pages
+                ext = tender_dict.get("extraction")
+                has_deep_clauses = isinstance(ext, dict) and (
+                    bool(ext.get("verbatim_clauses")) or ext.get("total_pages") is not None
+                )
+
+                if has_deep_clauses:
+                    tender_dict["pdf_status"] = "PARSED"
+                    tender_dict["has_pdf_document"] = True
+                else:
+                    tender_dict["pdf_status"] = "PENDING_INTAKE"
+                    tender_dict["has_pdf_document"] = False
+                    tender_dict["message"] = (
+                        "Full notice PDF has not yet been ingested for this tender. "
+                        "Detailed mode will automatically acquire and parse full clauses."
+                    )
             else:
                 tender_dict["pdf_status"] = "PENDING_INTAKE"
+                tender_dict["has_pdf_document"] = False
                 tender_dict["message"] = (
                     "Full notice PDF has not yet been ingested for this tender. "
-                    "Provide or upload the tender notice PDF to parse full clauses."
+                    "Detailed mode will automatically acquire and parse full clauses."
                 )
 
             return tender_dict
 
 
+# ==============================================================================
+# Unified Single Storage Adapter Interface (put, get, delete, exists)
+# ==============================================================================
+
+class StorageBackend:
+    """Base interface for swappable storage providers."""
+    def put(self, key: str, data: bytes, content_type: Optional[str] = None) -> Dict[str, Any]:
+        raise NotImplementedError
+
+    def get(self, key: str) -> Optional[bytes]:
+        raise NotImplementedError
+
+    def delete(self, key: str) -> bool:
+        raise NotImplementedError
+
+    def exists(self, key: str) -> bool:
+        raise NotImplementedError
+
+
+class InMemoryStorageBackend(StorageBackend):
+    """Fast in-memory storage backend for unit tests and local isolation."""
+    def __init__(self):
+        self._store: Dict[str, bytes] = {}
+
+    def put(self, key: str, data: bytes, content_type: Optional[str] = None) -> Dict[str, Any]:
+        self._store[key] = bytes(data)
+        return {
+            "key": key,
+            "size": len(data),
+            "content_type": content_type or "application/octet-stream",
+            "backend": "memory",
+        }
+
+    def get(self, key: str) -> Optional[bytes]:
+        return self._store.get(key)
+
+    def delete(self, key: str) -> bool:
+        if key in self._store:
+            del self._store[key]
+            return True
+        return False
+
+    def exists(self, key: str) -> bool:
+        return key in self._store
+
+
+class DiskStorageBackend(StorageBackend):
+    """Secure local disk storage backend strictly validating keys against path traversal."""
+    def __init__(self, base_dir: Optional[Path] = None):
+        if base_dir:
+            self.base_dir = Path(base_dir).resolve()
+        else:
+            self.base_dir = (Path(__file__).resolve().parents[2] / "data" / "vault").resolve()
+        self.base_dir.mkdir(parents=True, exist_ok=True)
+
+    def _resolve_safe_path(self, key: str) -> Path:
+        """Guarantees key stays strictly within base_dir and contains no path traversal."""
+        clean_key = key.lstrip("/\\")
+        target_path = (self.base_dir / clean_key).resolve()
+        if not str(target_path).startswith(str(self.base_dir)):
+            raise ValueError(f"Path traversal detected in storage key: {key}")
+        return target_path
+
+    def put(self, key: str, data: bytes, content_type: Optional[str] = None) -> Dict[str, Any]:
+        target_path = self._resolve_safe_path(key)
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(target_path, "wb") as f:
+            f.write(data)
+        return {
+            "key": key,
+            "size": len(data),
+            "content_type": content_type or "application/octet-stream",
+            "path": str(target_path),
+            "backend": "disk",
+        }
+
+    def get(self, key: str) -> Optional[bytes]:
+        target_path = self._resolve_safe_path(key)
+        if not target_path.exists() or not target_path.is_file():
+            return None
+        with open(target_path, "rb") as f:
+            return f.read()
+
+    def delete(self, key: str) -> bool:
+        target_path = self._resolve_safe_path(key)
+        if target_path.exists() and target_path.is_file():
+            target_path.unlink()
+            return True
+        return False
+
+    def exists(self, key: str) -> bool:
+        target_path = self._resolve_safe_path(key)
+        return target_path.exists() and target_path.is_file()
+
+
+# Global storage adapter instance
+_active_backend: StorageBackend = DiskStorageBackend()
+
+
+def set_storage_backend(backend: StorageBackend):
+    """Allows setting an in-memory or alternative backend for testing."""
+    global _active_backend
+    _active_backend = backend
+
+
+def get_storage_backend() -> StorageBackend:
+    return _active_backend
+
+
+def put(key: str, data: bytes, content_type: Optional[str] = None) -> Dict[str, Any]:
+    """Store data under the specified key."""
+    return _active_backend.put(key, data, content_type=content_type)
+
+
+def get(key: str) -> Optional[bytes]:
+    """Retrieve data stored under key."""
+    return _active_backend.get(key)
+
+
+def delete(key: str) -> bool:
+    """Delete object stored under key."""
+    return _active_backend.delete(key)
+
+
+def exists(key: str) -> bool:
+    """Check if object exists under key."""
+    return _active_backend.exists(key)

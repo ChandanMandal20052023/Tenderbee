@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Sidebar from "@/components/Sidebar";
 import DashboardHeader from "@/components/DashboardHeader";
+import { apiClient, DocumentRecord } from "@/lib/api";
 
 interface VaultDoc {
   id: string;
@@ -15,13 +16,76 @@ interface VaultDoc {
   fileSize: string;
   format: "PDF" | "P7S" | "ZIP";
   lastUsedIn: string;
+  isReal?: boolean;
 }
 
 export default function DocumentVaultPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [docTypeToUpload, setDocTypeToUpload] = useState<string>("ca_turnover_certificate");
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [uploadSuccess, setUploadSuccess] = useState<boolean>(false);
+  const [uploadError, setUploadError] = useState<string>("");
+  const [realDocs, setRealDocs] = useState<DocumentRecord[]>([]);
+  const [jobProgress, setJobProgress] = useState<{ active: boolean; progress: number; status: string } | null>(null);
+  const [selectedDocDetails, setSelectedDocDetails] = useState<DocumentRecord | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const fetchDocuments = () => {
+    apiClient.documents
+      .list()
+      .then((res) => {
+        const items = Array.isArray(res) ? res : res.results || [];
+        setRealDocs(items);
+      })
+      .catch(() => {
+        // Handled silently
+      });
+  };
+
+  useEffect(() => {
+    fetchDocuments();
+  }, []);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setUploadError("");
+    setUploadSuccess(false);
+    setJobProgress({ active: true, progress: 15, status: "Uploading file & computing SHA-256 hash..." });
+
+    try {
+      const res = await apiClient.documents.upload(file, docTypeToUpload);
+      if (res.job_id) {
+        setJobProgress({ active: true, progress: 40, status: "Async OCR & Digital Signature Verification in progress..." });
+        await apiClient.jobs.poll(
+          res.job_id,
+          (job) => {
+            setJobProgress({
+              active: job.status === "PENDING" || job.status === "PROCESSING",
+              progress: job.progress || 65,
+              status: job.status === "COMPLETED" ? "Verification & Storage Complete!" : "Processing Document AI Pipeline...",
+            });
+          },
+          25,
+          1000
+        );
+      }
+      setUploadSuccess(true);
+      fetchDocuments();
+    } catch (err: any) {
+      setUploadError(err.message || "Document upload failed.");
+    } finally {
+      setIsUploading(false);
+      setTimeout(() => {
+        setJobProgress(null);
+      }, 4000);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
 
   const documents: VaultDoc[] = [
     {
@@ -172,7 +236,24 @@ export default function DocumentVaultPage() {
 
   const categories = ["All", "Financial", "Statutory", "Technical", "Certifications", "DSC"];
 
-  const filteredDocs = documents.filter((doc) => {
+  // Map real backend documents into the table
+  const mappedRealDocs: VaultDoc[] = realDocs.map((d) => ({
+    id: d.id,
+    title: d.file_name,
+    category: "Financial",
+    refNo: `SHA: ${d.sha256_hash.slice(0, 12)}...`,
+    validUntil: "Verified In Vault",
+    status: d.is_digitally_signed ? "Verified" : "Under Audit",
+    udinStatus: d.is_digitally_signed ? "pyHanko Digital Signature Verified" : "OCR Processed & Stored in Unified Vault",
+    fileSize: `${(d.file_size_bytes / (1024 * 1024)).toFixed(2)} MB`,
+    format: "PDF",
+    lastUsedIn: "Primary Compliance Vault",
+    isReal: true,
+  }));
+
+  const allCombinedDocs = [...mappedRealDocs, ...documents];
+
+  const filteredDocs = allCombinedDocs.filter((doc) => {
     const matchesCategory = selectedCategory === "All" || doc.category === selectedCategory;
     const matchesQuery =
       doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -181,17 +262,17 @@ export default function DocumentVaultPage() {
     return matchesCategory && matchesQuery;
   });
 
-  const handleSimulateUpload = () => {
-    setIsUploading(true);
-    setTimeout(() => {
-      setIsUploading(false);
-      setUploadSuccess(true);
-      setTimeout(() => setUploadSuccess(false), 4000);
-    }, 1500);
-  };
-
   return (
     <div className="bg-surface font-sans text-on-surface antialiased min-h-screen">
+      {/* Hidden real file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="application/pdf"
+        className="hidden"
+        onChange={handleFileUpload}
+      />
+
       {/* Sidebar */}
       <Sidebar activeTab="vault" />
 
@@ -217,17 +298,34 @@ export default function DocumentVaultPage() {
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-1.5 bg-surface-container-low px-3 py-1.5 rounded-xl border border-outline-variant/30">
+                <span className="text-[10px] uppercase font-bold text-on-surface-variant">Type:</span>
+                <select
+                  value={docTypeToUpload}
+                  onChange={(e) => setDocTypeToUpload(e.target.value)}
+                  className="bg-transparent text-xs font-semibold text-primary outline-none cursor-pointer"
+                >
+                  <option value="ca_turnover_certificate">CA Turnover Certificate (UDIN)</option>
+                  <option value="gst_return">GST 3B Monthly Return</option>
+                  <option value="pan_card">PAN Card & Verification</option>
+                  <option value="udyam_certificate">UDYAM MSME Registration</option>
+                  <option value="past_work_experience">Similar Work Completion</option>
+                  <option value="solvency_certificate">Bank Solvency Certificate</option>
+                  <option value="iso_certificate">ISO Compliance Attestation</option>
+                </select>
+              </div>
+
               <button
                 type="button"
-                onClick={handleSimulateUpload}
+                onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
                 className="flex items-center gap-2 rounded-xl neu-button-primary px-4 py-2.5 text-xs font-semibold disabled:opacity-50 cursor-pointer"
               >
                 <span className="material-symbols-outlined text-sm">
                   {isUploading ? "progress_activity" : "upload_file"}
                 </span>
-                {isUploading ? "Verifying UDIN..." : "Upload & Validate Document"}
+                {isUploading ? "Verifying & Storing..." : "Upload & Validate Document"}
               </button>
 
               <button
@@ -239,6 +337,38 @@ export default function DocumentVaultPage() {
               </button>
             </div>
           </div>
+
+          {/* Async Job Progress Bar */}
+          {jobProgress && (
+            <div className="mb-6 rounded-2xl neu-flat bg-surface-container-low p-4 border border-secondary/30 transition-all">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-secondary animate-ping" />
+                  <span className="text-xs font-bold text-primary">Document AI Pipeline: {jobProgress.status}</span>
+                </div>
+                <span className="text-xs font-mono font-bold text-secondary">{jobProgress.progress}%</span>
+              </div>
+              <div className="w-full bg-surface-container-high h-2 rounded-full overflow-hidden">
+                <div
+                  className="bg-secondary h-full rounded-full transition-all duration-300"
+                  style={{ width: `${jobProgress.progress}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Error Banner */}
+          {uploadError && (
+            <div className="mb-6 flex items-center justify-between rounded-xl neu-flat bg-rose-50/80 p-4 text-rose-900 border border-rose-200">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-rose-600">error</span>
+                <p className="text-sm font-semibold">{uploadError}</p>
+              </div>
+              <span className="material-symbols-outlined cursor-pointer text-rose-700" onClick={() => setUploadError("")}>
+                close
+              </span>
+            </div>
+          )}
 
           {/* Success Banner if uploaded */}
           {uploadSuccess && (
@@ -257,6 +387,7 @@ export default function DocumentVaultPage() {
               </span>
             </div>
           )}
+
 
           {/* Metric Overview Strip */}
           <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -320,7 +451,7 @@ export default function DocumentVaultPage() {
             <div className="mt-4 flex items-center justify-center gap-3">
               <button
                 type="button"
-                onClick={handleSimulateUpload}
+                onClick={() => fileInputRef.current?.click()}
                 className="rounded-lg neu-button-primary px-4 py-2 text-xs font-semibold cursor-pointer"
               >
                 Browse Local Files
@@ -445,13 +576,14 @@ export default function DocumentVaultPage() {
                       {/* Actions */}
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <button
-                            type="button"
+                          <a
+                            href={doc.isReal ? apiClient.documents.downloadUrl(doc.id) : "#"}
+                            download={doc.isReal}
                             title="Download verified document"
                             className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#E9DFE4] bg-white text-[#735368] hover:bg-[#F3EBF0] hover:text-[#480870]"
                           >
                             <span className="material-symbols-outlined text-sm">download</span>
-                          </button>
+                          </a>
                           <button
                             type="button"
                             title="Re-verify against official portal"

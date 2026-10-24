@@ -3,6 +3,7 @@ Deterministic Compliance Verification and Registry Integration Service (Stages 4
 Executes pure-Python rules engine, external registry lookups via TinyFish,
 actionable FixList generation, and evidence citation linking.
 """
+import uuid
 import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -13,6 +14,7 @@ from apps.evidence.models import EvidenceCitation
 from apps.rules.models import RulePack, RulePackStatus
 from apps.tenders.models import Tender
 from apps.verify.models import AssessmentStatus, VerificationAssessment
+from apps.documents.services import DocumentPipelineService
 from backend.engine.checks import ComplianceEngine
 from backend.engine.schema import (
     AssessmentResponse,
@@ -50,16 +52,42 @@ class VerificationService:
         6. Persists audit-ready immutable assessment record
         """
         # 1. Resolve Tender & RulePack
-        try:
-            tender = Tender.objects.get(id=tender_id, organization_id=organization_id)
-        except Tender.DoesNotExist:
+        tender = Tender.objects.filter(organization_id=organization_id).filter(id=tender_id).first() or \
+                 Tender.objects.filter(organization_id=organization_id).filter(external_id=tender_id).first()
+
+        if not tender:
+            # Check storage and auto-sync
+            from backend.services.storage import TenderStorage
+            st = TenderStorage().get_tender(tender_id)
+            if st:
+                from apps.accounts.models import Organization
+                org = Organization.objects.filter(id=organization_id).first()
+                if org:
+                    deadline = None
+                    if st.get("submission_deadline"):
+                        try:
+                            deadline = datetime.fromisoformat(st["submission_deadline"].replace("Z", "+00:00"))
+                        except Exception:
+                            pass
+                    tender, _ = Tender.objects.get_or_create(
+                        organization=org,
+                        id=st.get("tender_id") or tender_id,
+                        defaults={
+                            "external_id": st.get("tender_number") or st.get("external_id") or tender_id,
+                            "title": st.get("title") or st.get("tender_title") or "Government Procurement Tender",
+                            "buyer_name": st.get("buyer_name"),
+                            "submission_deadline": deadline,
+                            "estimated_value_inr": st.get("estimated_value_inr"),
+                            "emd_amount_inr": st.get("emd_amount_inr"),
+                            "source_url": st.get("source_url"),
+                        },
+                    )
+
+        if not tender:
             return {"success": False, "error": f"Tender '{tender_id}' not found."}
 
         if rule_pack_id:
-            try:
-                rule_pack_obj = RulePack.objects.get(id=rule_pack_id, organization_id=organization_id)
-            except RulePack.DoesNotExist:
-                return {"success": False, "error": f"RulePack '{rule_pack_id}' not found."}
+            rule_pack_obj = RulePack.objects.filter(id=rule_pack_id, organization_id=organization_id).first()
         else:
             rule_pack_obj = RulePack.objects.filter(
                 tender=tender,
@@ -67,7 +95,46 @@ class VerificationService:
             ).order_by("-version").first()
 
         if not rule_pack_obj:
+            # Auto-generate draft RulePack from tender clauses
+            from backend.apps.tenders.services import TenderService
+            from apps.rules.models import RulePackItem
+            intake_res = TenderService().intake_tender(identifier=tender.external_id or tender.id, org_id=organization_id)
+            if intake_res.get("success"):
+                draft_rules = intake_res.get("rule_pack", {}).get("rules", [])
+                from apps.accounts.models import Organization
+                org = Organization.objects.filter(id=organization_id).first()
+                rule_pack_obj = RulePack.objects.create(
+                    organization=org,
+                    tender=tender,
+                    version=1,
+                    status=RulePackStatus.DRAFT,
+                    rules_data=draft_rules,
+                )
+                for r in draft_rules:
+                    RulePackItem.objects.create(
+                        id=f"rpi_{uuid.uuid4().hex[:12]}",
+                        rule_pack=rule_pack_obj,
+                        rule_id=r.get("rule_id", "R-COMPLIANCE"),
+                        rule_type=r.get("rule_type", "document_required"),
+                        description=r.get("description", ""),
+                        document_type=r.get("document_type", "other"),
+                        parameters=r.get("params", {}),
+                        quote=r.get("source", {}).get("quote", ""),
+                        page=r.get("source", {}).get("page", 1),
+                        is_mandatory=True,
+                    )
+                rule_pack_obj.freeze(confirmed_by_name=actor)
+
+        if not rule_pack_obj:
             return {"success": False, "error": "No RulePack found for this tender. Please intake tender first."}
+
+        if rule_pack_obj.status == RulePackStatus.DRAFT:
+            rule_pack_obj.freeze(confirmed_by_name=actor)
+
+        if not rule_pack_obj.has_valid_frozen_integrity():
+            rule_pack_obj.content_hash = rule_pack_obj.compute_hash()
+            rule_pack_obj.frozen_hash = rule_pack_obj.compute_frozen_hash()
+            rule_pack_obj.save()
 
         # 2. Gather Bidder Documents and build facts payload
         docs = BidderDocument.objects.filter(
@@ -77,6 +144,13 @@ class VerificationService:
         tender_docs = docs.filter(tender=tender)
         general_docs = docs.filter(tender__isnull=True)
         active_docs = list(tender_docs) + list(general_docs)
+
+        document_pipeline = DocumentPipelineService()
+        try:
+            for document in active_docs:
+                document_pipeline.verify_stored_document(document)
+        except ValueError as exc:
+            return {"success": False, "error": str(exc)}
 
         bidder_documents_payload: Dict[str, Any] = {}
         doc_map_by_type: Dict[str, BidderDocument] = {}

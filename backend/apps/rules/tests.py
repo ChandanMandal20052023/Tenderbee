@@ -92,3 +92,13 @@ class RulePackLifecycleTests(APITestCase):
         resp = self.client.patch(url, {"is_dismissed": True}, format="json")
         self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
         self.assertIn("Immutability violation", resp.data["error"])
+
+    def test_frozen_hash_detects_direct_rule_item_tampering(self):
+        self.rule_pack.freeze(confirmed_by_name="Lead Auditor")
+        self.assertTrue(self.rule_pack.has_valid_frozen_integrity())
+
+        self.item.parameters = {"min_avg_turnover": 1}
+        self.item.save(update_fields=["parameters"])
+        self.rule_pack.refresh_from_db()
+
+        self.assertFalse(self.rule_pack.has_valid_frozen_integrity())

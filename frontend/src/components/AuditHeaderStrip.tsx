@@ -1,9 +1,32 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { apiClient, TenderSummary } from "@/lib/api";
 
 export default function AuditHeaderStrip() {
+  const [tenders, setTenders] = useState<TenderSummary[]>([]);
   const [selectedBid, setSelectedBid] = useState("gem-992140");
+  const [selectedTenderObj, setSelectedTenderObj] = useState<TenderSummary | null>(null);
+
+  useEffect(() => {
+    apiClient.tenders
+      .list()
+      .then((res) => {
+        const list: TenderSummary[] = Array.isArray(res) ? res : res.results || [];
+        if (list && list.length > 0) {
+          setTenders(list);
+          setSelectedBid(list[0].tender_id);
+          setSelectedTenderObj(list[0]);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleSelectBid = (id: string) => {
+    setSelectedBid(id);
+    const found = tenders.find((t) => t.tender_id === id);
+    if (found) setSelectedTenderObj(found);
+  };
 
   return (
     <section className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm border border-outline-variant/30 flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative overflow-hidden">
@@ -15,7 +38,7 @@ export default function AuditHeaderStrip() {
           </span>
           <span className="text-on-surface-variant text-xs">·</span>
           <span className="text-[10px] font-semibold text-on-surface-variant tracking-wider uppercase">
-            Portal: GeM v4.2 Enterprise
+            Portal: {selectedTenderObj?.portal || "GeM v4.2 Enterprise"}
           </span>
         </div>
 
@@ -28,12 +51,22 @@ export default function AuditHeaderStrip() {
             <select
               id="tender-picker"
               value={selectedBid}
-              onChange={(e) => setSelectedBid(e.target.value)}
+              onChange={(e) => handleSelectBid(e.target.value)}
               className="appearance-none bg-surface-container-low text-on-surface font-serif text-lg sm:text-xl font-bold pl-4 pr-10 py-2 rounded-xl cursor-pointer focus:outline-none focus:bg-surface-container focus:ring-2 focus:ring-primary/20 border border-outline-variant/30 transition-all w-full sm:w-auto"
             >
-              <option value="gem-992140">CPWD Integrated Facility Management · GEM/2025/B/992140</option>
-              <option value="cppp-883102">MES Command Hospital HVAC Retrofit · GEM/2025/B/883102</option>
-              <option value="eproc-771900">NHAI Highway Intelligent Toll Infrastructure · CPPP/2025/NHAI/04</option>
+              {tenders.length > 0 ? (
+                tenders.map((t) => (
+                  <option key={t.tender_id} value={t.tender_id}>
+                    {t.title} · {t.tender_number || t.tender_id}
+                  </option>
+                ))
+              ) : (
+                <>
+                  <option value="gem-992140">CPWD Integrated Facility Management · GEM/2025/B/992140</option>
+                  <option value="cppp-883102">MES Command Hospital HVAC Retrofit · GEM/2025/B/883102</option>
+                  <option value="eproc-771900">NHAI Highway Intelligent Toll Infrastructure · CPPP/2025/NHAI/04</option>
+                </>
+              )}
             </select>
             <span className="material-symbols-outlined absolute right-3 pointer-events-none text-on-surface-variant text-xl">
               expand_more
@@ -50,7 +83,7 @@ export default function AuditHeaderStrip() {
           <span>•</span>
           <div className="flex items-center gap-1.5">
             <span className="material-symbols-outlined text-base text-primary">account_balance</span>
-            <span>Nodal Authority: CPWD Northern Zone IV</span>
+            <span>Nodal Authority: {selectedTenderObj?.buyer_name || "CPWD Northern Zone IV"}</span>
           </div>
         </div>
       </div>
@@ -64,7 +97,11 @@ export default function AuditHeaderStrip() {
           </div>
           <div className="flex flex-col">
             <span className="text-[10px] uppercase font-bold text-on-surface-variant">Bid Closing In</span>
-            <span className="text-xs font-bold text-error leading-tight">3 Days 08h 42m</span>
+            <span className="text-xs font-bold text-error leading-tight">
+              {selectedTenderObj?.submission_deadline
+                ? new Date(selectedTenderObj.submission_deadline).toLocaleDateString()
+                : "3 Days 08h 42m"}
+            </span>
           </div>
         </div>
 
@@ -77,10 +114,15 @@ export default function AuditHeaderStrip() {
           </div>
           <div className="flex flex-col">
             <span className="text-[10px] uppercase font-bold text-on-surface-variant">EMD Status</span>
-            <span className="text-xs font-bold text-on-surface leading-tight">Exempt · Rule 153 GFR</span>
+            <span className="text-xs font-bold text-on-surface leading-tight">
+              {selectedTenderObj?.emd_amount_inr
+                ? `₹${selectedTenderObj.emd_amount_inr.toLocaleString("en-IN")} (MSE Exempt)`
+                : "Exempt · Rule 153 GFR"}
+            </span>
           </div>
         </div>
       </div>
     </section>
   );
 }
+

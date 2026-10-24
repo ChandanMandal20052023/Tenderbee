@@ -7,7 +7,7 @@ Usage:
     .venv/bin/python scripts/test_search.py
     .venv/bin/python scripts/test_search.py "services in haryana"
     .venv/bin/python scripts/test_search.py "railway tenders above 10 cr"
-    .venv/bin/python scripts/test_search.py --tender "Mech-TPA-2026" --mode detailed
+    .venv/bin/python scripts/test_search.py --tender "BIH/EPROC2/140751" --mode detailed
     .venv/bin/python scripts/test_search.py --state Bihar --category Services
     .venv/bin/python scripts/test_search.py "patna" --json
 """
@@ -46,6 +46,12 @@ def display_skimmed_view(tender: Dict[str, Any]):
     
     print(f"Value       : {val_str}")
     print(f"EMD         : {emd_str}")
+    if tender.get("tender_fee_inr") is not None:
+        print(f"Tender Fee  : ₹{tender['tender_fee_inr']:,.2f}")
+    if tender.get("processing_fee_inr") is not None:
+        print(f"Proc Fee    : ₹{tender['processing_fee_inr']:,.2f}")
+    if tender.get("dealing_officer"):
+        print(f"Officer     : {tender['dealing_officer']}")
     print(f"Tenure      : {tender.get('tenure_months', 'Standard')} Months" if tender.get('tenure_months') else "Tenure      : Standard Duration")
     print(f"Deadline    : {tender.get('submission_deadline')}")
     print(f"Portal      : {tender.get('portal', 'Government Portal')}")
@@ -82,8 +88,32 @@ def display_detailed_view(tender: Dict[str, Any]):
     emd_str = f"₹{emd:,.2f}" if emd else "Exempted / Nil"
     print(f"Value       : {val_str}")
     print(f"EMD         : {emd_str}")
+    if tender.get("tender_fee_inr") is not None:
+        print(f"Tender Fee  : ₹{tender['tender_fee_inr']:,.2f}")
+    if tender.get("processing_fee_inr") is not None:
+        print(f"Proc Fee    : ₹{tender['processing_fee_inr']:,.2f}")
+    if tender.get("dealing_officer"):
+        print(f"Officer     : {tender['dealing_officer']}")
     print(f"Deadline    : {tender.get('submission_deadline')}")
     print(f"Portal      : {tender.get('portal', 'Government Portal')}")
+
+    # Mandatory document checklist (from Eye button preview or extraction)
+    docs = (tender.get("extraction") or {}).get("mandatory_documents") or tender.get("mandatory_documents") or []
+    if docs:
+        print(f"\n--- MANDATORY DOCUMENT CHECKLIST ({len(docs)} documents) ---")
+        for idx, d in enumerate(docs, 1):
+            print(f"  [{idx}] {d}")
+
+    # Attached official portal documents
+    attachments = (tender.get("extraction") or {}).get("attachments") or tender.get("attachments") or []
+    if attachments:
+        print(f"\n--- ATTACHED PORTAL DOCUMENTS ({len(attachments)} files) ---")
+        for idx, att in enumerate(attachments, 1):
+            lbl = att.get("label", "Document")
+            fname = att.get("file_name", "")
+            fsize = att.get("file_size_bytes")
+            size_str = f" ({fsize / (1024*1024):.2f} MB)" if fsize else ""
+            print(f"  [{idx}] {lbl}: {fname}{size_str}")
 
     pdf_status = tender.get("pdf_status", "PENDING_INTAKE")
     print(f"\n--- PDF DOCUMENT ANALYSIS ---")
@@ -125,13 +155,6 @@ def display_detailed_view(tender: Dict[str, Any]):
                 print(f"  • UDIN Mandatory on CA: {'Yes (Verified)' if elig['udin_mandatory'] else 'No'}")
             if "mse_exemption_allowed" in ext:
                 print(f"  • MSE/MSME Exemption  : {'Allowed' if ext['mse_exemption_allowed'] else 'Not Allowed'}")
-
-        # Mandatory documents
-        docs = ext.get("mandatory_documents", [])
-        if docs:
-            print(f"\n--- MANDATORY DOCUMENT CHECKLIST ({len(docs)} documents) ---")
-            for idx, d in enumerate(docs, 1):
-                print(f"  [{idx}] {d}")
     else:
         print(f"Note: {tender.get('message', 'No PDF attached for this tender yet. Provide PDF path to extract full clauses.')}")
 
@@ -346,7 +369,7 @@ def interactive_search_loop(service: TenderSearchService, initial_prompt: Option
 def main():
     parser = argparse.ArgumentParser(description="TenderBee Multi-Criteria Tender Discovery & Inspection CLI")
     parser.add_argument("prompt", nargs="?", default=None, help="Natural language query (e.g. 'services in haryana above 2 cr')")
-    parser.add_argument("--tender", help="Look up specific tender by ID/Number (e.g. Mech-TPA-2026 or DHBVN/2026/METER-401)")
+    parser.add_argument("--tender", "--tender-number", dest="tender", help="Look up specific tender by ID/Number (e.g. BIH/EPROC2/140751, 141349, or 2026_HRY_530295_1)")
     parser.add_argument("--mode", choices=["skim", "detailed", "json"], default="skim", help="View mode: 'skim' (basic details), 'detailed' (parse PDF), or 'json' (raw JSON payload)")
     parser.add_argument("--interactive", action="store_true", help="Force interactive mode even when parameters are given")
     parser.add_argument("--non-interactive", action="store_true", help="Disable interactive prompts (for CI/piping)")

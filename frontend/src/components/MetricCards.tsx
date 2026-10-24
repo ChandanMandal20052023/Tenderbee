@@ -1,13 +1,56 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import Link from "next/link";
 import { useGSAP } from "@gsap/react";
 import { gsap } from "@/lib/animations";
+import { apiClient, TenderSummary, VerificationAssessmentRecord } from "@/lib/api";
 
 export default function MetricCards() {
   const containerRef = useRef<HTMLElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+
+  const [tendersCount, setTendersCount] = useState<number>(14);
+  const [pipelineValueCr, setPipelineValueCr] = useState<string>("18.4");
+  const [readinessScore, setReadinessScore] = useState<number>(88);
+  const [cleanClauses, setCleanClauses] = useState<string>("27 of 28 clean");
+  const [compliancePct, setCompliancePct] = useState<string>("99.2%");
+
+  useEffect(() => {
+    // 1. Fetch live tenders
+    apiClient.tenders
+      .list()
+      .then((res) => {
+        const list: TenderSummary[] = Array.isArray(res) ? res : res.results || [];
+        if (list && list.length > 0) {
+          setTendersCount(list.length);
+          const totalVal = list.reduce((acc, t) => acc + (t.estimated_value_inr || 0), 0);
+          if (totalVal > 0) {
+            setPipelineValueCr((totalVal / 10000000).toFixed(1));
+          }
+        }
+      })
+      .catch(() => {});
+
+    // 2. Fetch live assessments
+    apiClient.verify
+      .listAssessments()
+      .then((res) => {
+        const assessments: VerificationAssessmentRecord[] = Array.isArray(res) ? res : res.results || [];
+        if (assessments && assessments.length > 0) {
+          const latest = assessments[0];
+          const verdicts = latest.verdicts_data || [];
+          if (verdicts.length > 0) {
+            const passed = verdicts.filter((v) => v.verdict === "PASS" || v.verdict === "WAIVED").length;
+            const score = Math.round((passed / verdicts.length) * 100);
+            setReadinessScore(score);
+            setCleanClauses(`${passed} of ${verdicts.length} clean`);
+            setCompliancePct(`${score}%`);
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useGSAP(
     () => {
@@ -31,164 +74,162 @@ export default function MetricCards() {
     <section ref={containerRef} className="px-4 sm:px-8 xl:px-12 pb-8">
       <div ref={gridRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* 1. Overall Bid Readiness Index */}
-        <div className="relative bg-surface-container-lowest neu-flat rounded-2xl p-6 flex flex-col justify-between min-h-[240px] overflow-hidden group hover:-translate-y-0.5 transition-transform">
-          <div className="absolute -top-12 -right-12 w-32 h-32 bg-secondary-fixed/40 rounded-full blur-2xl group-hover:scale-125 transition-transform" />
-          <div className="flex items-start justify-between relative z-10">
-            <div>
-              <span className="text-[10px] text-on-surface-variant uppercase tracking-wider block font-semibold">
-                Readiness
-              </span>
-              <span className="font-serif text-xl font-bold text-primary">Readiness Index</span>
-            </div>
-            <span className="p-2.5 rounded-xl neu-flat-sm bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center">
+        <div className="bg-surface-container-lowest neu-flat rounded-2xl p-6 flex flex-col justify-between h-[230px] hover:-translate-y-0.5 transition-transform">
+          {/* Header */}
+          <div className="flex items-center justify-between gap-3 h-10">
+            <h3 className="font-serif text-xl font-bold text-primary truncate">Readiness Index</h3>
+            <span className="w-10 h-10 rounded-xl neu-flat-sm bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center shrink-0">
               <span className="material-symbols-outlined text-xl">fact_check</span>
             </span>
           </div>
 
-          <div className="flex items-center gap-4 my-3 relative z-10">
-            {/* Circular Progress Gauge */}
-            <div className="relative w-20 h-20 shrink-0 neu-pressed-sm rounded-full p-1 flex items-center justify-center">
-              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                <path
-                  className="text-surface-container/60"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="3.5"
-                />
-                <path
-                  className="text-secondary stroke-current"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  fill="none"
-                  strokeDasharray="88, 100"
-                  strokeLinecap="round"
-                  strokeWidth="3.5"
-                />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center flex-col">
-                <span className="font-serif text-xl font-bold text-primary leading-none">88</span>
-                <span className="text-[10px] text-on-surface-variant font-semibold leading-none mt-0.5">/100</span>
+          {/* Middle Metric Content */}
+          <div className="my-auto flex flex-col justify-center h-20">
+            <div className="flex items-center gap-3">
+              {/* Circular Progress Gauge */}
+              <div className="relative w-15 h-15 shrink-0 neu-pressed-sm rounded-full p-1 flex items-center justify-center">
+                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                  <path
+                    className="text-surface-container/60"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3.5"
+                  />
+                  <path
+                    className="text-secondary stroke-current"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    fill="none"
+                    strokeDasharray={`${readinessScore}, 100`}
+                    strokeLinecap="round"
+                    strokeWidth="3.5"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center flex-col">
+                  <span className="font-serif text-lg font-bold text-primary leading-none">{readinessScore}</span>
+                  <span className="text-[9px] text-on-surface-variant font-semibold leading-none mt-0.5">/100</span>
+                </div>
               </div>
-            </div>
 
-            <div className="flex flex-col">
-              <div className="flex items-center gap-1 text-secondary font-semibold text-xs">
-                <span className="material-symbols-outlined text-sm">trending_up</span>
-                <span>+16 pts this week</span>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-1 text-secondary font-semibold text-xs">
+                  <span className="material-symbols-outlined text-sm">trending_up</span>
+                  <span>Active Pipeline</span>
+                </div>
+                <span className="text-xs text-on-surface-variant mt-0.5">Class 1 MSE profile</span>
               </div>
-              <span className="text-xs text-on-surface-variant mt-1">Class 1 MSE profile</span>
             </div>
           </div>
 
-          <div className="pt-2 border-t border-outline-variant/20 relative z-10 flex items-center justify-between text-on-surface-variant">
-            <span className="text-[10px] uppercase font-semibold">Target 95+</span>
-            <span className="text-[10px] font-bold text-secondary">8 pts to peak</span>
+          {/* Footer */}
+          <div className="pt-2 border-t border-outline-variant/20 flex items-center justify-between text-on-surface-variant text-[11px] h-8">
+            <span className="uppercase font-semibold">Target 95+</span>
+            <span className="font-bold text-secondary">
+              {Math.max(0, 95 - readinessScore)} pts to peak
+            </span>
           </div>
         </div>
 
         {/* 2. Active Pipeline Value */}
-        <div className="bg-surface-container-lowest neu-flat rounded-2xl p-6 flex flex-col justify-between min-h-[240px] hover:-translate-y-0.5 transition-transform">
-          <div className="flex items-start justify-between">
-            <div>
-              <span className="text-[10px] text-on-surface-variant uppercase tracking-wider block font-semibold">
-                Pipeline
-              </span>
-              <span className="font-serif text-xl font-bold text-primary">Tenders Tracked</span>
-            </div>
-            <span className="p-2.5 rounded-xl neu-flat-sm text-on-surface-variant flex items-center justify-center">
+        <div className="bg-surface-container-lowest neu-flat rounded-2xl p-6 flex flex-col justify-between h-[230px] hover:-translate-y-0.5 transition-transform">
+          {/* Header */}
+          <div className="flex items-center justify-between gap-3 h-10">
+            <h3 className="font-serif text-xl font-bold text-primary truncate">Tenders Tracked</h3>
+            <span className="w-10 h-10 rounded-xl neu-flat-sm bg-surface-container-low text-on-surface-variant flex items-center justify-center shrink-0">
               <span className="material-symbols-outlined text-xl">gavel</span>
             </span>
           </div>
 
-          <div className="my-3">
+          {/* Middle Metric Content */}
+          <div className="my-auto flex flex-col justify-center h-20">
             <div className="flex items-baseline gap-2">
-              <span className="font-serif text-4xl text-primary font-bold leading-none">14</span>
+              <span className="font-serif text-3xl sm:text-4xl text-primary font-bold leading-none">{tendersCount}</span>
               <span className="text-sm font-medium text-on-surface-variant">Live Bids</span>
             </div>
             <div className="mt-2 flex items-center gap-2 flex-wrap">
               <span className="px-2.5 py-0.5 rounded-full neu-flat-sm bg-secondary-fixed text-on-secondary-fixed text-[11px] font-bold">
-                ₹18.4 Cr
+                ₹{pipelineValueCr} Cr
               </span>
-              <span className="text-xs text-on-surface-variant">4 closing &lt;48h</span>
+              <span className="text-xs text-on-surface-variant">GeM &amp; CPPP</span>
             </div>
           </div>
 
-          {/* Inline Visual Spark-Bars with Neumorphic Well */}
-          <div className="neu-pressed-sm p-1.5 rounded-lg flex items-end gap-1.5 h-7 w-full">
-            <div className="h-3 w-1/6 bg-secondary-fixed rounded-t-sm" title="CPWD" />
-            <div className="h-5 w-1/6 bg-secondary rounded-t-sm" title="Railways" />
-            <div className="h-4 w-1/6 bg-secondary-fixed rounded-t-sm" title="AIIMS" />
-            <div className="h-6 w-1/6 bg-primary rounded-t-sm" title="MES" />
-            <div className="h-2 w-1/6 bg-surface-container-highest rounded-t-sm" title="ONGC" />
-            <div className="h-4 w-1/6 bg-secondary rounded-t-sm" title="DRDO" />
+          {/* Footer */}
+          <div className="pt-2 border-t border-outline-variant/20 flex items-center justify-between text-on-surface-variant text-[11px] h-8">
+            <span className="font-medium text-xs">4 closing &lt;48h</span>
+            <div className="flex items-end gap-1 h-4 w-20 px-1 py-0.5 rounded neu-pressed-sm">
+              <div className="h-2 flex-1 bg-secondary-fixed rounded-t-xs" title="CPWD" />
+              <div className="h-3.5 flex-1 bg-secondary rounded-t-xs" title="Railways" />
+              <div className="h-2.5 flex-1 bg-primary rounded-t-xs" title="AIIMS" />
+              <div className="h-4 flex-1 bg-secondary rounded-t-xs" title="MES" />
+            </div>
           </div>
         </div>
 
         {/* 3. Compliance Health */}
-        <div className="bg-surface-container-lowest neu-flat rounded-2xl p-6 flex flex-col justify-between min-h-[240px] hover:-translate-y-0.5 transition-transform">
-          <div className="flex items-start justify-between">
-            <div>
-              <span className="text-[10px] text-on-surface-variant uppercase tracking-wider block font-semibold">
-                Integrity
-              </span>
-              <span className="font-serif text-xl font-bold text-primary">Compliance Health</span>
-            </div>
-            <span className="p-2.5 rounded-xl neu-flat-sm text-on-surface-variant flex items-center justify-center">
+        <div className="bg-surface-container-lowest neu-flat rounded-2xl p-6 flex flex-col justify-between h-[230px] hover:-translate-y-0.5 transition-transform">
+          {/* Header */}
+          <div className="flex items-center justify-between gap-3 h-10">
+            <h3 className="font-serif text-xl font-bold text-primary truncate">Compliance Health</h3>
+            <span className="w-10 h-10 rounded-xl neu-flat-sm bg-surface-container-low text-on-surface-variant flex items-center justify-center shrink-0">
               <span className="material-symbols-outlined text-xl">rule</span>
             </span>
           </div>
 
-          <div className="my-3">
+          {/* Middle Metric Content */}
+          <div className="my-auto flex flex-col justify-center h-20">
             <div className="flex items-baseline gap-2">
-              <span className="font-serif text-4xl text-primary font-bold leading-none">99.2%</span>
+              <span className="font-serif text-3xl sm:text-4xl text-primary font-bold leading-none">{compliancePct}</span>
               <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded neu-pressed-sm text-on-surface-variant">
                 Verified
               </span>
             </div>
             <div className="mt-2 flex items-center gap-1.5 text-on-surface-variant text-xs">
               <span className="w-2 h-2 rounded-full bg-secondary" />
-              <span>27 of 28 clauses clean</span>
+              <span>{cleanClauses}</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 p-2 rounded-xl neu-pressed-sm text-on-surface">
-            <span className="material-symbols-outlined text-base text-error">priority_high</span>
-            <span className="text-xs truncate font-medium">1 pending: CSPO exemption</span>
+          {/* Footer */}
+          <div className="pt-2 border-t border-outline-variant/20 flex items-center justify-between text-on-surface-variant text-[11px] h-8">
+            <span className="flex items-center gap-1.5 text-xs text-secondary font-semibold">
+              <span className="material-symbols-outlined text-sm">verified_user</span>
+              <span>Rule Engine v1.0</span>
+            </span>
+            <span className="text-[10px] font-bold text-on-surface-variant">Deterministic</span>
           </div>
         </div>
 
         {/* 4. Corrigendum Alerts */}
-        <div className="bg-surface-container-lowest neu-flat rounded-2xl p-6 flex flex-col justify-between min-h-[240px] hover:-translate-y-0.5 transition-transform">
-          <div className="flex items-start justify-between">
-            <div>
-              <span className="text-[10px] text-on-surface-variant uppercase tracking-wider block font-semibold">
-                Updates
-              </span>
-              <span className="font-serif text-xl font-bold text-primary">Corrigenda</span>
-            </div>
-            <div className="relative">
-              <span className="p-2.5 rounded-xl neu-flat-sm bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center">
+        <div className="bg-surface-container-lowest neu-flat rounded-2xl p-6 flex flex-col justify-between h-[230px] hover:-translate-y-0.5 transition-transform">
+          {/* Header */}
+          <div className="flex items-center justify-between gap-3 h-10">
+            <h3 className="font-serif text-xl font-bold text-primary truncate">Corrigenda</h3>
+            <div className="relative shrink-0">
+              <span className="w-10 h-10 rounded-xl neu-flat-sm bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center">
                 <span className="material-symbols-outlined text-xl">radar</span>
               </span>
               <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-secondary rounded-full animate-ping" />
             </div>
           </div>
 
-          <div className="my-3">
+          {/* Middle Metric Content */}
+          <div className="my-auto flex flex-col justify-center h-20">
             <div className="flex items-baseline gap-2">
-              <span className="font-serif text-4xl text-primary font-bold leading-none">3</span>
+              <span className="font-serif text-3xl sm:text-4xl text-primary font-bold leading-none">3</span>
               <span className="text-sm font-medium text-on-surface-variant">New (24h)</span>
             </div>
-            <p className="text-xs text-on-surface-variant mt-2">
+            <p className="text-xs text-on-surface-variant mt-2 truncate">
               AIIMS BOQ &amp; specs revised
             </p>
           </div>
 
+          {/* Footer */}
           <Link
-            href="/audit"
-            className="flex items-center justify-between text-secondary text-xs font-semibold hover:underline pt-2 border-t border-outline-variant/20"
+            href="/corrigendum"
+            className="pt-2 border-t border-outline-variant/20 flex items-center justify-between text-secondary text-xs font-semibold hover:underline h-8"
           >
-            <span>View Diff</span>
+            <span>View Radar</span>
             <span className="material-symbols-outlined text-base">north_east</span>
           </Link>
         </div>
@@ -196,3 +237,4 @@ export default function MetricCards() {
     </section>
   );
 }
+

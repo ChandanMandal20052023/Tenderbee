@@ -1,4 +1,6 @@
 # TenderBee
+    
+ <img width="676" height="369" alt="Screenshot_2026-10-24_162111-removebg-preview" src="https://github.com/user-attachments/assets/af4b6255-5986-4b82-bc85-8a8d20e68a76" />
 
 > **"AI extracts. Deterministic rules decide. Official sources confirm."**
 
@@ -183,3 +185,28 @@ TenderBee connects to Neon serverless PostgreSQL using a dual-connection archite
 # Execute migrations using DIRECT_URL
 make migrate
 ```
+
+## Local PDF extraction demo
+
+From the repository root, extract text and locally detected fields from one or more PDFs:
+
+```powershell
+python scripts\extract_documents.py "D:\path\to\application.pdf" --output .\extraction.json
+```
+
+For output shaped by a JSON Schema, pass the schema and one or more application PDFs:
+
+```powershell
+python scripts\extract_documents.py `
+  --schema samples\application_extraction.schema.json `
+  --application bidder-udyam.pdf `
+  --application ca_turnover_certificate=bidder-turnover.pdf `
+  --output .\extracted.json `
+  --evidence .\evidence.json
+```
+
+The CLI extracts only; it does not compare documents with tender requirements or produce an eligibility verdict. OCR for scanned PDFs requires the Python packages in `requirements.txt` and the Tesseract executable. On Windows, set `TESSERACT_CMD` if Tesseract is not installed at its standard path. `python backend\demo_cli.py` remains available as a compatibility entry point.
+
+Document intake and extraction orchestration live in `backend/apps/documents/services.py`; reusable grounding and OCR policies live in `backend/engine/grounding.py` and `backend/engine/ocr_policy.py`; the extraction CLI lives in `scripts/extract_documents.py`. `backend/services/document_ai.py` is a compatibility facade.
+
+Prompt-injection screening is heuristic defense-in-depth. Suspicious uploads are marked for human review and withheld from LLM extraction, and verification recomputes the stored PDF SHA-256 before using it. A digest stored alongside the document is not protection against an attacker who can alter both the file and its database record.

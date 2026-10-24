@@ -8,6 +8,7 @@ import pytest
 from backend.services.llm import (
     GroundedField,
     LLMAdapter,
+    LLMExtractionError,
     TenderNoticeExtraction,
 )
 from backend.engine.parser import TenderPDFExtractor, is_grounded
@@ -39,16 +40,16 @@ def test_llm_adapter_model_configuration(monkeypatch):
     assert adapter_custom.model == "gemini-1.5-pro"
 
 
-def test_llm_adapter_mock_mode_when_no_api_key(monkeypatch):
-    """Verify LLMAdapter safely returns None when no API key is provided."""
+def test_llm_adapter_requires_api_key_when_extraction_is_called(monkeypatch):
+    """Verify an enabled extraction never silently succeeds without a provider key."""
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     adapter = LLMAdapter()
-    result = adapter.extract_structured(
-        pages=[(1, "Sample tender text")],
-        instructions="Extract data",
-        response_schema=TenderNoticeExtraction,
-    )
-    assert result is None
+    with pytest.raises(LLMExtractionError, match="GEMINI_API_KEY"):
+        adapter.extract_structured(
+            pages=[(1, "Sample tender text")],
+            instructions="Extract data",
+            response_schema=TenderNoticeExtraction,
+        )
 
 
 def test_tender_pdf_extractor_grounding_gate_accepts_valid_and_rejects_hallucinations(tmp_path):
@@ -98,7 +99,18 @@ def test_tender_pdf_extractor_grounding_gate_accepts_valid_and_rejects_hallucina
             quote="This is an imaginary hallucinated clause that does not exist in Western Railway PDF",
             confidence=1.0,
         ),
-        mandatory_documents=["udyam_certificate", "ca_turnover_certificate"],
+        mandatory_documents=[
+            GroundedField(
+                value="udyam_certificate",
+                page=1,
+                quote="Udyam",
+            ),
+            GroundedField(
+                value="ca_turnover_certificate",
+                page=1,
+                quote="Udyam",
+            ),
+        ],
     )
     mock_adapter.extract_structured.return_value = mock_extraction
 
@@ -127,4 +139,10 @@ def test_tender_schema_generation():
     assert "verbatim_clauses" in data["properties"]
     assert "eligibility_rules" in data["properties"]
     assert "estimated_value_inr" in data["properties"]
+    assert "tender_fee_inr" in data["properties"]
+    assert "processing_fee_inr" in data["properties"]
+    assert "dealing_officer" in data["properties"]
+    assert "mandatory_documents" in data["properties"]
+    assert "attachments" in data["properties"]
+    assert "preview_details" in data["properties"]
 

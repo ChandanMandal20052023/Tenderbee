@@ -7,6 +7,8 @@ from django.urls import include, path
 from django.http import JsonResponse
 from django.conf import settings
 from django.conf.urls.static import static
+from drf_spectacular.views import SpectacularAPIView
+from apps.documents.views import JobDetailAPIView
 
 
 def health_check(request):
@@ -53,8 +55,12 @@ urlpatterns = [
     path("api-auth/", include("rest_framework.urls")),
     path("api/health/", health_check, name="health-check"),
 
+    # OpenAPI Schema
+    path("api/schema/", SpectacularAPIView.as_view(), name="openapi-schema"),
+
     # API v1 routes
     path("api/v1/auth/", include("apps.accounts.urls")),
+    path("api/v1/jobs/<str:id>/", JobDetailAPIView.as_view(), name="async-job-detail"),
     path("api/v1/tenders/", include("apps.tenders.urls")),
     path("api/v1/rules/", include("apps.rules.urls")),
     path("api/v1/documents/", include("apps.documents.urls")),

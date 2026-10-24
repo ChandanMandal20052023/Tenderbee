@@ -4,9 +4,11 @@ API Views for Tender Intake, PDF Parsing, and RulePack Management.
 import os
 import tempfile
 from pathlib import Path
-from rest_framework import status, permissions
+from rest_framework import status, permissions, generics
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from apps.accounts.permissions import IsMember, TenantIsolationMixin
 
 from backend.apps.tenders.services import TenderService
 from backend.apps.tenders.serializers import (
@@ -151,8 +153,16 @@ class TenderSearchAPIView(APIView):
             except ValueError:
                 pass
 
+        t_num = (
+            request.query_params.get("tender_number")
+            or request.query_params.get("tender_no")
+            or request.query_params.get("tender_id")
+            or request.query_params.get("rfq_id")
+        )
+
         filters = TenderSearchFilter(
             query=request.query_params.get("query"),
+            tender_number=t_num,
             state=request.query_params.get("state"),
             category=request.query_params.get("category"),
             min_value_inr=min_val,
@@ -192,19 +202,21 @@ class TenderSchemaAPIView(APIView):
         return Response(TenderPDFExtractionResult.get_json_schema(), status=status.HTTP_200_OK)
 
 
-class TenderListAPIView(APIView):
+class TenderListAPIView(TenantIsolationMixin, generics.ListAPIView):
     """
     GET /api/v1/tenders/
-    Lists tenders belonging to the current tenant.
+    Lists tenders belonging strictly to the authenticated tenant organization.
     """
-    def get(self, request, *args, **kwargs):
-        from apps.accounts.utils import get_tenant_org_id
-        from apps.tenders.models import Tender
+    permission_classes = [IsMember]
+    pagination_class = PageNumberPagination
+
+    def get_serializer_class(self):
         from apps.tenders.serializers import TenderSerializer
-        org_id = get_tenant_org_id(request)
-        tenders = Tender.objects.filter(organization_id=org_id)
-        serializer = TenderSerializer(tenders, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return TenderSerializer
+
+    def get_queryset(self):
+        from apps.tenders.models import Tender
+        return Tender.objects.filter(organization=self.request.user.organization)
 
 
 class TenderDetailAPIView(APIView):

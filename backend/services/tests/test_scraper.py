@@ -133,3 +133,84 @@ def test_pdf_downloader_local_and_samples():
     assert pdf_bytes_matched is not None
     assert pdf_bytes_matched[:4] == b"%PDF"
 
+
+def test_bideasy_scraper_currency_parser():
+    """Verify BidEasyScraper currency normalization for Cr, Lakhs, commas, and formatted INR strings."""
+    from backend.services.tinyfish import BidEasyScraper
+
+    assert BidEasyScraper._parse_currency_value("₹ 1,33,68,44,415") == 1336844415.0
+    assert BidEasyScraper._parse_currency_value("12.5 Cr") == 125000000.0
+    assert BidEasyScraper._parse_currency_value("2.5 Crores") == 25000000.0
+    assert BidEasyScraper._parse_currency_value("50 Lakhs") == 5000000.0
+    assert BidEasyScraper._parse_currency_value("15 Lacs") == 1500000.0
+    assert BidEasyScraper._parse_currency_value(1500000) == 1500000.0
+    assert BidEasyScraper._parse_currency_value(None) is None
+    assert BidEasyScraper._parse_currency_value("N/A") is None
+
+
+def test_bideasy_scraper_cloudflare_turnstile_detection(monkeypatch):
+    """Verify pre-flight circuit breaker detects Cloudflare Turnstile challenge and headers."""
+    import urllib.request
+    import urllib.error
+    from backend.services.tinyfish import BidEasyScraper
+
+    scraper = BidEasyScraper()
+
+    # Case 1: Body contains turnstile challenge
+    class MockResp:
+        def read(self, _size):
+            return b"<html><body><div class='cf-turnstile' data-sitekey='xxx'></div></body></html>"
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            pass
+
+    monkeypatch.setattr(urllib.request, "urlopen", lambda req, timeout: MockResp())
+    barrier = scraper._detect_cloudflare_barrier("https://eprocure.gov.in/test")
+    assert barrier is not None
+    assert "Turnstile" in barrier
+
+    # Case 2: HTTP 403 with cf-mitigated header
+    class MockHTTPError(urllib.error.HTTPError):
+        def __init__(self):
+            super().__init__("https://eprocure.gov.in/test", 403, "Forbidden", {"cf-mitigated": "challenge"}, None)
+
+    def raise_http_error(*args, **kwargs):
+        raise MockHTTPError()
+
+    monkeypatch.setattr(urllib.request, "urlopen", raise_http_error)
+    barrier2 = scraper._detect_cloudflare_barrier("https://eprocure.gov.in/test")
+    assert barrier2 is not None
+    assert "Cf-Mitigated" in barrier2
+
+    # Case 3: Normal clean response
+    class MockCleanResp:
+        def read(self, _size):
+            return b"<html><body><h1>Tender Portal</h1></body></html>"
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            pass
+
+    monkeypatch.setattr(urllib.request, "urlopen", lambda req, timeout: MockCleanResp())
+    barrier3 = scraper._detect_cloudflare_barrier("https://clean-portal.gov.in")
+    assert barrier3 is None
+
+
+def test_bideasy_scraper_preflight_circuit_breaker(monkeypatch, tmp_path):
+    """Verify fetch_tender triggers pre-flight circuit breaker before calling agent."""
+    from backend.services.tinyfish import BidEasyScraper
+    from backend.services.storage import TenderStorage
+
+    storage = TenderStorage(base_dir=str(tmp_path / "bideasy"))
+    scraper = BidEasyScraper(storage=storage)
+
+    # Mock _detect_cloudflare_barrier returning a barrier
+    monkeypatch.setattr(scraper, "_detect_cloudflare_barrier", lambda url: "Cloudflare Turnstile Bot Barrier ('Cf-Mitigated: challenge')")
+
+    res = scraper.fetch_tender("2026_TEST_12345")
+    assert res["success"] is False
+    assert res["reason_code"] == "EXTERNAL_UNAVAILABLE"
+    assert "blocked automated access" in res["error"]
+
+

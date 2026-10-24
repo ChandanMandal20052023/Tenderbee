@@ -1,6 +1,10 @@
 """
 Unit and integration tests for Verification Assessment Pipeline (Stages 4-7).
 """
+import hashlib
+import tempfile
+from pathlib import Path
+
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -35,9 +39,7 @@ class VerificationPipelineTests(APITestCase):
             organization=self.org,
             tender=self.tender,
             version=1,
-            status=RulePackStatus.FROZEN,
-            confirmed_by="Auditor General",
-            frozen_hash="frozen_hash_abcdef123456",
+            status=RulePackStatus.DRAFT,
         )
 
         # Rule 1: Udyam certificate required
@@ -59,6 +61,13 @@ class VerificationPipelineTests(APITestCase):
             document_type=DocumentTypeEnum.CA_TURNOVER,
             parameters={"field": "average_turnover_inr", "operator": ">=", "min_avg_turnover": 20000000.0},
         )
+        self.rule_pack.freeze(confirmed_by_name="Auditor General")
+
+        self.document_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.document_dir.cleanup)
+        self.source_pdf = Path(self.document_dir.name) / "application.pdf"
+        self.source_pdf.write_bytes(b"%PDF-1.7\nverified test source")
+        self.source_pdf_sha256 = hashlib.sha256(self.source_pdf.read_bytes()).hexdigest()
 
     def test_assessment_blocked_when_documents_missing(self):
         """Verifies that missing compliance documents trigger BLOCKED and populate FixList."""
@@ -77,9 +86,9 @@ class VerificationPipelineTests(APITestCase):
             organization=self.org,
             tender=self.tender,
             file_name="hcc_udyam.pdf",
-            file_path="/tmp/hcc_udyam.pdf",
+            file_path=str(self.source_pdf),
             document_type=DocumentTypeEnum.UDYAM,
-            sha256_hash="1111222233334444555566667777888899990000aaaabbbbccccddddeeeeffff",
+            sha256_hash=self.source_pdf_sha256,
             extracted_data={
                 "udyam_registration_number": {
                     "value": "UDYAM-MH-01-0099887",
@@ -99,9 +108,9 @@ class VerificationPipelineTests(APITestCase):
             organization=self.org,
             tender=self.tender,
             file_name="hcc_ca_turnover.pdf",
-            file_path="/tmp/hcc_ca_turnover.pdf",
+            file_path=str(self.source_pdf),
             document_type=DocumentTypeEnum.CA_TURNOVER,
-            sha256_hash="aaaabbbbccccddddeeeeffff1111222233334444555566667777888899990000",
+            sha256_hash=self.source_pdf_sha256,
             extracted_data={
                 "average_turnover_inr": {
                     "value": 50000000.0,

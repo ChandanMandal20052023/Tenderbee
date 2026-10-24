@@ -88,6 +88,35 @@ class TenderPDFResolver:
                     logger.info("Matched tender to local sample PDF: %s", sample)
                     return str(sample)
 
+        # 2.5. Direct download via Portal Attachment Metadata (e.g. eProc2 Bihar official NIT)
+        portal = (tender.get("portal") or "").lower()
+        if "eproc2.bihar.gov.in" in portal or t_num.startswith("BIH/EPROC2/"):
+            logger.info("Attempting direct authentic government NIT PDF download for %s", t_num)
+            nit_att = tender.get("nit_attachment")
+            dl_params = nit_att.get("download_params") if isinstance(nit_att, dict) else None
+
+            if not dl_params:
+                try:
+                    from backend.services.live_search import LiveTenderSearchEngine
+                    lse = LiveTenderSearchEngine(storage=self.storage)
+                    preview = lse.fetch_tender_preview(tender)
+                    if preview and preview.get("nit_attachment"):
+                        dl_params = preview["nit_attachment"].get("download_params")
+                except Exception as e_prev:
+                    logger.debug("Failed to retrieve preview download params for %s: %s", t_num, e_prev)
+
+            if dl_params:
+                try:
+                    from backend.services.live_search import LiveTenderSearchEngine
+                    pdf_bytes = LiveTenderSearchEngine.download_eproc2_nit(dl_params)
+                    if pdf_bytes and pdf_bytes[:4] == b"%PDF":
+                        with open(target_file, "wb") as f:
+                            f.write(pdf_bytes)
+                        logger.info("Successfully downloaded authentic government NIT PDF (%d bytes) to %s", len(pdf_bytes), target_file)
+                        return str(target_file)
+                except Exception as e_dl:
+                    logger.warning("Failed downloading authentic government NIT PDF for %s: %s", t_num, e_dl)
+
         # 3. Direct download from source_url (if provided)
         source_url = (tender.get("source_url") or "").strip()
         if source_url and (source_url.startswith("http://") or source_url.startswith("https://")):

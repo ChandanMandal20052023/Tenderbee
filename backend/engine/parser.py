@@ -13,6 +13,8 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from pypdf import PdfReader
 from rapidfuzz import fuzz
 
+from backend.engine.grounding import DocumentGroundingPolicy
+from backend.engine.ocr_policy import OCRPolicy
 from backend.engine.schema import (
     TenderClauseQuote,
     TenderEligibilityRules,
@@ -101,6 +103,7 @@ class TenderPDFExtractor:
         pages_data: List[TenderPDFPage] = []
         full_text_by_page: List[Tuple[int, str]] = []
         digital_pages = 0
+        pdf_bytes = self._read_pdf_bytes(pdf_input)
 
         # Step 1: Extract text layer page by page
         for idx, page in enumerate(reader.pages):
@@ -110,6 +113,9 @@ class TenderPDFExtractor:
             char_count = len(cleaned_text)
 
             is_scanned = char_count < self.min_char_threshold
+            if is_scanned:
+                cleaned_text, _ = OCRPolicy.ocr_page(pdf_bytes, idx)
+                cleaned_text = re.sub(r"[ \t]+", " ", cleaned_text).strip()
             if not is_scanned:
                 digital_pages += 1
 
@@ -173,7 +179,7 @@ class TenderPDFExtractor:
         Values are only applied if their quote is verified to physically exist on the cited page.
         """
         adapter = self.llm_adapter
-        if adapter is None and os.getenv("GEMINI_API_KEY"):
+        if adapter is None and (os.getenv("GEMINI_API_KEY") or os.getenv("LLM_API_KEY")):
             try:
                 from backend.services.llm import LLMAdapter
                 adapter = LLMAdapter()
@@ -181,6 +187,13 @@ class TenderPDFExtractor:
                 return
 
         if not adapter or not getattr(adapter, "api_key", None):
+            return
+
+        if any(
+            DocumentGroundingPolicy.detect_prompt_injection(text)
+            for _, text in full_text_by_page
+        ):
+            logger.warning("Skipping tender LLM extraction because document text matched injection indicators.")
             return
 
         try:
@@ -256,9 +269,19 @@ class TenderPDFExtractor:
                         pass
 
             if getattr(llm_result, "mandatory_documents", None):
-                for doc in llm_result.mandatory_documents:
-                    if doc not in mandatory_docs:
-                        mandatory_docs.append(doc)
+                for extracted_doc in llm_result.mandatory_documents:
+                    if (
+                        not extracted_doc
+                        or not extracted_doc.value
+                        or not extracted_doc.quote
+                    ):
+                        continue
+                    page_text = page_dict.get(extracted_doc.page, "")
+                    if (
+                        is_grounded(extracted_doc.quote, page_text)
+                        and extracted_doc.value not in mandatory_docs
+                    ):
+                        mandatory_docs.append(extracted_doc.value)
 
         except Exception as e:
             logger.warning("LLM extraction enhancement encountered an error: %s", e)
@@ -266,6 +289,16 @@ class TenderPDFExtractor:
     def get_json_schema(self) -> Dict[str, Any]:
         """Returns the canonical Pydantic JSON schema."""
         return TenderPDFExtractionResult.model_json_schema()
+
+    @staticmethod
+    def _read_pdf_bytes(pdf_input: Union[str, Path, bytes, io.BytesIO]) -> bytes:
+        if isinstance(pdf_input, bytes):
+            return pdf_input
+        if isinstance(pdf_input, io.BytesIO):
+            return pdf_input.getvalue()
+        if isinstance(pdf_input, (str, Path)):
+            return Path(pdf_input).read_bytes()
+        raise TypeError(f"Unsupported PDF input type: {type(pdf_input)}")
 
     def _load_reader(self, pdf_input: Union[str, Path, bytes, io.BytesIO]) -> PdfReader:
         if isinstance(pdf_input, (str, Path)):
@@ -333,15 +366,18 @@ class TenderPDFExtractor:
         buyer_patterns = [
             r"(WESTERN RAILWAY\s*MUMBAI CENTRAL DIVISION(?:\s*\([^)]*\))?)",
             r"Tender Inviting Authority[\s\S]*?((?:Divisional|General|Chief|Executive|Superintending)[\s\S]*?)(?=For and on behalf|Date|\n\s*\n)",
-            r"Buyer Name[:\s]+([^\n]+)",
-            r"Department[:\s]+([^\n]+)",
+            r"Buyer Name[:\s]+([A-Za-z0-9\s,\.\-&]{4,80})",
+            r"Department Name[:\s]+([A-Za-z0-9\s,\.\-&]{4,80})",
+            r"Department\s*[:\-]\s*([A-Za-z0-9\s,\.\-&]{4,80})",
+            r"(Government of [A-Za-z\s]+)",
         ]
         for pat in buyer_patterns:
             m = re.search(pat, combined_early_text, re.IGNORECASE)
             if m:
                 bname = re.sub(r"\s+", " ", m.group(1).replace("\n", " ")).strip()
-                meta["buyer_name"] = bname
-                break
+                if bname and len(bname) >= 4 and not any(k in bname.lower() for k in ("doesn", "shall", "will", "take", "responsible", "tenderer")):
+                    meta["buyer_name"] = bname
+                    break
 
         # 4. Estimated Cost / Value
         cost_m = re.search(r"Estimated Cost of Work[:\s]*Rs\.?\s*([0-9,]+(?:\.[0-9]+)?)", combined_early_text, re.IGNORECASE)
@@ -428,6 +464,36 @@ class TenderPDFExtractor:
                 r"(Bid Form\s*-\s*Annexure-II)",
                 "annexure_ii_bid_form",
                 "annexure_ii",
+            ),
+            (
+                r"((?:if any bidder withdraws it bid during bid validity period.*?(?:EMD will be forfeited|forfeited).*?Bihar contractor registration rules.*?\.)|(?:withdraws it bid during bid validity period.*?EMD will be forfeited.*?\.)|(?:bid validity period.*?EMD will be forfeited[^\n\.]*))",
+                "bid_validity_emd_forfeiture_clause",
+                "emd_forfeiture",
+            ),
+            (
+                r"(Bids (?:trom|from) joint ventures are not allowed for this work.*?\.)",
+                "joint_venture_restriction_clause",
+                "jv_restriction",
+            ),
+            (
+                r"((?:Corrigendum/\s*addendum,?\s*if any,?\s*will be published on the eproc 2\.0 only.*?\.)|(?:Corrigendum.*?published on.*?eproc.*?only.*?\.)|(?:Corrigendum/\s*addendum.*?published[^\n\.]*))",
+                "corrigendum_portal_publication_clause",
+                "corrigendum",
+            ),
+            (
+                r"(Bid evaluation will be done on the basis of uploaded document on e-proc 2\.0 only.*?\.)",
+                "electronic_bid_evaluation_clause",
+                "eval_rule",
+            ),
+            (
+                r"(The bidder shall sign on the (?:supporis|supporting) statements, documents, certificates, uploaded by him, owning responsibility for their correctness/\s*authenticity\.)",
+                "document_authenticity_undertaking_clause",
+                "authenticity",
+            ),
+            (
+                r"((?:Additional Performance Guarantee|Performance Security|Performance Guarantee).*?(?:prescribed format|as per rules)?)",
+                "performance_guarantee_clause",
+                "perf_guarantee",
             ),
         ]
 
