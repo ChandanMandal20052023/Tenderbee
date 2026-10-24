@@ -35,9 +35,41 @@ def test_query_parser_lakhs_and_months():
     assert filters.min_tenure_months == 6
 
 
+def _seed_test_tenders(storage: TenderStorage):
+    import sqlite3
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc).isoformat()
+    samples = [
+        (
+            "test_buidco_01", "org_default", "TEST/BUIDCO/01",
+            "Sanitation & Waste Management Services",
+            "Bihar Urban Development", "2026-11-28T15:00:00+05:30",
+            34500000.0, "https://test.bihar.gov.in/1", now, now,
+            "Bihar", "Services", 24, 690000.0, "Patna", "eproc2.bihar.gov.in"
+        ),
+        (
+            "test_bsphcl_02", "org_default", "TEST/BSPHCL/02",
+            "Substation Security Guarding Services",
+            "Bihar Power Holding", "2026-11-22T17:00:00+05:30",
+            25000000.0, "https://test.bihar.gov.in/2", now, now,
+            "Bihar", "Services", 12, 360000.0, "Gaya", "eproc2.bihar.gov.in"
+        ),
+    ]
+    with sqlite3.connect(storage.db_path) as conn:
+        conn.executemany("""
+            INSERT INTO tenders (
+                tender_id, organization_id, external_id, title, buyer_name,
+                submission_deadline, estimated_value_inr, source_url,
+                created_at, updated_at, state, category, tenure_months,
+                emd_amount_inr, location, portal
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, samples)
+
+
 def test_search_service_bihar_services(tmp_path):
     """Verify search service returns seeded Bihar service tenders."""
     storage = TenderStorage(base_dir=str(tmp_path))
+    _seed_test_tenders(storage)
     service = TenderSearchService(storage=storage)
 
     res = service.search_by_prompt("tenders related to services in bihar")
@@ -51,6 +83,7 @@ def test_search_service_bihar_services(tmp_path):
 def test_search_service_multi_criteria_filter(tmp_path):
     """Verify filtering strictly on capital and tenure."""
     storage = TenderStorage(base_dir=str(tmp_path))
+    _seed_test_tenders(storage)
     service = TenderSearchService(storage=storage)
 
     filters = TenderSearchFilter(

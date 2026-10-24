@@ -93,7 +93,6 @@ class TenderStorage:
                 if col_name not in existing_cols:
                     cursor.execute(f"ALTER TABLE tenders ADD COLUMN {col_name} {col_type}")
 
-            self._seed_sample_tenders(cursor)
             conn.commit()
 
     @staticmethod
@@ -225,56 +224,6 @@ class TenderStorage:
             "extracted_json_path": str(extracted_path),
             "is_cached": False,
         }
-
-    def _seed_sample_tenders(self, cursor: sqlite3.Cursor) -> None:
-        """Seeds realistic public procurement tenders for Bihar and other key regions."""
-        now = datetime.now(timezone.utc).isoformat()
-        samples = [
-            (
-                "tnd_buidco_patna_sanitation_2026", "org_default", "BUIDCO/2026/S-104",
-                "Engagement of Agency for Comprehensive Sanitation & Solid Waste Management in Patna Municipal Area",
-                "Bihar Urban Infrastructure Development Corporation Limited (BUIDCO)",
-                "2026-11-28T15:00:00+05:30", 34500000.0, "https://eproc2.bihar.gov.in/tender/BUIDCO-2026-S-104",
-                now, now, "Bihar", "Services", 24, 690000.0, "Patna", "eproc2.bihar.gov.in"
-            ),
-            (
-                "tnd_bsphcl_gaya_security_2026", "org_default", "BSPHCL/2026/SEC-412",
-                "Outsourcing of Facility Security, Guarding, and Surveillance Services for Power Sub-stations across Gaya & Bhagalpur",
-                "Bihar State Power Holding Company Limited (BSPHCL)",
-                "2026-11-22T17:00:00+05:30", 18000000.0, "https://eproc2.bihar.gov.in/tender/BSPHCL-2026-SEC-412",
-                now, now, "Bihar", "Services", 12, 360000.0, "Gaya", "eproc2.bihar.gov.in"
-            ),
-            (
-                "tnd_ecr_danapur_rob_2026", "org_default", "ECR/HAJIPUR/CIVIL/2026/09",
-                "Construction of Multi-Span Road Overbridge (ROB) and Approach Roads at Danapur Yard Junction",
-                "East Central Railway (Hajipur Headquarters)",
-                "2026-12-15T15:00:00+05:30", 485000000.0, "https://ireps.gov.in/tender/ECR-DANAPUR-ROB",
-                now, now, "Bihar", "Works", 36, 2425000.0, "Danapur", "ireps.gov.in"
-            ),
-            (
-                "tnd_shsb_medical_supply_2026", "org_default", "SHSB/2026/MED-SUPPLY-77",
-                "Supply and Delivery of Essential Diagnostic Kits and Medical Equipment to District Hospitals in Muzaffarpur",
-                "State Health Society Bihar",
-                "2026-11-18T14:00:00+05:30", 8500000.0, "https://eproc2.bihar.gov.in/tender/SHSB-MED-77",
-                now, now, "Bihar", "Goods", 12, 170000.0, "Muzaffarpur", "eproc2.bihar.gov.in"
-            ),
-            (
-                "tnd_wr_mumbai_cleaning_2026", "org_default", "Mech-TPA-2026",
-                "Comprehensive Mechanized Cleaning of Coaches at Bandra Terminus",
-                "Western Railway Mumbai Central Division (Mechanical Branch)",
-                "2026-11-05T15:00:00+05:30", 522615823.34, "https://ireps.gov.in/tender/Mech-TPA-2026",
-                now, now, "Maharashtra", "Services", 36, 2763100.0, "Mumbai", "ireps.gov.in"
-            ),
-        ]
-
-        cursor.executemany("""
-            INSERT OR IGNORE INTO tenders (
-                tender_id, organization_id, external_id, title, buyer_name,
-                submission_deadline, estimated_value_inr, source_url,
-                created_at, updated_at, state, category, tenure_months,
-                emd_amount_inr, location, portal
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, samples)
 
     def search_indexed_tenders(
         self,
