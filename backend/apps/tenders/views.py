@@ -177,3 +177,14 @@ class TenderSearchAPIView(APIView):
         except Exception as e:
             return Response({"success": False, "error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+
+class TenderSchemaAPIView(APIView):
+    """
+    GET /api/v1/tenders/schema/
+    Returns the formal JSON Schema for Tender Notice Extractions.
+    """
+    def get(self, request, *args, **kwargs):
+        from backend.engine.schema import TenderPDFExtractionResult
+        return Response(TenderPDFExtractionResult.get_json_schema(), status=status.HTTP_200_OK)
+
+

@@ -114,3 +114,22 @@ def test_tender_service_integration_with_universal_scraper(tmp_path):
     assert intake_res["tender_number"] == gem_id
     assert intake_res["rule_pack_id"].startswith("rp_")
     assert intake_res["rule_pack"]["status"] == "DRAFT"
+
+
+def test_pdf_downloader_local_and_samples():
+    """Verify TenderPDFDownloader fetches local and sample PDFs."""
+    from backend.services.pdf_downloader import TenderPDFDownloader
+
+    downloader = TenderPDFDownloader()
+
+    # Direct file path
+    pdf_bytes = downloader.download_pdf("samples/western_railway_mech_tpa_2026.pdf")
+    assert pdf_bytes is not None
+    assert pdf_bytes[:4] == b"%PDF"
+    assert len(pdf_bytes) > 100000
+
+    # Matching tender number from samples
+    pdf_bytes_matched = downloader.download_pdf("western_railway")
+    assert pdf_bytes_matched is not None
+    assert pdf_bytes_matched[:4] == b"%PDF"
+

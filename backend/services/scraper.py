@@ -15,6 +15,7 @@ from backend.services.gepnic import GePNICAdapter
 from backend.services.gem import GeMAdapter
 from backend.services.tinyfish import BidEasyScraper
 from backend.services.storage import TenderStorage
+from backend.services.pdf_downloader import TenderPDFDownloader
 from backend.engine.parser import TenderPDFExtractor
 from backend.engine.schema import TenderPDFExtractionResult
 
@@ -36,6 +37,7 @@ class UniversalTenderScraper:
         gem_adapter: Optional[GeMAdapter] = None,
         tinyfish_scraper: Optional[BidEasyScraper] = None,
         pdf_extractor: Optional[TenderPDFExtractor] = None,
+        pdf_downloader: Optional[TenderPDFDownloader] = None,
     ):
         self.storage = storage or TenderStorage()
         self.captcha_service = captcha_service or CaptchaService()
@@ -47,6 +49,7 @@ class UniversalTenderScraper:
         self.gem_adapter = gem_adapter or GeMAdapter()
         self.tinyfish_scraper = tinyfish_scraper or BidEasyScraper(storage=self.storage)
         self.pdf_extractor = pdf_extractor or TenderPDFExtractor()
+        self.pdf_downloader = pdf_downloader or TenderPDFDownloader(session_pool=self.session_pool)
 
     def fetch_tender(
         self,
@@ -57,8 +60,8 @@ class UniversalTenderScraper:
         """
         Main entry point:
         1. Checks local tiered snapshot cache (sub-second hit).
-        2. Routes to appropriate portal adapter (GeM, GePNIC, or TinyFish).
-        3. If PDF is acquired, parses with anti-hallucination PDF extractor.
+        2. Tries to acquire and stream official Tender Notice PDF.
+        3. Routes to appropriate portal adapter (GeM, GePNIC, or TinyFish).
         4. Saves snapshot and returns standardized extraction dict.
         """
         # Step 1: Check cache
@@ -72,16 +75,27 @@ class UniversalTenderScraper:
                     "tender": cached_snapshot,
                 }
 
-        # Step 2: Route to specialized adapter
-        logger.info("Routing intake query '%s'", identifier)
-        if self.gem_adapter.can_handle(identifier):
-            logger.info("Dispatched to GeMAdapter")
+        # Step 2: Attempt direct official PDF download
+        pdf_bytes = self.pdf_downloader.download_pdf(identifier)
+        if pdf_bytes:
+            logger.info("Direct tender notice PDF acquired (%d bytes). Running Document AI extraction.", len(pdf_bytes))
+            extraction: TenderPDFExtractionResult = self.pdf_extractor.extract_from_pdf(pdf_bytes)
+            tender_dict = self._format_extraction_to_tender_dict(extraction, identifier)
+            adapter_res = {
+                "success": True,
+                "is_pdf": True,
+                "pdf_bytes": pdf_bytes,
+                "tender": tender_dict,
+                "portal": "direct_pdf",
+            }
+        elif self.gem_adapter.can_handle(identifier):
+            logger.info("Routing intake query '%s' to GeMAdapter", identifier)
             adapter_res = self.gem_adapter.fetch_tender(identifier)
         elif self.gepnic_adapter.can_handle(identifier):
-            logger.info("Dispatched to GePNICAdapter")
+            logger.info("Routing intake query '%s' to GePNICAdapter", identifier)
             adapter_res = self.gepnic_adapter.fetch_tender(identifier)
         else:
-            logger.info("Dispatched to TinyFish autonomous agent fallback")
+            logger.info("Dispatched '%s' to TinyFish autonomous agent fallback", identifier)
             return self.tinyfish_scraper.fetch_tender(
                 identifier=identifier, org_id=org_id, force_refresh=force_refresh
             )

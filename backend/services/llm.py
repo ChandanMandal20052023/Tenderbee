@@ -69,6 +69,24 @@ class TruthfulnessUndertakingExtraction(BaseModel):
     date_signed: Optional[GroundedField[str]] = None
 
 
+class TenderNoticeExtraction(BaseModel):
+    """Structured extraction schema for official Government Tender Notice / NIT document."""
+    tender_number: GroundedField[str]
+    tender_title: GroundedField[str]
+    buyer_name: GroundedField[str]
+    submission_deadline: GroundedField[str]
+    opening_date: Optional[GroundedField[str]] = None
+    contract_period: Optional[GroundedField[str]] = None
+    estimated_value_inr: Optional[GroundedField[float]] = None
+    emd_amount_inr: Optional[GroundedField[float]] = None
+    mse_exemption_allowed: Optional[GroundedField[bool]] = None
+    min_average_annual_turnover_inr: Optional[GroundedField[float]] = None
+    min_work_experience_inr: Optional[GroundedField[float]] = None
+    min_liquidity_inr: Optional[GroundedField[float]] = None
+    udin_mandatory: Optional[GroundedField[bool]] = None
+    mandatory_documents: List[str] = Field(default_factory=list)
+
+
 # ==============================================================================
 # PROMPT TEMPLATES (ANTI-HALLUCINATION XML)
 # ==============================================================================
@@ -111,9 +129,9 @@ class LLMAdapter:
     Provider-agnostic adapter for extracting grounded structured data from documents.
     Supports Google Gemini API with JSON schema enforcement.
     """
-    def __init__(self, api_key: Optional[str] = None, model: str = "gemini-2.5-flash"):
+    def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
         self.api_key = api_key or os.getenv("GEMINI_API_KEY")
-        self.model = model
+        self.model = model or os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
 
     def extract_structured(
         self,
@@ -139,6 +157,10 @@ class LLMAdapter:
                 },
             }
             resp = httpx.post(url, json=payload, timeout=60.0)
+            if resp.status_code == 404 and "gemini-2.0-flash" in self.model:
+                fallback_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={self.api_key}"
+                resp = httpx.post(fallback_url, json=payload, timeout=60.0)
+
             if resp.status_code != 200:
                 logger.error(f"Gemini API returned status {resp.status_code}: {resp.text}")
                 return None

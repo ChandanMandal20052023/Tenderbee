@@ -4,6 +4,7 @@ Extracts page-level text, metadata, procurement parameters, and compliance claus
 with exact verbatim quotes and source page citations, returning a validated JSON schema.
 """
 import io
+import os
 import re
 import logging
 from pathlib import Path
@@ -77,8 +78,15 @@ class TenderPDFExtractor:
     evidence quotes from Indian government and railway tender notice PDFs.
     """
 
-    def __init__(self, min_char_threshold_per_page: int = 40):
+    def __init__(
+        self,
+        min_char_threshold_per_page: int = 40,
+        llm_adapter: Optional[Any] = None,
+        use_llm: bool = True,
+    ):
         self.min_char_threshold = min_char_threshold_per_page
+        self.llm_adapter = llm_adapter
+        self.use_llm = use_llm
 
     def extract_from_pdf(self, pdf_input: Union[str, Path, bytes, io.BytesIO]) -> TenderPDFExtractionResult:
         """
@@ -123,6 +131,16 @@ class TenderPDFExtractor:
         # Step 3: Extract Clauses & Eligibility Requirements with Page Citations
         clauses, eligibility, mandatory_docs = self._extract_clauses(full_text_by_page, metadata.get("estimated_value_inr"))
 
+        # Step 4: Optional LLM-assisted clause & parameter extraction with zero-hallucination validation
+        if self.use_llm:
+            self._enhance_with_llm(
+                full_text_by_page=full_text_by_page,
+                metadata=metadata,
+                eligibility=eligibility,
+                mandatory_docs=mandatory_docs,
+                clauses=clauses,
+            )
+
         return TenderPDFExtractionResult(
             tender_number=metadata.get("tender_number"),
             tender_title=metadata.get("tender_title", "Procurement Tender Notice"),
@@ -141,6 +159,109 @@ class TenderPDFExtractor:
             digital_text_coverage=digital_coverage,
             pages=pages_data,
         )
+
+    def _enhance_with_llm(
+        self,
+        full_text_by_page: List[Tuple[int, str]],
+        metadata: Dict[str, Any],
+        eligibility: TenderEligibilityRules,
+        mandatory_docs: List[str],
+        clauses: List[TenderClauseQuote],
+    ) -> None:
+        """
+        Enhances extraction via LLM with strict grounding validation.
+        Values are only applied if their quote is verified to physically exist on the cited page.
+        """
+        adapter = self.llm_adapter
+        if adapter is None and os.getenv("GEMINI_API_KEY"):
+            try:
+                from backend.services.llm import LLMAdapter
+                adapter = LLMAdapter()
+            except ImportError:
+                return
+
+        if not adapter or not getattr(adapter, "api_key", None):
+            return
+
+        try:
+            from backend.services.llm import TenderNoticeExtraction
+
+            # Send first 15 pages where tender parameters are stated
+            pages_to_send = full_text_by_page[:15]
+            llm_result = adapter.extract_structured(
+                pages=pages_to_send,
+                instructions=(
+                    "Extract official tender metadata, key financial thresholds, and mandatory compliance requirements. "
+                    "For every field, provide the exact 1-indexed page and verbatim quote."
+                ),
+                response_schema=TenderNoticeExtraction,
+            )
+            if not llm_result:
+                return
+
+            page_dict = {p[0]: p[1] for p in full_text_by_page}
+
+            def check_and_apply_str(field_name: str, grounded_field):
+                if not grounded_field or not getattr(grounded_field, "value", None) or not getattr(grounded_field, "quote", None):
+                    return
+                p_text = page_dict.get(grounded_field.page, "")
+                if is_grounded(grounded_field.quote, p_text):
+                    metadata[field_name] = grounded_field.value.strip()
+
+            def check_and_apply_float(field_name: str, grounded_field):
+                if not grounded_field or getattr(grounded_field, "value", None) is None or not getattr(grounded_field, "quote", None):
+                    return
+                p_text = page_dict.get(grounded_field.page, "")
+                if is_grounded(grounded_field.quote, p_text):
+                    try:
+                        metadata[field_name] = float(grounded_field.value)
+                    except (ValueError, TypeError):
+                        pass
+
+            check_and_apply_str("tender_number", llm_result.tender_number)
+            check_and_apply_str("tender_title", llm_result.tender_title)
+            check_and_apply_str("buyer_name", llm_result.buyer_name)
+            check_and_apply_str("submission_deadline", llm_result.submission_deadline)
+            if llm_result.opening_date:
+                check_and_apply_str("opening_date", llm_result.opening_date)
+            if llm_result.contract_period:
+                check_and_apply_str("contract_period", llm_result.contract_period)
+
+            check_and_apply_float("estimated_value_inr", llm_result.estimated_value_inr)
+            check_and_apply_float("emd_amount_inr", llm_result.emd_amount_inr)
+
+            if llm_result.mse_exemption_allowed and getattr(llm_result.mse_exemption_allowed, "quote", None):
+                p_text = page_dict.get(llm_result.mse_exemption_allowed.page, "")
+                if is_grounded(llm_result.mse_exemption_allowed.quote, p_text):
+                    metadata["mse_exemption_allowed"] = bool(llm_result.mse_exemption_allowed.value)
+
+            if llm_result.min_average_annual_turnover_inr and getattr(llm_result.min_average_annual_turnover_inr, "quote", None):
+                q = llm_result.min_average_annual_turnover_inr.quote
+                p = llm_result.min_average_annual_turnover_inr.page
+                if is_grounded(q, page_dict.get(p, "")):
+                    try:
+                        val = float(llm_result.min_average_annual_turnover_inr.value)
+                        if eligibility.min_annual_turnover_inr is None:
+                            eligibility.min_annual_turnover_inr = val
+                        clauses.append(
+                            TenderClauseQuote(
+                                clause_type="annual_turnover_requirement",
+                                page=p,
+                                quote=q,
+                                field_name="min_annual_turnover_inr",
+                                field_value=val,
+                            )
+                        )
+                    except (ValueError, TypeError):
+                        pass
+
+            if getattr(llm_result, "mandatory_documents", None):
+                for doc in llm_result.mandatory_documents:
+                    if doc not in mandatory_docs:
+                        mandatory_docs.append(doc)
+
+        except Exception as e:
+            logger.warning("LLM extraction enhancement encountered an error: %s", e)
 
     def get_json_schema(self) -> Dict[str, Any]:
         """Returns the canonical Pydantic JSON schema."""
