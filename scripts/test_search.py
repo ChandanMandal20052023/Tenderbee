@@ -46,6 +46,12 @@ def display_skimmed_view(tender: Dict[str, Any]):
     
     print(f"Value       : {val_str}")
     print(f"EMD         : {emd_str}")
+    if tender.get("tender_fee_inr") is not None:
+        print(f"Tender Fee  : ₹{tender['tender_fee_inr']:,.2f}")
+    if tender.get("processing_fee_inr") is not None:
+        print(f"Proc Fee    : ₹{tender['processing_fee_inr']:,.2f}")
+    if tender.get("dealing_officer"):
+        print(f"Officer     : {tender['dealing_officer']}")
     print(f"Tenure      : {tender.get('tenure_months', 'Standard')} Months" if tender.get('tenure_months') else "Tenure      : Standard Duration")
     print(f"Deadline    : {tender.get('submission_deadline')}")
     print(f"Portal      : {tender.get('portal', 'Government Portal')}")
@@ -82,8 +88,32 @@ def display_detailed_view(tender: Dict[str, Any]):
     emd_str = f"₹{emd:,.2f}" if emd else "Exempted / Nil"
     print(f"Value       : {val_str}")
     print(f"EMD         : {emd_str}")
+    if tender.get("tender_fee_inr") is not None:
+        print(f"Tender Fee  : ₹{tender['tender_fee_inr']:,.2f}")
+    if tender.get("processing_fee_inr") is not None:
+        print(f"Proc Fee    : ₹{tender['processing_fee_inr']:,.2f}")
+    if tender.get("dealing_officer"):
+        print(f"Officer     : {tender['dealing_officer']}")
     print(f"Deadline    : {tender.get('submission_deadline')}")
     print(f"Portal      : {tender.get('portal', 'Government Portal')}")
+
+    # Mandatory document checklist (from Eye button preview or extraction)
+    docs = (tender.get("extraction") or {}).get("mandatory_documents") or tender.get("mandatory_documents") or []
+    if docs:
+        print(f"\n--- MANDATORY DOCUMENT CHECKLIST ({len(docs)} documents) ---")
+        for idx, d in enumerate(docs, 1):
+            print(f"  [{idx}] {d}")
+
+    # Attached official portal documents
+    attachments = (tender.get("extraction") or {}).get("attachments") or tender.get("attachments") or []
+    if attachments:
+        print(f"\n--- ATTACHED PORTAL DOCUMENTS ({len(attachments)} files) ---")
+        for idx, att in enumerate(attachments, 1):
+            lbl = att.get("label", "Document")
+            fname = att.get("file_name", "")
+            fsize = att.get("file_size_bytes")
+            size_str = f" ({fsize / (1024*1024):.2f} MB)" if fsize else ""
+            print(f"  [{idx}] {lbl}: {fname}{size_str}")
 
     pdf_status = tender.get("pdf_status", "PENDING_INTAKE")
     print(f"\n--- PDF DOCUMENT ANALYSIS ---")
@@ -125,13 +155,6 @@ def display_detailed_view(tender: Dict[str, Any]):
                 print(f"  • UDIN Mandatory on CA: {'Yes (Verified)' if elig['udin_mandatory'] else 'No'}")
             if "mse_exemption_allowed" in ext:
                 print(f"  • MSE/MSME Exemption  : {'Allowed' if ext['mse_exemption_allowed'] else 'Not Allowed'}")
-
-        # Mandatory documents
-        docs = ext.get("mandatory_documents", [])
-        if docs:
-            print(f"\n--- MANDATORY DOCUMENT CHECKLIST ({len(docs)} documents) ---")
-            for idx, d in enumerate(docs, 1):
-                print(f"  [{idx}] {d}")
     else:
         print(f"Note: {tender.get('message', 'No PDF attached for this tender yet. Provide PDF path to extract full clauses.')}")
 

@@ -366,15 +366,18 @@ class TenderPDFExtractor:
         buyer_patterns = [
             r"(WESTERN RAILWAY\s*MUMBAI CENTRAL DIVISION(?:\s*\([^)]*\))?)",
             r"Tender Inviting Authority[\s\S]*?((?:Divisional|General|Chief|Executive|Superintending)[\s\S]*?)(?=For and on behalf|Date|\n\s*\n)",
-            r"Buyer Name[:\s]+([^\n]+)",
-            r"Department[:\s]+([^\n]+)",
+            r"Buyer Name[:\s]+([A-Za-z0-9\s,\.\-&]{4,80})",
+            r"Department Name[:\s]+([A-Za-z0-9\s,\.\-&]{4,80})",
+            r"Department\s*[:\-]\s*([A-Za-z0-9\s,\.\-&]{4,80})",
+            r"(Government of [A-Za-z\s]+)",
         ]
         for pat in buyer_patterns:
             m = re.search(pat, combined_early_text, re.IGNORECASE)
             if m:
                 bname = re.sub(r"\s+", " ", m.group(1).replace("\n", " ")).strip()
-                meta["buyer_name"] = bname
-                break
+                if bname and len(bname) >= 4 and not any(k in bname.lower() for k in ("doesn", "shall", "will", "take", "responsible", "tenderer")):
+                    meta["buyer_name"] = bname
+                    break
 
         # 4. Estimated Cost / Value
         cost_m = re.search(r"Estimated Cost of Work[:\s]*Rs\.?\s*([0-9,]+(?:\.[0-9]+)?)", combined_early_text, re.IGNORECASE)
@@ -461,6 +464,36 @@ class TenderPDFExtractor:
                 r"(Bid Form\s*-\s*Annexure-II)",
                 "annexure_ii_bid_form",
                 "annexure_ii",
+            ),
+            (
+                r"((?:if any bidder withdraws it bid during bid validity period.*?(?:EMD will be forfeited|forfeited).*?Bihar contractor registration rules.*?\.)|(?:withdraws it bid during bid validity period.*?EMD will be forfeited.*?\.)|(?:bid validity period.*?EMD will be forfeited[^\n\.]*))",
+                "bid_validity_emd_forfeiture_clause",
+                "emd_forfeiture",
+            ),
+            (
+                r"(Bids (?:trom|from) joint ventures are not allowed for this work.*?\.)",
+                "joint_venture_restriction_clause",
+                "jv_restriction",
+            ),
+            (
+                r"((?:Corrigendum/\s*addendum,?\s*if any,?\s*will be published on the eproc 2\.0 only.*?\.)|(?:Corrigendum.*?published on.*?eproc.*?only.*?\.)|(?:Corrigendum/\s*addendum.*?published[^\n\.]*))",
+                "corrigendum_portal_publication_clause",
+                "corrigendum",
+            ),
+            (
+                r"(Bid evaluation will be done on the basis of uploaded document on e-proc 2\.0 only.*?\.)",
+                "electronic_bid_evaluation_clause",
+                "eval_rule",
+            ),
+            (
+                r"(The bidder shall sign on the (?:supporis|supporting) statements, documents, certificates, uploaded by him, owning responsibility for their correctness/\s*authenticity\.)",
+                "document_authenticity_undertaking_clause",
+                "authenticity",
+            ),
+            (
+                r"((?:Additional Performance Guarantee|Performance Security|Performance Guarantee).*?(?:prescribed format|as per rules)?)",
+                "performance_guarantee_clause",
+                "perf_guarantee",
             ),
         ]
 

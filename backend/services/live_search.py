@@ -17,10 +17,12 @@ import re
 import ssl
 import urllib.parse
 import urllib.request
+import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Union
 from dotenv import load_dotenv
 
 _repo_root = Path(__file__).resolve().parent.parent.parent
@@ -127,6 +129,69 @@ class LiveTenderSearchEngine:
     when local database has no matches or when live discovery is requested.
     Inspects live HTML DOM to guarantee genuine, non-expired tender data.
     """
+
+    _eproc2_session_lock = threading.Lock()
+    _eproc2_cached_auth: Optional[str] = None
+    _eproc2_cached_opener: Optional[Any] = None
+    _eproc2_rfq_map: Dict[str, Tuple[int, int]] = {}
+    _eproc2_cache_time: float = 0.0
+
+    @classmethod
+    def _get_eproc2_session_and_map(cls) -> Tuple[Optional[Any], Optional[str], Dict[str, Tuple[int, int]]]:
+        """
+        Maintains an authenticated session pool and RFQ -> currenttenderid mapping
+        for eproc2.bihar.gov.in with a 15-minute TTL cache, eliminating duplicate handshakes.
+        """
+        with cls._eproc2_session_lock:
+            now = time.time()
+            if cls._eproc2_cached_auth and cls._eproc2_cached_opener and (now - cls._eproc2_cache_time < 900):
+                return cls._eproc2_cached_opener, cls._eproc2_cached_auth, cls._eproc2_rfq_map
+
+            try:
+                import http.cookiejar
+                cj = http.cookiejar.CookieJar()
+                ctx = ssl.create_default_context()
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_NONE
+                opener = urllib.request.build_opener(
+                    urllib.request.HTTPCookieProcessor(cj),
+                    urllib.request.HTTPSHandler(context=ctx)
+                )
+                headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+                p_url = "https://eproc2.bihar.gov.in/EPSV2Web/openarea/tenderListingPage.action"
+                p_resp = opener.open(urllib.request.Request(p_url, headers=headers), timeout=8)
+                html = p_resp.read().decode("utf-8", errors="ignore")
+                m_auth = re.search(r'value=[\"\'](Bearer [^\"\']+)[\"\']', html)
+                if not m_auth:
+                    return None, None, {}
+                auth_val = m_auth.group(1)
+
+                req_list = urllib.request.Request(
+                    "https://eproc2.bihar.gov.in/EPSV2Web/rest/openarea/getTenderList",
+                    data=b"{}",
+                    headers={**headers, "Content-Type": "application/json", "Authorization": auth_val},
+                    method="POST",
+                )
+                tlist = json.loads(opener.open(req_list, timeout=12).read().decode("utf-8"))
+                rfq_map: Dict[str, Tuple[int, int]] = {}
+                if isinstance(tlist, list):
+                    for it in tlist:
+                        rfq_id = str(it.get("currentOrgTenderId") or "")
+                        tid = it.get("currenttenderid")
+                        org_id = it.get("currentorgid", 538)
+                        if rfq_id and tid:
+                            rfq_map[rfq_id] = (tid, org_id)
+                        if tid:
+                            rfq_map[str(tid)] = (tid, org_id)
+
+                cls._eproc2_cached_auth = auth_val
+                cls._eproc2_cached_opener = opener
+                cls._eproc2_rfq_map = rfq_map
+                cls._eproc2_cache_time = now
+                return opener, auth_val, rfq_map
+            except Exception as e:
+                logger.error("Failed to establish eproc2 session: %s", e)
+                return None, None, {}
 
     def __init__(self, api_key: Optional[str] = None, storage: Optional[TenderStorage] = None):
         self.api_key = api_key or os.getenv("TINYFISH_API_KEY")
@@ -401,6 +466,193 @@ class LiveTenderSearchEngine:
 
         return cards if cards else None
 
+    @classmethod
+    def _fetch_eproc2_tender_details(
+        cls,
+        tender_id: Union[int, str],
+        org_id: Union[int, str] = 538,
+        opener: Optional[Any] = None,
+        auth_val: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Replicates clicking the 'Eye' preview button on eproc2.bihar.gov.in
+        (previewTender in openareaTenderListController.js).
+        Extracts Advertised Value (pacamt), EMD, Tender Fee, Processing Fee,
+        Dealing Officer, Organizational Hierarchy, Mandatory Documents, and NIT attachments.
+        """
+        try:
+            if not opener or not auth_val:
+                opener, auth_val, _ = cls._get_eproc2_session_and_map()
+                if not opener or not auth_val:
+                    return None
+
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                "Content-Type": "application/json",
+                "Authorization": auth_val,
+            }
+            url = f"https://eproc2.bihar.gov.in/EPSV2Web/rest/quotation/previewTenderByTenderId?tenderId={tender_id}"
+            req_prev = urllib.request.Request(url, data=b"{}", headers=headers, method="POST")
+            res = opener.open(req_prev, timeout=10)
+            data = json.loads(res.read().decode("utf-8"))
+
+            pac_amt = data.get("pacamt")
+            val_inr = float(pac_amt) if pac_amt else None
+
+            creator = data.get("tenderPreviewMap", {}).get("creatorDetail", {})
+            dealing_officer = creator.get("DealingOfficer")
+            org_hierarchy = list(creator.get("OrgHirarchy", {}).values()) if isinstance(creator.get("OrgHirarchy"), dict) else []
+
+            emd_amt = None
+            tender_fee = None
+            processing_fee = None
+            mandatory_docs = []
+            attachments = []
+            nit_attachment = None
+            boq_attachment = None
+
+            for t in data.get("templates", []):
+                s_name = t.get("shortName")
+                flist = t.get("templateFieldList", [])
+
+                if s_name == "rfqpayment":
+                    f_dict = {f.get("code"): f.get("value") for f in flist}
+                    ptype = (f_dict.get("payment_type") or "").strip().upper()
+                    amt_str = f_dict.get("amount")
+                    amt = float(amt_str) if amt_str else None
+                    if "EMD" in ptype and amt:
+                        emd_amt = amt
+                    elif "PROCESSING" in ptype and amt:
+                        processing_fee = amt
+                    elif "TENDER" in ptype and amt:
+                        tender_fee = amt
+
+                elif s_name == "requiredbidderattachment":
+                    f_dict = {f.get("code"): f.get("value") for f in flist}
+                    doc_name = f_dict.get("supporting_doc")
+                    is_mand = f_dict.get("mandatory_flag") == "Y"
+                    if doc_name and is_mand:
+                        mandatory_docs.append(doc_name.strip())
+
+                elif s_name == "rfqattachment":
+                    f_dict = {f.get("code"): f.get("value") for f in flist}
+                    lbl = (f_dict.get("label") or "Document").strip()
+                    fname = (f_dict.get("file_name") or "").strip()
+                    attach_val = (f_dict.get("attach_file") or "").strip()
+                    rel_file = attach_val.split("|")[0].strip() if attach_val else fname
+                    file_size = int(attach_val.split("|")[1]) if (attach_val and len(attach_val.split("|")) > 1 and attach_val.split("|")[1].isdigit()) else None
+                    att_info = {
+                        "label": lbl,
+                        "file_name": fname,
+                        "remote_path": rel_file,
+                        "file_size_bytes": file_size,
+                        "download_params": {
+                            "tempGrpId": "102",
+                            "tenderId": str(tender_id),
+                            "fileName": rel_file,
+                            "orgId": str(org_id),
+                        }
+                    }
+                    attachments.append(att_info)
+                    if "NIT" in lbl.upper() or "RFP" in lbl.upper() or (not nit_attachment and fname.lower().endswith(".pdf")):
+                        nit_attachment = att_info
+                    elif "BOQ" in lbl.upper():
+                        boq_attachment = att_info
+
+            return {
+                "tender_id": str(tender_id),
+                "estimated_value_inr": val_inr,
+                "emd_amount_inr": emd_amt,
+                "tender_fee_inr": tender_fee,
+                "processing_fee_inr": processing_fee,
+                "dealing_officer": dealing_officer,
+                "org_hierarchy": org_hierarchy,
+                "mandatory_documents": mandatory_docs,
+                "attachments": attachments,
+                "nit_attachment": nit_attachment,
+                "boq_attachment": boq_attachment,
+            }
+        except Exception as e:
+            logger.debug("Failed to fetch eproc2 preview for tender %s: %s", tender_id, e)
+            return None
+
+    @classmethod
+    def download_eproc2_nit(cls, download_params: Dict[str, Any]) -> Optional[bytes]:
+        """
+        Executes authenticated form-post download of genuine government NIT PDF from eproc2.bihar.gov.in.
+        """
+        try:
+            import http.cookiejar
+            cj = http.cookiejar.CookieJar()
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+            opener = urllib.request.build_opener(
+                urllib.request.HTTPCookieProcessor(cj),
+                urllib.request.HTTPSHandler(context=ctx)
+            )
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+
+            page_url = "https://eproc2.bihar.gov.in/EPSV2Web/openarea/tenderListingPage.action"
+            resp = opener.open(urllib.request.Request(page_url, headers=headers), timeout=10)
+            html = resp.read().decode("utf-8", errors="ignore")
+            m_auth = re.search(r'value=[\"\'](Bearer [^\"\']+)[\"\']', html)
+            if not m_auth:
+                return None
+            auth_val = m_auth.group(1)
+
+            post_data = urllib.parse.urlencode({
+                "Authorization": auth_val,
+                "tempGrpId": str(download_params.get("tempGrpId", "102")),
+                "tenderId": str(download_params.get("tenderId")),
+                "fileName": str(download_params.get("fileName")),
+                "orgId": str(download_params.get("orgId", "538")),
+            }).encode("utf-8")
+
+            dl_url = "https://eproc2.bihar.gov.in/EPSV2Web/rest/openarea/downloadattachment.action"
+            req_dl = urllib.request.Request(
+                dl_url,
+                data=post_data,
+                headers={
+                    **headers,
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "Authorization": auth_val,
+                },
+                method="POST",
+            )
+            res = opener.open(req_dl, timeout=20)
+            content = res.read()
+            if content and content[:4] == b"%PDF":
+                return content
+            return None
+        except Exception as e:
+            logger.error("Failed to download eproc2 attachment: %s", e)
+            return None
+
+    def fetch_tender_preview(self, tender: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        Modular preview dispatcher: activates the 'Eye' button workflow for any supported
+        public procurement portal, returning rich details, fees, officers, checklists, and attachments.
+        """
+        portal = (tender.get("portal") or "").lower()
+        t_num = str(tender.get("tender_number") or tender.get("tender_id") or "")
+
+        if "eproc2.bihar.gov.in" in portal or "BIH/EPROC2/" in t_num:
+            opener, auth_val, rfq_map = self._get_eproc2_session_and_map()
+            tid = tender.get("currenttenderid")
+            org_id = tender.get("org_id", 538)
+            if not tid:
+                rfq_m = re.search(r"(?:BIH/EPROC2/|tnd_bih_)?(\d+)", t_num)
+                rfq_id = rfq_m.group(1) if rfq_m else None
+                if rfq_id and rfq_id in rfq_map:
+                    tid, org_id = rfq_map[rfq_id]
+                elif rfq_id:
+                    tid = rfq_id
+            if tid:
+                return self._fetch_eproc2_tender_details(tid, org_id=org_id, opener=opener, auth_val=auth_val)
+
+        return None
+
     def _fetch_eproc2_bihar(
         self,
         query: Optional[str] = None,
@@ -409,7 +661,9 @@ class LiveTenderSearchEngine:
     ) -> List[Dict[str, Any]]:
         """
         Connects directly to Bihar e-Procurement 2.0 (eproc2.bihar.gov.in) openarea REST API.
-        Extracts active tenders, verifies non-expired closing dates, and normalizes into TenderBee schema.
+        Extracts active tenders, automatically retrieves rich preview details behind the 'Eye' button
+        (contract cost, EMD, fees, dealing officers, and mandatory document checklists),
+        verifies non-expired closing dates, and normalizes into TenderBee schema.
         """
         try:
             import http.cookiejar
@@ -461,7 +715,7 @@ class LiveTenderSearchEngine:
                 return []
 
             now_ist = datetime.now(timezone(timedelta(hours=5, minutes=30)))
-            results = []
+            candidate_items = []
 
             # Keywords to filter if user specified query terms
             clean_q = (query or "").lower().replace("bihar", "").replace("tenders", "").replace("tender", "").strip()
@@ -488,21 +742,72 @@ class LiveTenderSearchEngine:
                     if not any(token in full_text for token in kw_tokens):
                         continue
 
-                pac_amt = item.get("currentpacamt")
-                val_inr = float(pac_amt) if pac_amt else None
+                candidate_items.append((item, dept_name, desc, ref_no, rfq_id, dl_dt))
+
+            # Concurrently fetch rich preview details behind the Eye button for candidate tenders
+            preview_map = {}
+            if candidate_items:
+                def _fetch_preview_worker(cand):
+                    it = cand[0]
+                    curr_tid = it.get("currenttenderid")
+                    if not curr_tid:
+                        return curr_tid, None
+                    det = self._fetch_eproc2_tender_details(
+                        tender_id=curr_tid,
+                        org_id=it.get("currentorgid", 538),
+                        opener=opener,
+                        auth_val=auth_val,
+                    )
+                    return curr_tid, det
+
+                with ThreadPoolExecutor(max_workers=min(8, len(candidate_items))) as pool:
+                    for c_tid, c_preview in pool.map(_fetch_preview_worker, candidate_items[:25]):
+                        if c_tid and c_preview:
+                            preview_map[c_tid] = c_preview
+
+            results = []
+            for item, dept_name, desc, ref_no, rfq_id, dl_dt in candidate_items:
+                curr_tid = item.get("currenttenderid")
+                preview = preview_map.get(curr_tid) or {}
+
+                # Use ground-truth value from Eye button preview if available
+                val_inr = preview.get("estimated_value_inr")
+                if val_inr is None:
+                    pac_amt = item.get("currentpacamt")
+                    val_inr = float(pac_amt) if pac_amt else None
+
+                emd_inr = preview.get("emd_amount_inr")
                 val_str = f"₹{val_inr:,.2f}" if val_inr else "Not Specified"
+                emd_str = f"₹{emd_inr:,.2f}" if emd_inr else "Exempted / Nil"
+
+                # Enriched buyer name with dealing officer and org hierarchy
+                dealing_officer = preview.get("dealing_officer")
+                org_h = preview.get("org_hierarchy") or []
+                sub_dept = org_h[-1] if org_h else dept_name
+                if dealing_officer:
+                    enriched_buyer = f"{dept_name} - {sub_dept} ({dealing_officer}) (Ref: {ref_no})"
+                else:
+                    enriched_buyer = f"{dept_name} (Ref: {ref_no})"
 
                 cat = category or ("Goods" if any(w in desc.lower() for w in ("supply", "equipment", "items", "instruments", "generator", "panel")) else "Services")
 
                 tender_dict = {
                     "tender_id": f"tnd_bih_{rfq_id}",
                     "tender_number": f"BIH/EPROC2/{rfq_id}",
+                    "currenttenderid": curr_tid,
                     "title": desc,
-                    "buyer_name": f"{dept_name} (Ref: {ref_no})",
+                    "buyer_name": enriched_buyer,
                     "state": "Bihar",
                     "category": cat,
                     "estimated_value_inr": val_inr,
-                    "emd_amount_inr": None,
+                    "emd_amount_inr": emd_inr,
+                    "tender_fee_inr": preview.get("tender_fee_inr"),
+                    "processing_fee_inr": preview.get("processing_fee_inr"),
+                    "dealing_officer": dealing_officer,
+                    "mandatory_documents": preview.get("mandatory_documents", []),
+                    "attachments": preview.get("attachments", []),
+                    "nit_attachment": preview.get("nit_attachment"),
+                    "boq_attachment": preview.get("boq_attachment"),
                     "tenure_months": 12,
                     "submission_deadline": dl_dt.isoformat(),
                     "portal": "eproc2.bihar.gov.in",
@@ -520,13 +825,22 @@ class LiveTenderSearchEngine:
                     submission_deadline=dl_dt.isoformat(),
                     estimated_value_inr=val_inr,
                     extracted_data=tender_dict,
-                    raw_text_payload=f"eProc2 Bihar Tender {rfq_id}: {desc}\nRef: {ref_no}\nDepartment: {dept_name}\nDeadline: {dl_dt}\nEstimated Value: {val_str}",
+                    raw_text_payload=(
+                        f"eProc2 Bihar Tender {rfq_id}: {desc}\n"
+                        f"Ref: {ref_no}\n"
+                        f"Department: {dept_name}\n"
+                        f"Dealing Officer: {dealing_officer or 'N/A'}\n"
+                        f"Deadline: {dl_dt}\n"
+                        f"Estimated Value: {val_str}\n"
+                        f"EMD Amount: {emd_str}\n"
+                        f"Mandatory Documents: {', '.join(tender_dict['mandatory_documents'])}\n"
+                    ),
                     tender_id=tender_dict["tender_id"],
                     state="Bihar",
                     category=cat,
                     portal="eproc2.bihar.gov.in",
                     tenure_months=12,
-                    emd_amount_inr=None,
+                    emd_amount_inr=emd_inr,
                     location="Bihar",
                 )
             return results

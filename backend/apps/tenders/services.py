@@ -99,8 +99,20 @@ class TenderService:
             "tender_title": tender_data.get("tender_title"),
             "buyer_name": tender_data.get("buyer_name"),
             "submission_deadline": deadline.isoformat(),
+            "estimated_value_inr": tender_data.get("estimated_value_inr"),
+            "emd_amount_inr": tender_data.get("emd_amount_inr"),
+            "tender_fee_inr": tender_data.get("tender_fee_inr"),
+            "processing_fee_inr": tender_data.get("processing_fee_inr"),
+            "dealing_officer": tender_data.get("dealing_officer"),
+            "org_hierarchy": tender_data.get("org_hierarchy") or [],
+            "mandatory_documents": tender_data.get("mandatory_documents") or [],
+            "attachments": tender_data.get("attachments") or [],
+            "nit_attachment": tender_data.get("nit_attachment"),
+            "boq_attachment": tender_data.get("boq_attachment"),
             "rule_pack_id": rule_pack_id,
             "rule_pack": rule_pack.model_dump(),
+            "extraction": tender_data,
+            "json_schema": TenderPDFExtractionResult.get_json_schema(),
         }
 
     def intake_tender_pdf(
@@ -121,7 +133,46 @@ class TenderService:
         b_name = extraction.buyer_name or "Procuring Authority"
         deadline_str = extraction.submission_deadline or datetime.now(timezone.utc).isoformat()
 
+        # If tender already exists in storage (e.g. ingested from portal search / eye button),
+        # preserve verified title, buyer name, cost, EMD, and document checklist
+        existing_tender = self.storage.get_tender(tender_id) if tender_id else None
+        if not existing_tender and t_num:
+            existing_tender = self.storage.get_tender(t_num)
+
+        if existing_tender:
+            if not extraction.tender_number:
+                t_num = existing_tender.get("tender_number") or t_num
+            if extraction.tender_title in ("Procurement Tender Notice", None, ""):
+                t_title = existing_tender.get("title") or t_title
+            if not extraction.buyer_name or len(extraction.buyer_name) < 6 or "doesn" in extraction.buyer_name.lower():
+                b_name = existing_tender.get("buyer_name") or b_name
+            if not extraction.estimated_value_inr and existing_tender.get("estimated_value_inr"):
+                extraction.estimated_value_inr = existing_tender["estimated_value_inr"]
+            if not extraction.emd_amount_inr and existing_tender.get("emd_amount_inr"):
+                extraction.emd_amount_inr = existing_tender["emd_amount_inr"]
+            if existing_tender.get("tender_fee_inr") is not None:
+                extraction.tender_fee_inr = existing_tender["tender_fee_inr"]
+            if existing_tender.get("processing_fee_inr") is not None:
+                extraction.processing_fee_inr = existing_tender["processing_fee_inr"]
+            if existing_tender.get("dealing_officer"):
+                extraction.dealing_officer = existing_tender["dealing_officer"]
+            if existing_tender.get("org_hierarchy"):
+                extraction.org_hierarchy = existing_tender["org_hierarchy"]
+            if existing_tender.get("attachments"):
+                extraction.attachments = existing_tender["attachments"]
+            if existing_tender.get("nit_attachment"):
+                extraction.nit_attachment = existing_tender["nit_attachment"]
+            if existing_tender.get("boq_attachment"):
+                extraction.boq_attachment = existing_tender["boq_attachment"]
+            if existing_tender.get("preview_details"):
+                extraction.preview_details = existing_tender["preview_details"]
+            if existing_tender.get("mandatory_documents"):
+                for doc in existing_tender["mandatory_documents"]:
+                    if doc not in extraction.mandatory_documents:
+                        extraction.mandatory_documents.append(doc)
+
         tender_data = extraction.model_dump()
+
         raw_text_summary = (
             f"Tender Notice PDF: {pdf_path}\n"
             f"Total Pages: {extraction.total_pages}\n"
@@ -140,6 +191,11 @@ class TenderService:
             extracted_data=tender_data,
             raw_text_payload=raw_text_summary,
             tender_id=tender_id,
+            emd_amount_inr=extraction.emd_amount_inr,
+            state=existing_tender.get("state") if existing_tender else None,
+            category=existing_tender.get("category") if existing_tender else None,
+            portal=existing_tender.get("portal") if existing_tender else None,
+            tenure_months=existing_tender.get("tenure_months") if existing_tender else None,
         )
 
         # Draft compliance RulePack from extracted clauses
@@ -180,6 +236,14 @@ class TenderService:
             "submission_deadline": deadline_str,
             "estimated_value_inr": extraction.estimated_value_inr,
             "emd_amount_inr": extraction.emd_amount_inr,
+            "tender_fee_inr": extraction.tender_fee_inr,
+            "processing_fee_inr": extraction.processing_fee_inr,
+            "dealing_officer": extraction.dealing_officer,
+            "org_hierarchy": extraction.org_hierarchy,
+            "mandatory_documents": extraction.mandatory_documents,
+            "attachments": extraction.attachments,
+            "nit_attachment": extraction.nit_attachment,
+            "boq_attachment": extraction.boq_attachment,
             "contract_period": extraction.contract_period,
             "portal_website": extraction.portal_website,
             "rule_pack_id": rule_pack_id,
@@ -325,6 +389,128 @@ class TenderService:
                     value=eligible_entities,
                 )
             )
+
+        # 8. Rules for Mandatory Documents (extracted from Eye button or PDF checklist)
+        existing_doc_rule_ids = {r.rule_id for r in rules}
+        for d in mandatory_docs:
+            d_lower = d.lower()
+            if "pan" in d_lower and "R-DOC-PAN" not in existing_doc_rule_ids:
+                rules.append(
+                    Rule(
+                        rule_id="R-DOC-PAN",
+                        document_type=DocumentType.PAN_CARD,
+                        rule_type=RuleType.DOCUMENT_REQUIRED,
+                        description="Permanent Account Number (PAN) Card copy required.",
+                        source=find_quote("pan_card", d),
+                        field="pan",
+                        operator="present",
+                        value=True,
+                    )
+                )
+                existing_doc_rule_ids.add("R-DOC-PAN")
+            elif "gst" in d_lower and "R-DOC-GST" not in existing_doc_rule_ids:
+                rules.append(
+                    Rule(
+                        rule_id="R-DOC-GST",
+                        document_type=DocumentType.GST_CERTIFICATE,
+                        rule_type=RuleType.DOCUMENT_REQUIRED,
+                        description="Valid Goods and Services Tax (GST) Registration Certificate required.",
+                        source=find_quote("gst_certificate", d),
+                        field="gstin",
+                        operator="present",
+                        value=True,
+                    )
+                )
+                existing_doc_rule_ids.add("R-DOC-GST")
+            elif "itr" in d_lower and "R-DOC-ITR" not in existing_doc_rule_ids:
+                rules.append(
+                    Rule(
+                        rule_id="R-DOC-ITR",
+                        document_type=DocumentType.OTHER,
+                        rule_type=RuleType.DOCUMENT_REQUIRED,
+                        description="Income Tax Returns (ITR) copies for the last 3 financial years.",
+                        source=find_quote("itr_requirement", d),
+                        field="submitted",
+                        operator="eq",
+                        value=True,
+                    )
+                )
+                existing_doc_rule_ids.add("R-DOC-ITR")
+            elif ("emd" in d_lower or "tender fee" in d_lower or "processing fee" in d_lower) and "R-DOC-FEE-RECEIPT" not in existing_doc_rule_ids:
+                rules.append(
+                    Rule(
+                        rule_id="R-DOC-FEE-RECEIPT",
+                        document_type=DocumentType.OTHER,
+                        rule_type=RuleType.DOCUMENT_REQUIRED,
+                        description="EMD, Tender Fee, and Tender Processing Fee payment receipt / challan copy.",
+                        source=find_quote("fee_payment", d),
+                        field="paid",
+                        operator="eq",
+                        value=True,
+                    )
+                )
+                existing_doc_rule_ids.add("R-DOC-FEE-RECEIPT")
+            elif "character" in d_lower and "R-DOC-CHARACTER" not in existing_doc_rule_ids:
+                rules.append(
+                    Rule(
+                        rule_id="R-DOC-CHARACTER",
+                        document_type=DocumentType.OTHER,
+                        rule_type=RuleType.DOCUMENT_REQUIRED,
+                        description="Character Certificate issued within the last six months as per NIT.",
+                        source=find_quote("character_certificate", d),
+                        field="valid",
+                        operator="eq",
+                        value=True,
+                    )
+                )
+                existing_doc_rule_ids.add("R-DOC-CHARACTER")
+            elif ("registrtaion" in d_lower or "registration" in d_lower) and ("contractor" in d_lower or "registrtaion certifica" in d_lower):
+                if "R-DOC-CONTRACTOR-REG" not in existing_doc_rule_ids:
+                    rules.append(
+                        Rule(
+                            rule_id="R-DOC-CONTRACTOR-REG",
+                            document_type=DocumentType.OTHER,
+                            rule_type=RuleType.DOCUMENT_REQUIRED,
+                            description="Contractor Registration Certificate with appropriate class / department.",
+                            source=find_quote("contractor_registration", d),
+                            field="active",
+                            operator="eq",
+                            value=True,
+                        )
+                    )
+                    existing_doc_rule_ids.add("R-DOC-CONTRACTOR-REG")
+
+        # 9. Rules from Government Verified Clauses
+        for c in clauses:
+            c_type = c.get("clause_type")
+            if c_type == "joint_venture_restriction_clause" and "R-CLAUSE-NO-JV" not in existing_doc_rule_ids:
+                rules.append(
+                    Rule(
+                        rule_id="R-CLAUSE-NO-JV",
+                        document_type=DocumentType.OTHER,
+                        rule_type=RuleType.DOCUMENT_REQUIRED,
+                        description="Joint venture participation is strictly excluded; sole bidding only.",
+                        source=RuleSource(page=c.get("page", 1), quote=c.get("quote", "")),
+                        field="is_joint_venture",
+                        operator="eq",
+                        value=False,
+                    )
+                )
+                existing_doc_rule_ids.add("R-CLAUSE-NO-JV")
+            elif c_type == "bid_validity_emd_forfeiture_clause" and "R-CLAUSE-BID-VALIDITY" not in existing_doc_rule_ids:
+                rules.append(
+                    Rule(
+                        rule_id="R-CLAUSE-BID-VALIDITY",
+                        document_type=DocumentType.OTHER,
+                        rule_type=RuleType.DOCUMENT_REQUIRED,
+                        description="Bid validity commitment: EMD forfeiture acknowledged upon bid withdrawal.",
+                        source=RuleSource(page=c.get("page", 1), quote=c.get("quote", "")),
+                        field="bid_validity_accepted",
+                        operator="eq",
+                        value=True,
+                    )
+                )
+                existing_doc_rule_ids.add("R-CLAUSE-BID-VALIDITY")
 
         return rules
 

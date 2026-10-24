@@ -139,3 +139,10 @@ def test_tender_schema_generation():
     assert "verbatim_clauses" in data["properties"]
     assert "eligibility_rules" in data["properties"]
     assert "estimated_value_inr" in data["properties"]
+    assert "tender_fee_inr" in data["properties"]
+    assert "processing_fee_inr" in data["properties"]
+    assert "dealing_officer" in data["properties"]
+    assert "mandatory_documents" in data["properties"]
+    assert "attachments" in data["properties"]
+    assert "preview_details" in data["properties"]
+

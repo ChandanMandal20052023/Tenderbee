@@ -202,9 +202,9 @@ class TenderStorage:
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(tender_id) DO UPDATE SET
                     title = excluded.title,
-                    buyer_name = excluded.buyer_name,
-                    submission_deadline = excluded.submission_deadline,
-                    estimated_value_inr = excluded.estimated_value_inr,
+                    buyer_name = COALESCE(excluded.buyer_name, tenders.buyer_name),
+                    submission_deadline = COALESCE(excluded.submission_deadline, tenders.submission_deadline),
+                    estimated_value_inr = COALESCE(excluded.estimated_value_inr, tenders.estimated_value_inr),
                     state = COALESCE(excluded.state, tenders.state),
                     category = COALESCE(excluded.category, tenders.category),
                     tenure_months = COALESCE(excluded.tenure_months, tenders.tenure_months),
@@ -383,21 +383,33 @@ class TenderStorage:
                 "has_pdf_document": has_snapshot,
             }
 
-            if mode == "skim":
-                return tender_dict
-
-            # mode == "detailed":
+            snap_data = None
             if snap_row:
                 extracted_path = Path(snap_row["extracted_json_path"])
                 tender_dict["extracted_json_path"] = str(extracted_path)
                 if extracted_path.exists():
                     try:
                         with open(extracted_path, "r", encoding="utf-8") as f:
-                            tender_dict["extraction"] = json.load(f)
+                            snap_data = json.load(f)
+                            if isinstance(snap_data, dict):
+                                for k in (
+                                    "tender_fee_inr", "processing_fee_inr", "dealing_officer",
+                                    "org_hierarchy", "mandatory_documents", "attachments",
+                                    "nit_attachment", "boq_attachment", "preview_details", "currenttenderid"
+                                ):
+                                    if k in snap_data and k not in tender_dict:
+                                        tender_dict[k] = snap_data[k]
                     except Exception:
                         pass
                 tender_dict["content_hash"] = snap_row["content_hash"]
                 tender_dict["fetched_at"] = snap_row["fetched_at"]
+
+            if mode == "skim":
+                return tender_dict
+
+            # mode == "detailed":
+            if snap_row and snap_data:
+                tender_dict["extraction"] = snap_data
 
                 # Check if the snapshot contains actual parsed PDF clauses/pages
                 ext = tender_dict.get("extraction")

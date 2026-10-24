@@ -3,6 +3,7 @@ Tender Discovery & Multi-Criteria Search Engine for TenderBee.
 Supports natural language query parsing (e.g. 'services in bihar above 1 cr for 2 years')
 and structured multi-dimensional filtering across geography, category, capital, tenure, and buyer.
 """
+import json
 import logging
 import os
 import re
@@ -355,6 +356,60 @@ class TenderSearchService:
                     "results": live_tenders,
                 }
 
+        # 2. Concurrently enrich candidate tenders missing financial / preview details from the eye button
+        if self.live_search_engine and local_results:
+            missing = [
+                t for t in local_results
+                if t.get("estimated_value_inr") is None
+                and ("eproc2.bihar.gov.in" in (t.get("portal") or "") or "BIH/EPROC2/" in str(t.get("tender_number") or ""))
+            ]
+            if missing:
+                from concurrent.futures import ThreadPoolExecutor
+                def _enrich_worker(t):
+                    try:
+                        prev = self.live_search_engine.fetch_tender_preview(t)
+                        if prev:
+                            if prev.get("estimated_value_inr") is not None:
+                                t["estimated_value_inr"] = prev["estimated_value_inr"]
+                            if prev.get("emd_amount_inr") is not None:
+                                t["emd_amount_inr"] = prev["emd_amount_inr"]
+                            if prev.get("dealing_officer"):
+                                t["dealing_officer"] = prev["dealing_officer"]
+                            if prev.get("tender_fee_inr") is not None:
+                                t["tender_fee_inr"] = prev["tender_fee_inr"]
+                            if prev.get("processing_fee_inr") is not None:
+                                t["processing_fee_inr"] = prev["processing_fee_inr"]
+                            if prev.get("mandatory_documents"):
+                                t["mandatory_documents"] = prev["mandatory_documents"]
+                            if prev.get("attachments"):
+                                t["attachments"] = prev["attachments"]
+                                t["nit_attachment"] = prev.get("nit_attachment")
+                                t["boq_attachment"] = prev.get("boq_attachment")
+                            
+                            self.storage.save_tender_and_snapshot(
+                                org_id="org_default",
+                                tender_number=t["tender_number"],
+                                tender_title=t["title"],
+                                source_url=t.get("source_url") or "",
+                                buyer_name=t.get("buyer_name"),
+                                submission_deadline=t.get("submission_deadline"),
+                                estimated_value_inr=t.get("estimated_value_inr"),
+                                extracted_data=t,
+                                raw_text_payload=json.dumps(t, default=str),
+                                tender_id=t["tender_id"],
+                                state=t.get("state"),
+                                category=t.get("category"),
+                                portal=t.get("portal"),
+                                tenure_months=t.get("tenure_months"),
+                                emd_amount_inr=t.get("emd_amount_inr"),
+                                location=t.get("state"),
+                            )
+                    except Exception as e:
+                        logger.debug("Failed to enrich tender %s: %s", t.get("tender_number"), e)
+
+                with ThreadPoolExecutor(max_workers=min(len(missing), 8)) as ex:
+                    list(ex.map(_enrich_worker, missing))
+
         return {
             "success": True,
             "applied_filters": filters.model_dump(),
@@ -388,6 +443,63 @@ class TenderSearchService:
         from backend.apps.tenders.services import TenderService
 
         tender = self.storage.get_tender(identifier, mode=mode)
+
+        # If tender lacks rich preview details (e.g. from raw initial index), fetch them via portal preview
+        if tender and self.live_search_engine:
+            portal = (tender.get("portal") or "").lower()
+            t_num = str(tender.get("tender_number") or "")
+            if ("eproc2.bihar.gov.in" in portal or "BIH/EPROC2/" in t_num) and (
+                tender.get("estimated_value_inr") is None
+                or tender.get("emd_amount_inr") is None
+                or not tender.get("mandatory_documents")
+                or tender.get("dealing_officer") is None
+                or tender.get("tender_fee_inr") is None
+            ):
+                preview = self.live_search_engine.fetch_tender_preview(tender)
+                if preview:
+                    val_inr = preview.get("estimated_value_inr")
+                    emd_inr = preview.get("emd_amount_inr")
+                    dealing_officer = preview.get("dealing_officer")
+                    if val_inr is not None:
+                        tender["estimated_value_inr"] = val_inr
+                    if emd_inr is not None:
+                        tender["emd_amount_inr"] = emd_inr
+                    if dealing_officer:
+                        tender["dealing_officer"] = dealing_officer
+                    if preview.get("org_hierarchy"):
+                        tender["org_hierarchy"] = preview["org_hierarchy"]
+                    if preview.get("tender_fee_inr") is not None:
+                        tender["tender_fee_inr"] = preview["tender_fee_inr"]
+                    if preview.get("processing_fee_inr") is not None:
+                        tender["processing_fee_inr"] = preview["processing_fee_inr"]
+                    if preview.get("mandatory_documents"):
+                        tender["mandatory_documents"] = preview["mandatory_documents"]
+                    if preview.get("attachments"):
+                        tender["attachments"] = preview["attachments"]
+                        tender["nit_attachment"] = preview.get("nit_attachment")
+                        tender["boq_attachment"] = preview.get("boq_attachment")
+                    if preview.get("preview_details"):
+                        tender["preview_details"] = preview["preview_details"]
+
+                    # Persist enriched preview back to storage
+                    self.storage.save_tender_and_snapshot(
+                        org_id="org_default",
+                        tender_number=tender["tender_number"],
+                        tender_title=tender["title"],
+                        source_url=tender.get("source_url") or "",
+                        buyer_name=tender.get("buyer_name"),
+                        submission_deadline=tender.get("submission_deadline"),
+                        estimated_value_inr=tender["estimated_value_inr"],
+                        extracted_data=tender,
+                        raw_text_payload=json.dumps(tender, default=str),
+                        tender_id=tender["tender_id"],
+                        state=tender.get("state"),
+                        category=tender.get("category"),
+                        portal=tender.get("portal"),
+                        tenure_months=tender.get("tenure_months"),
+                        emd_amount_inr=tender["emd_amount_inr"],
+                        location=tender.get("state"),
+                    )
 
         # If detailed mode requested and no PDF has been parsed yet, robustly acquire & parse it
         if mode == "detailed":
@@ -433,9 +545,20 @@ class TenderSearchService:
                 if rule_pack:
                     tender["rule_pack"] = rule_pack.model_dump()
 
-            if tender:
-                from backend.engine.schema import TenderPDFExtractionResult
-                tender["json_schema"] = TenderPDFExtractionResult.get_json_schema()
+        if tender:
+            from backend.engine.schema import TenderPDFExtractionResult
+            tender["json_schema"] = TenderPDFExtractionResult.get_json_schema()
+
+            # Synchronize all eye-button preview details into extraction dict
+            if isinstance(tender.get("extraction"), dict):
+                for k in (
+                    "estimated_value_inr", "emd_amount_inr", "tender_fee_inr",
+                    "processing_fee_inr", "dealing_officer", "org_hierarchy",
+                    "mandatory_documents", "attachments", "nit_attachment",
+                    "boq_attachment", "preview_details"
+                ):
+                    if tender.get(k) is not None and (k not in tender["extraction"] or tender["extraction"][k] is None):
+                        tender["extraction"][k] = tender[k]
 
         return tender
 
