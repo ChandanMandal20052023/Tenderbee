@@ -9,6 +9,8 @@ __pycache__/
 env/
 venv/
 bee/
+staticfiles/
+*.log
 
 # Node
 node_modules/

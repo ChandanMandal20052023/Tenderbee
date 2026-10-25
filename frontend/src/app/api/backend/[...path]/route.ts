@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND_INTERNAL_URL = process.env.BACKEND_URL || "http://127.0.0.1:8000";
+const BACKEND_INTERNAL_URL =
+  process.env.BACKEND_URL ||
+  process.env.INTERNAL_BACKEND_URL ||
+  "http://127.0.0.1:8000";
+const cleanBackendUrl = BACKEND_INTERNAL_URL.replace(/\/+$/, "");
 
 async function proxyRequest(request: NextRequest, params: Promise<{ path: string[] }>) {
   const resolvedParams = await params;
@@ -11,7 +15,7 @@ async function proxyRequest(request: NextRequest, params: Promise<{ path: string
     path = `${path}/`;
   }
   const searchParams = request.nextUrl.search;
-  const targetUrl = `${BACKEND_INTERNAL_URL}/${path}${searchParams}`;
+  const targetUrl = `${cleanBackendUrl}/${path}${searchParams}`;
 
   // Forward request headers
   const forwardHeaders = new Headers();
@@ -41,7 +45,7 @@ async function proxyRequest(request: NextRequest, params: Promise<{ path: string
     if (contentType.includes("multipart/form-data")) {
       const arrayBuffer = await request.arrayBuffer();
       body = Buffer.from(arrayBuffer);
-      forwardHeaders.set("content-length", body.length.toString());
+      forwardHeaders.set("content-length", arrayBuffer.byteLength.toString());
     } else {
       body = await request.text();
     }

@@ -25,10 +25,18 @@ load_dotenv()
 # Security & Debug
 SECRET_KEY = os.environ.get(
     "DJANGO_SECRET_KEY",
-    "django-insecure-tenderbee-core-deterministic-eval-platform-key-2026",
+    os.environ.get("SECRET_KEY", "django-insecure-tenderbee-core-deterministic-eval-platform-key-2026"),
 )
-DEBUG = os.environ.get("DEBUG", "True").lower() in ("true", "1", "yes")
-ALLOWED_HOSTS = [h.strip() for h in os.environ.get("ALLOWED_HOSTS", "*").split(",") if h.strip()]
+DEBUG = os.environ.get("DJANGO_DEBUG", os.environ.get("DEBUG", "True")).lower() in ("true", "1", "yes")
+
+# Allowed Hosts: Support ALLOWED_HOSTS, DJANGO_ALLOWED_HOSTS, and Render's automatic host
+raw_hosts = os.environ.get("ALLOWED_HOSTS") or os.environ.get("DJANGO_ALLOWED_HOSTS") or "*"
+ALLOWED_HOSTS = [h.strip() for h in raw_hosts.split(",") if h.strip()]
+render_host = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
+if render_host and render_host not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(render_host)
+if "*" not in ALLOWED_HOSTS and ".onrender.com" not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(".onrender.com")
 
 # Application definition
 INSTALLED_APPS = [
@@ -63,6 +71,7 @@ MIDDLEWARE = [
     "apps.accounts.logging.RequestContextMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -131,11 +140,20 @@ target_db_url = os.environ.get("DIRECT_URL") if is_migrating and os.environ.get(
 conn_max_age = int(os.environ.get("CONN_MAX_AGE", 0))
 
 if not is_testing and target_db_url and target_db_url.startswith("postgres") and "ep-sample" not in target_db_url:
+    ssl_env = os.environ.get("DB_SSL_REQUIRE")
+    if ssl_env is not None:
+        db_ssl = ssl_env.lower() in ("true", "1", "yes")
+    elif "sslmode=disable" in target_db_url or ("dpg-" in target_db_url and "render.com" not in target_db_url):
+        # Render internal PostgreSQL private network does not use SSL
+        db_ssl = False
+    else:
+        db_ssl = True
+
     DATABASES = {
         "default": dj_database_url.config(
             default=target_db_url,
             conn_max_age=conn_max_age,
-            ssl_require=True,
+            ssl_require=db_ssl,
         )
     }
 else:
@@ -167,9 +185,11 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
+# Static files (CSS, JavaScript, Images) & WhiteNoise Production Serving
 STATIC_URL = "/static/"
-STATIC_ROOT = REPO_ROOT / "data" / "static"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STATIC_ROOT.mkdir(parents=True, exist_ok=True)
+STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 
 # Media & Storage
 MEDIA_URL = "/media/"
@@ -198,22 +218,33 @@ SESSION_COOKIE_SECURE = not DEBUG
 
 # Production SSL / HSTS enforcement when DEBUG is False
 if not DEBUG:
+    # Reverse proxy header: Render terminates SSL and forwards requests
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SECURE_SSL_REDIRECT = os.environ.get("SECURE_SSL_REDIRECT", "True").lower() in ("true", "1")
     SECURE_HSTS_SECONDS = int(os.environ.get("SECURE_HSTS_SECONDS", 31536000))
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
 
-# CORS Configuration: Restrict strictly to specified frontend origins
+# CORS Configuration: Restrict strictly to specified frontend origins + Vercel / Render domains
 CORS_ALLOW_ALL_ORIGINS = False
-CORS_ALLOWED_ORIGINS = [
-    o.strip()
-    for o in os.environ.get(
-        "CORS_ALLOWED_ORIGINS",
-        "http://localhost:3000,http://127.0.0.1:3000",
-    ).split(",")
-    if o.strip()
-]
+raw_cors = os.environ.get("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
+CORS_ALLOWED_ORIGINS = [o.strip() for o in raw_cors.split(",") if o.strip()]
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https:\/\/.*\.vercel\.app$",
+    r"^https:\/\/.*\.onrender\.com$",
+]
+
+# CSRF Trusted Origins for Django 4+ (Mandatory for HTTPS POST/PUT from Vercel & Render)
+raw_csrf = os.environ.get("CSRF_TRUSTED_ORIGINS", "")
+CSRF_TRUSTED_ORIGINS = [o.strip() for o in raw_csrf.split(",") if o.strip()]
+for origin in CORS_ALLOWED_ORIGINS:
+    if (origin.startswith("http://") or origin.startswith("https://")) and origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(origin)
+if "https://*.vercel.app" not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append("https://*.vercel.app")
+if "https://*.onrender.com" not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append("https://*.onrender.com")
 
 # REST Framework Configuration
 REST_FRAMEWORK = {

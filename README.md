@@ -173,6 +173,16 @@ sequenceDiagram
 
 ---
 
+## Production Deployment (Vercel & Render)
+
+TenderBee is production-ready for deployment with **Vercel** (Frontend) and **Render** (Backend):
+- **Frontend on Vercel**: Pre-configured via [`vercel.json`](file:///c:/Users/chand/OneDrive/Desktop/P.L/Tenderbee/vercel.json) and Next.js same-origin API proxy.
+- **Backend on Render**: Pre-configured via [`render.yaml`](file:///c:/Users/chand/OneDrive/Desktop/P.L/Tenderbee/render.yaml) Blueprint, [`backend/build.sh`](file:///c:/Users/chand/OneDrive/Desktop/P.L/Tenderbee/backend/build.sh), WhiteNoise static compression, and Gunicorn WSGI.
+
+See the complete step-by-step walkthrough in [**DEPLOYMENT.md**](file:///c:/Users/chand/OneDrive/Desktop/P.L/Tenderbee/DEPLOYMENT.md).
+
+---
+
 ## Neon Serverless Database Configuration
 
 TenderBee connects to Neon serverless PostgreSQL using a dual-connection architecture:
