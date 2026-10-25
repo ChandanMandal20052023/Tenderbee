@@ -2,12 +2,13 @@ import type { NextConfig } from "next";
 
 const cspHeader = `
   default-src 'self';
-  script-src 'self' 'unsafe-eval' 'unsafe-inline';
-  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+  script-src 'self' 'unsafe-eval' 'unsafe-inline' https://vercel.live;
+  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://vercel.live;
   img-src 'self' data: blob: https:;
-  font-src 'self' data: https://fonts.gstatic.com;
-  connect-src 'self' https: http://127.0.0.1:8000 http://localhost:8000 ws: wss:;
+  font-src 'self' data: https://fonts.gstatic.com https://vercel.live;
+  connect-src 'self' https: http://127.0.0.1:8000 http://localhost:8000 ws: wss: https://vercel.live;
   frame-ancestors 'none';
+  frame-src 'self' https://vercel.live;
   object-src 'none';
   base-uri 'self';
   form-action 'self';
