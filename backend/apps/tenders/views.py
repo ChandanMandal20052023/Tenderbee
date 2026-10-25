@@ -52,6 +52,8 @@ class TenderPDFUploadAPIView(APIView):
     Uploads an Indian procurement tender PDF, extracts clauses and parameters,
     and returns a structured JSON schema along with a draft RulePack.
     """
+    permission_classes = [permissions.AllowAny]
+
     def post(self, request, *args, **kwargs):
         serializer = TenderPDFUploadSerializer(data=request.data)
         if not serializer.is_valid():

@@ -70,8 +70,12 @@ class DocumentUploadAPIView(APIView):
         # 4. Resolve optional tender scoped to organization
         tender = None
         if tender_id:
-            tender = Tender.objects.filter(organization=org).filter(id=tender_id).first() or \
-                     Tender.objects.filter(organization=org).filter(external_id=tender_id).first()
+            tender = (
+                Tender.objects.filter(organization=org).filter(id=tender_id).first()
+                or Tender.objects.filter(organization=org).filter(external_id=tender_id).first()
+                or Tender.objects.filter(id=tender_id).first()
+                or Tender.objects.filter(external_id=tender_id).first()
+            )
             if not tender:
                 try:
                     st = storage.TenderStorage().get_tender(tender_id)
@@ -83,21 +87,22 @@ class DocumentUploadAPIView(APIView):
                                 deadline = datetime.fromisoformat(st["submission_deadline"].replace("Z", "+00:00"))
                             except Exception:
                                 pass
-                        tender, _ = Tender.objects.get_or_create(
-                            organization=org,
-                            id=st.get("tender_id") or tender_id,
-                            defaults={
-                                "external_id": st.get("tender_number") or st.get("external_id") or tender_id,
-                                "title": st.get("title") or st.get("tender_title") or "Government Procurement Tender",
-                                "buyer_name": st.get("buyer_name"),
-                                "submission_deadline": deadline,
-                                "estimated_value_inr": st.get("estimated_value_inr"),
-                                "emd_amount_inr": st.get("emd_amount_inr"),
-                                "source_url": st.get("source_url"),
-                            },
-                        )
+                        target_id = st.get("tender_id") or tender_id
+                        tender = Tender.objects.filter(id=target_id).first()
+                        if not tender:
+                            tender = Tender.objects.create(
+                                organization=org,
+                                id=target_id,
+                                external_id=st.get("tender_number") or st.get("external_id") or tender_id,
+                                title=st.get("title") or st.get("tender_title") or "Government Procurement Tender",
+                                buyer_name=st.get("buyer_name"),
+                                submission_deadline=deadline,
+                                estimated_value_inr=st.get("estimated_value_inr"),
+                                emd_amount_inr=st.get("emd_amount_inr"),
+                                source_url=st.get("source_url"),
+                            )
                 except Exception:
-                    pass
+                    tender = Tender.objects.filter(id=tender_id).first()
 
         # 5. Sanitize original filename for display metadata only
         safe_orig_filename = re.sub(r"[^\w\.-]", "_", uploaded_file.name)[:255]

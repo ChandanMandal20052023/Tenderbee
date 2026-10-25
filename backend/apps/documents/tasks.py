@@ -61,11 +61,22 @@ def process_document_job(document_id: str, job_id: Optional[str] = None) -> Dict
         except Exception:
             pass
 
-        # 4. Update document record
+        # 4. Extract structured facts
+        extracted = {}
+        try:
+            from apps.documents.services import DocumentPipelineService
+            pipeline = DocumentPipelineService()
+            pages_list = [{"page": i + 1, "text": t} for i, t in enumerate(page_texts)]
+            extracted = pipeline._extract_structured_facts(doc.document_type, full_text, pages_list)
+        except Exception as e:
+            logger.warning("Fact extraction failed on %s: %s", doc.id, e)
+
+        # 5. Update document record
         doc.raw_text = full_text[:50000]  # truncate to prevent excessive DB bloat
+        doc.extracted_data = extracted or {}
         doc.is_digitally_signed = is_signed
         doc.signature_details = sig_details
-        doc.save(update_fields=["raw_text", "is_digitally_signed", "signature_details"])
+        doc.save(update_fields=["raw_text", "extracted_data", "is_digitally_signed", "signature_details"])
 
         result_payload = {
             "document_id": doc.id,

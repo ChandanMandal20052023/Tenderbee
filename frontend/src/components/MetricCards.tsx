@@ -12,9 +12,37 @@ export default function MetricCards() {
 
   const [tendersCount, setTendersCount] = useState<number>(14);
   const [pipelineValueCr, setPipelineValueCr] = useState<string>("18.4");
-  const [readinessScore, setReadinessScore] = useState<number>(88);
-  const [cleanClauses, setCleanClauses] = useState<string>("27 of 28 clean");
-  const [compliancePct, setCompliancePct] = useState<string>("99.2%");
+  const [readinessScore, setReadinessScore] = useState<number>(100);
+  const [cleanClauses, setCleanClauses] = useState<string>("6 of 6 clean");
+  const [compliancePct, setCompliancePct] = useState<string>("100%");
+  const [blockersCount, setBlockersCount] = useState<number>(0);
+  const [isEnvelopeReady, setIsEnvelopeReady] = useState<boolean>(true);
+
+  const applyVerdicts = (verdicts: any[]) => {
+    if (!verdicts || verdicts.length === 0) return;
+    const passed = verdicts.filter((v) => {
+      const s = String(v.verdict || v.status || "").toUpperCase();
+      return (
+        s.includes("READY") ||
+        s.includes("PASS") ||
+        s.includes("VERIF") ||
+        s.includes("WAIVE")
+      );
+    }).length;
+    const total = verdicts.length;
+    const blockers = verdicts.filter((v) => {
+      const s = String(v.verdict || v.status || "").toUpperCase();
+      return s.includes("FAIL") || s.includes("BLOCK");
+    }).length;
+    const score = Math.round((passed / Math.max(1, total)) * 100);
+    const ready = score >= 95 && blockers === 0;
+
+    setReadinessScore(score);
+    setCleanClauses(`${passed} of ${total} rules verified`);
+    setCompliancePct(`${score}%`);
+    setBlockersCount(blockers);
+    setIsEnvelopeReady(ready);
+  };
 
   useEffect(() => {
     // 1. Fetch live tenders
@@ -32,24 +60,31 @@ export default function MetricCards() {
       })
       .catch(() => {});
 
-    // 2. Fetch live assessments
+    // 2. Fetch live compliance assessments with fallback to dossier engine
     apiClient.verify
       .listAssessments()
-      .then((res) => {
+      .then(async (res) => {
         const assessments: VerificationAssessmentRecord[] = Array.isArray(res) ? res : res.results || [];
-        if (assessments && assessments.length > 0) {
-          const latest = assessments[0];
-          const verdicts = latest.verdicts_data || [];
-          if (verdicts.length > 0) {
-            const passed = verdicts.filter((v) => v.verdict === "PASS" || v.verdict === "WAIVED").length;
-            const score = Math.round((passed / verdicts.length) * 100);
-            setReadinessScore(score);
-            setCleanClauses(`${passed} of ${verdicts.length} clean`);
-            setCompliancePct(`${score}%`);
-          }
+        if (assessments && assessments.length > 0 && assessments[0].verdicts_data) {
+          applyVerdicts(assessments[0].verdicts_data);
+        } else {
+          // Fallback to active compliance dossier
+          try {
+            const dossier = await apiClient.verify.dossier();
+            if (dossier && dossier.verdicts) {
+              applyVerdicts(dossier.verdicts);
+            }
+          } catch (_) {}
         }
       })
-      .catch(() => {});
+      .catch(async () => {
+        try {
+          const dossier = await apiClient.verify.dossier();
+          if (dossier && dossier.verdicts) {
+            applyVerdicts(dossier.verdicts);
+          }
+        } catch (_) {}
+      });
   }, []);
 
   useGSAP(
@@ -123,9 +158,15 @@ export default function MetricCards() {
 
           {/* Footer */}
           <div className="pt-2 border-t border-outline-variant/20 flex items-center justify-between text-on-surface-variant text-[11px] h-8">
-            <span className="uppercase font-semibold">Target 95+</span>
-            <span className="font-bold text-secondary">
-              {Math.max(0, 95 - readinessScore)} pts to peak
+            <span className="uppercase font-semibold">
+              {isEnvelopeReady ? "Envelope Unlocked" : "Target 95+"}
+            </span>
+            <span
+              className={`font-bold text-xs ${
+                isEnvelopeReady ? "text-primary" : "text-error"
+              }`}
+            >
+              {isEnvelopeReady ? "Target Met (95+)" : `${Math.max(0, 95 - readinessScore)} pts to peak`}
             </span>
           </div>
         </div>
@@ -156,7 +197,7 @@ export default function MetricCards() {
 
           {/* Footer */}
           <div className="pt-2 border-t border-outline-variant/20 flex items-center justify-between text-on-surface-variant text-[11px] h-8">
-            <span className="font-medium text-xs">4 closing &lt;48h</span>
+            <span className="font-medium text-xs">West / North Zones</span>
             <div className="flex items-end gap-1 h-4 w-20 px-1 py-0.5 rounded neu-pressed-sm">
               <div className="h-2 flex-1 bg-secondary-fixed rounded-t-xs" title="CPWD" />
               <div className="h-3.5 flex-1 bg-secondary rounded-t-xs" title="Railways" />
@@ -167,10 +208,15 @@ export default function MetricCards() {
         </div>
 
         {/* 3. Compliance Health */}
-        <div className="bg-surface-container-lowest neu-flat rounded-2xl p-6 flex flex-col justify-between h-[230px] hover:-translate-y-0.5 transition-transform">
+        <Link
+          href="/audit"
+          className="bg-surface-container-lowest neu-flat rounded-2xl p-6 flex flex-col justify-between h-[230px] hover:-translate-y-0.5 transition-transform group cursor-pointer"
+        >
           {/* Header */}
           <div className="flex items-center justify-between gap-3 h-10">
-            <h3 className="font-serif text-xl font-bold text-primary truncate">Compliance Health</h3>
+            <h3 className="font-serif text-xl font-bold text-primary truncate group-hover:text-secondary transition-colors">
+              Compliance Health
+            </h3>
             <span className="w-10 h-10 rounded-xl neu-flat-sm bg-surface-container-low text-on-surface-variant flex items-center justify-center shrink-0">
               <span className="material-symbols-outlined text-xl">rule</span>
             </span>
@@ -179,13 +225,23 @@ export default function MetricCards() {
           {/* Middle Metric Content */}
           <div className="my-auto flex flex-col justify-center h-20">
             <div className="flex items-baseline gap-2">
-              <span className="font-serif text-3xl sm:text-4xl text-primary font-bold leading-none">{compliancePct}</span>
-              <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded neu-pressed-sm text-on-surface-variant">
-                Verified
+              <span className="font-serif text-3xl sm:text-4xl text-primary font-bold leading-none">
+                {compliancePct}
+              </span>
+              <span
+                className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${
+                  isEnvelopeReady
+                    ? "bg-primary/10 text-primary border border-primary/20"
+                    : "bg-error-container text-on-error-container"
+                }`}
+              >
+                {isEnvelopeReady ? "Ready to Bid" : `${blockersCount} Blockers`}
               </span>
             </div>
             <div className="mt-2 flex items-center gap-1.5 text-on-surface-variant text-xs">
-              <span className="w-2 h-2 rounded-full bg-secondary" />
+              <span
+                className={`w-2 h-2 rounded-full ${isEnvelopeReady ? "bg-primary" : "bg-error"}`}
+              />
               <span>{cleanClauses}</span>
             </div>
           </div>
@@ -193,12 +249,17 @@ export default function MetricCards() {
           {/* Footer */}
           <div className="pt-2 border-t border-outline-variant/20 flex items-center justify-between text-on-surface-variant text-[11px] h-8">
             <span className="flex items-center gap-1.5 text-xs text-secondary font-semibold">
-              <span className="material-symbols-outlined text-sm">verified_user</span>
-              <span>Rule Engine v1.0</span>
+              <span className="material-symbols-outlined text-sm">
+                {isEnvelopeReady ? "verified_user" : "pending_actions"}
+              </span>
+              <span>{isEnvelopeReady ? "Envelope Unlocked" : "Audit Pending"}</span>
             </span>
-            <span className="text-[10px] font-bold text-on-surface-variant">Deterministic</span>
+            <span className="text-[10px] font-bold text-secondary flex items-center gap-0.5 group-hover:underline">
+              <span>Inspect Audit</span>
+              <span className="material-symbols-outlined text-xs">arrow_forward</span>
+            </span>
           </div>
-        </div>
+        </Link>
 
         {/* 4. Corrigendum Alerts */}
         <div className="bg-surface-container-lowest neu-flat rounded-2xl p-6 flex flex-col justify-between h-[230px] hover:-translate-y-0.5 transition-transform">
@@ -237,4 +298,3 @@ export default function MetricCards() {
     </section>
   );
 }
-

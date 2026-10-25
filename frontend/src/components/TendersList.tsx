@@ -43,7 +43,14 @@ export default function TendersList() {
       </div>
 
       {/* Real Ingested Tenders from Backend */}
-      {realTenders.map((tender) => {
+      {realTenders.map((tender, index) => {
+        const tenderKey =
+          tender.tender_id ||
+          (tender as any).id ||
+          tender.tender_number ||
+          (tender as any).external_id ||
+          `tender-real-${index}`;
+
         const formattedValue = tender.estimated_value_inr
           ? tender.estimated_value_inr >= 10000000
             ? `₹${(tender.estimated_value_inr / 10000000).toFixed(2)} Cr`
@@ -52,7 +59,7 @@ export default function TendersList() {
 
         return (
           <div
-            key={tender.tender_id}
+            key={tenderKey}
             className="bg-surface-container-lowest neu-flat rounded-2xl p-6 flex flex-col gap-4 hover:-translate-y-0.5 transition-transform border border-secondary/20"
           >
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">

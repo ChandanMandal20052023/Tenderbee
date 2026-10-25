@@ -303,7 +303,7 @@ class LLMAdapter:
                 url,
                 headers={"x-goog-api-key": self.api_key},
                 json=payload,
-                timeout=httpx.Timeout(30.0, connect=5.0),
+                timeout=httpx.Timeout(6.0, connect=2.5),
             )
             if not response.is_success:
                 logger.error("Gemini API returned HTTP status %s.", response.status_code)

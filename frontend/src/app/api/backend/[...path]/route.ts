@@ -20,8 +20,8 @@ async function proxyRequest(request: NextRequest, params: Promise<{ path: string
   // Forward request headers
   const forwardHeaders = new Headers();
   request.headers.forEach((value, key) => {
-    // Avoid forwarding host or connection headers that conflict with node fetch
-    if (!["host", "connection"].includes(key.toLowerCase())) {
+    // Avoid forwarding host, connection, or transfer-encoding headers that conflict with node fetch
+    if (!["host", "connection", "transfer-encoding"].includes(key.toLowerCase())) {
       forwardHeaders.set(key, value);
     }
   });
@@ -41,13 +41,12 @@ async function proxyRequest(request: NextRequest, params: Promise<{ path: string
   const method = request.method;
   let body: BodyInit | null = null;
   if (!["GET", "HEAD"].includes(method)) {
-    const contentType = request.headers.get("content-type") || "";
-    if (contentType.includes("multipart/form-data")) {
-      const arrayBuffer = await request.arrayBuffer();
-      body = Buffer.from(arrayBuffer);
-      forwardHeaders.set("content-length", arrayBuffer.byteLength.toString());
+    const rawBuffer = Buffer.from(await request.arrayBuffer());
+    if (rawBuffer.length > 0) {
+      body = rawBuffer;
+      forwardHeaders.set("content-length", rawBuffer.length.toString());
     } else {
-      body = await request.text();
+      forwardHeaders.delete("content-length");
     }
   }
 
@@ -80,7 +79,7 @@ async function proxyRequest(request: NextRequest, params: Promise<{ path: string
   } catch (error: any) {
     console.error(`[Next.js Backend Proxy Error] ${method} ${targetUrl}:`, error);
     return NextResponse.json(
-      { error: `Service unavailable. Failed to reach backend core: ${error?.message || error}` },
+      { error: error?.message || "Service unavailable. Failed to reach backend core." },
       { status: 503 }
     );
   }

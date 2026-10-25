@@ -352,11 +352,12 @@ function OpenTendersContent() {
 
             {/* Main Content Grid: Tenders List */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {filteredTenders.map((tender) => {
+              {filteredTenders.map((tender, idx) => {
                 const isSelected = selectedTender?.tender_id === tender.tender_id || selectedTender?.tender_number === tender.tender_number;
+                const tenderKey = tender.tender_id || (tender as any).id || tender.tender_number || (tender as any).external_id || `tender-${idx}`;
                 return (
                   <div
-                    key={tender.tender_id || tender.tender_number}
+                    key={tenderKey}
                     className={`bg-surface-container-lowest neu-flat rounded-2xl p-6 flex flex-col justify-between transition-all border ${
                       isSelected
                         ? "border-secondary ring-2 ring-secondary/20 shadow-lg -translate-y-1"

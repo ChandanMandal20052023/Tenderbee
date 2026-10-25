@@ -19,6 +19,7 @@ export default function AuditPage() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedEntryDetails, setSelectedEntryDetails] = useState<AuditEntry | null>(null);
   const [isLoadingLedger, setIsLoadingLedger] = useState<boolean>(false);
+  const [selectedTenderId, setSelectedTenderId] = useState<string>("gem-992140");
 
   const fetchLedger = () => {
     setIsLoadingLedger(true);
@@ -105,7 +106,10 @@ export default function AuditPage() {
             {activeTab === "scorecard" && (
               <div className="flex flex-col gap-6">
                 {/* Section 1: Tender Context Selector & Header Strip */}
-                <AuditHeaderStrip />
+                <AuditHeaderStrip
+                  selectedBid={selectedTenderId}
+                  onSelectBid={(id) => setSelectedTenderId(id)}
+                />
 
                 {/* Section 2: Primary Scorecard & Rule Bento */}
                 <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
@@ -131,7 +135,7 @@ export default function AuditPage() {
                 </div>
 
                 {/* Section 6: Sticky Submission Bottom Action Bar */}
-                <AuditBottomBar />
+                <AuditBottomBar tenderId={selectedTenderId} />
               </div>
             )}
 

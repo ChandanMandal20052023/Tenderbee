@@ -3,10 +3,26 @@
 import React, { useState, useEffect } from "react";
 import { apiClient, TenderSummary } from "@/lib/api";
 
-export default function AuditHeaderStrip() {
+interface AuditHeaderStripProps {
+  selectedBid?: string;
+  onSelectBid?: (id: string, tenderObj?: TenderSummary | null) => void;
+}
+
+export default function AuditHeaderStrip({
+  selectedBid: propSelectedBid,
+  onSelectBid,
+}: AuditHeaderStripProps = {}) {
   const [tenders, setTenders] = useState<TenderSummary[]>([]);
-  const [selectedBid, setSelectedBid] = useState("gem-992140");
+  const [selectedBid, setSelectedBid] = useState(propSelectedBid || "gem-992140");
   const [selectedTenderObj, setSelectedTenderObj] = useState<TenderSummary | null>(null);
+
+  useEffect(() => {
+    if (propSelectedBid && propSelectedBid !== selectedBid) {
+      setSelectedBid(propSelectedBid);
+      const found = tenders.find((t) => t.tender_id === propSelectedBid);
+      if (found) setSelectedTenderObj(found);
+    }
+  }, [propSelectedBid, tenders]);
 
   useEffect(() => {
     apiClient.tenders
@@ -15,8 +31,13 @@ export default function AuditHeaderStrip() {
         const list: TenderSummary[] = Array.isArray(res) ? res : res.results || [];
         if (list && list.length > 0) {
           setTenders(list);
-          setSelectedBid(list[0].tender_id);
-          setSelectedTenderObj(list[0]);
+          const defaultBid = propSelectedBid || list[0].tender_id;
+          const matched = list.find((t) => t.tender_id === defaultBid) || list[0];
+          setSelectedBid(matched.tender_id);
+          setSelectedTenderObj(matched);
+          if (onSelectBid && !propSelectedBid) {
+            onSelectBid(matched.tender_id, matched);
+          }
         }
       })
       .catch(() => {});
@@ -24,8 +45,11 @@ export default function AuditHeaderStrip() {
 
   const handleSelectBid = (id: string) => {
     setSelectedBid(id);
-    const found = tenders.find((t) => t.tender_id === id);
+    const found = tenders.find((t) => t.tender_id === id) || null;
     if (found) setSelectedTenderObj(found);
+    if (onSelectBid) {
+      onSelectBid(id, found);
+    }
   };
 
   return (
@@ -55,17 +79,17 @@ export default function AuditHeaderStrip() {
               className="appearance-none bg-surface-container-low text-on-surface font-serif text-lg sm:text-xl font-bold pl-4 pr-10 py-2 rounded-xl cursor-pointer focus:outline-none focus:bg-surface-container focus:ring-2 focus:ring-primary/20 border border-outline-variant/30 transition-all w-full sm:w-auto"
             >
               {tenders.length > 0 ? (
-                tenders.map((t) => (
-                  <option key={t.tender_id} value={t.tender_id}>
+                tenders.map((t, idx) => (
+                  <option key={t.tender_id || t.tender_number || `tender-${idx}`} value={t.tender_id}>
                     {t.title} · {t.tender_number || t.tender_id}
                   </option>
                 ))
               ) : (
-                <>
-                  <option value="gem-992140">CPWD Integrated Facility Management · GEM/2025/B/992140</option>
-                  <option value="cppp-883102">MES Command Hospital HVAC Retrofit · GEM/2025/B/883102</option>
-                  <option value="eproc-771900">NHAI Highway Intelligent Toll Infrastructure · CPPP/2025/NHAI/04</option>
-                </>
+                [
+                  <option key="gem-992140" value="gem-992140">CPWD Integrated Facility Management · GEM/2025/B/992140</option>,
+                  <option key="cppp-883102" value="cppp-883102">MES Command Hospital HVAC Retrofit · GEM/2025/B/883102</option>,
+                  <option key="eproc-771900" value="eproc-771900">NHAI Highway Intelligent Toll Infrastructure · CPPP/2025/NHAI/04</option>,
+                ]
               )}
             </select>
             <span className="material-symbols-outlined absolute right-3 pointer-events-none text-on-surface-variant text-xl">

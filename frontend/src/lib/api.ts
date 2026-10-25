@@ -154,6 +154,70 @@ export interface EvidenceCitationRecord {
   created_at: string;
 }
 
+export interface ComplianceDossierRecord {
+  success: boolean;
+  dossier_id: string;
+  dossier_fingerprint: string;
+  generated_at: string;
+  generated_by: string;
+  security_seal: {
+    algorithm: string;
+    root_authority: string;
+    tamper_proof: boolean;
+    cryptographic_hash: string;
+  };
+  envelope_status: string;
+  compliance_score: number;
+  organization: {
+    name: string;
+    gstin: string;
+    udyam_number: string;
+    pan: string;
+    category: string;
+  };
+  tender: {
+    id: string;
+    tender_number: string;
+    title: string;
+    buyer_name: string;
+    portal: string;
+    location: string;
+    estimated_value_inr: number;
+    emd_amount_inr: number;
+    mse_exemption: string;
+    submission_deadline: string;
+  };
+  verdicts: Array<{
+    rule_id: string;
+    status: string;
+    message: string;
+    document_type?: string;
+    clause?: string;
+  }>;
+  missing_documents: string[];
+  fix_list: Array<{ item: string; priority: string }>;
+  registry_verifications: {
+    overall_registry_status: string;
+    registries: Record<string, { status: string; source: string; verified: boolean }>;
+  };
+  attached_documents: Array<{
+    id: string;
+    file_name: string;
+    document_type: string;
+    sha256_hash: string;
+    size_kb: number;
+    is_digitally_signed: boolean;
+  }>;
+  audit_chain: Array<{
+    id: string;
+    event_type: string;
+    actor: string;
+    payload_hash: string;
+    timestamp: string;
+  }>;
+  legal_attestation: string;
+}
+
 let isRefreshing = false;
 let refreshSubscribers: Array<(tokenRefreshed: boolean) => void> = [];
 
@@ -260,12 +324,18 @@ class APIClient {
   private async request<T = any>(url: string, options: RequestInit = {}): Promise<T> {
     const response = await this.fetchInternal(url, options);
     if (!response.ok) {
-      let errorMsg = "An error occurred while processing your request.";
+      let errorMsg = `Server error (${response.status}): An error occurred while processing your request.`;
       try {
-        const errJson = await response.json();
-        errorMsg = errJson.error || errJson.message || (typeof errJson === "string" ? errJson : errorMsg);
-        if (typeof errorMsg !== "string") {
-          errorMsg = JSON.stringify(errorMsg);
+        const rawText = await response.text();
+        try {
+          const errJson = JSON.parse(rawText);
+          errorMsg = errJson.error || errJson.message || errJson.detail || (typeof errJson === "string" ? errJson : JSON.stringify(errJson));
+        } catch {
+          if (rawText && rawText.length < 300) {
+            errorMsg = rawText;
+          } else if (rawText) {
+            errorMsg = `Server returned status ${response.status} (${response.statusText})`;
+          }
         }
       } catch {
         // Fallback generic message
@@ -336,6 +406,28 @@ class APIClient {
         method: "POST",
         body: JSON.stringify(data),
       }),
+
+    uploadPdf: (file: File, orgId?: string) => {
+      const formData = new FormData();
+      formData.append("pdf_file", file);
+      if (orgId) formData.append("org_id", orgId);
+      return this.request<{
+        success: boolean;
+        tender_id: string;
+        tender_number: string;
+        tender_title: string;
+        buyer_name: string;
+        submission_deadline: string;
+        estimated_value_inr?: number;
+        emd_amount_inr?: number;
+        rule_pack_id: string;
+        rule_pack: any;
+        extraction: any;
+      }>("/api/v1/tenders/upload-pdf/", {
+        method: "POST",
+        body: formData,
+      });
+    },
   };
 
   // --- 3. Rule Packs ---
@@ -419,6 +511,22 @@ class APIClient {
           body: JSON.stringify({ rule_id: ruleId, new_verdict: newVerdict, reason }),
         }
       ),
+
+    dossier: (tenderId?: string, assessmentId?: string) => {
+      const q = new URLSearchParams();
+      if (tenderId) q.set("tender_id", tenderId);
+      if (assessmentId) q.set("assessment_id", assessmentId);
+      const qs = q.toString() ? `?${q.toString()}` : "";
+      return this.request<ComplianceDossierRecord>(`/api/v1/verify/dossier/${qs}`);
+    },
+
+    dossierPdfUrl: (tenderId?: string, assessmentId?: string) => {
+      const q = new URLSearchParams();
+      if (tenderId) q.set("tender_id", tenderId);
+      if (assessmentId) q.set("assessment_id", assessmentId);
+      const qs = q.toString() ? `?${q.toString()}` : "";
+      return `/api/backend/api/v1/verify/dossier/pdf/${qs}`;
+    },
   };
 
   // --- 6. Immutable Audit Trail ---
