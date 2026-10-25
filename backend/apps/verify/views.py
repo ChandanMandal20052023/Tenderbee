@@ -67,6 +67,7 @@ class AssessmentListAPIView(TenantIsolationMixin, generics.ListAPIView):
     GET /api/v1/verify/assessments/
     Paginated list of assessments for the authenticated tenant.
     """
+    queryset = VerificationAssessment.objects.all()
     serializer_class = VerificationAssessmentSerializer
     permission_classes = [IsMember]
     pagination_class = AssessmentPagination
@@ -77,6 +78,10 @@ class AssessmentListAPIView(TenantIsolationMixin, generics.ListAPIView):
         if tender_id:
             queryset = queryset.filter(tender_id=tender_id)
         return queryset
+
+    def post(self, request, *args, **kwargs):
+        return AssessmentEvaluateAPIView().post(request, *args, **kwargs)
+
 
 
 class AssessmentDetailAPIView(TenantIsolationMixin, generics.RetrieveAPIView):

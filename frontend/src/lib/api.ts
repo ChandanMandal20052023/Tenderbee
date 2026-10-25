@@ -186,8 +186,17 @@ class APIClient {
       },
       credentials: "same-origin",
     };
+ 
+    let cleanPath = url.startsWith("/") ? url : `/${url}`;
+    const queryIdx = cleanPath.indexOf("?");
+    if (queryIdx !== -1) {
+      const pathPart = cleanPath.slice(0, queryIdx).replace(/\/+$/, "");
+      cleanPath = `${pathPart}${cleanPath.slice(queryIdx)}`;
+    } else {
+      cleanPath = cleanPath.replace(/\/+$/, "");
+    }
 
-    const targetUrl = url.startsWith("http") ? url : `${this.basePath}${url.startsWith("/") ? "" : "/"}${url}`;
+    const targetUrl = url.startsWith("http") ? url : `${this.basePath}${cleanPath}`;
     const response = await fetch(targetUrl, mergedOptions);
 
     // If 401 Unauthorized and not already retrying or on auth endpoint -> trigger silent refresh

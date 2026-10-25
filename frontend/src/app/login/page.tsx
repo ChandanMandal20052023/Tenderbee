@@ -140,7 +140,43 @@ function LoginForm() {
               <span>Sign In with Credentials</span>
             )}
           </button>
+
+          <div className="relative flex py-1 items-center">
+            <div className="flex-grow border-t border-slate-300/60"></div>
+            <span className="flex-shrink mx-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">or instant demo</span>
+            <div className="flex-grow border-t border-slate-300/60"></div>
+          </div>
+
+          <button
+            type="button"
+            id="demo-login-btn"
+            disabled={loading}
+            onClick={async () => {
+              setEmail("demo@tenderbee.ai");
+              setPassword("password123");
+              setLoading(true);
+              setErrorMessage("");
+              try {
+                const res = await apiClient.auth.login({ email: "demo@tenderbee.ai", password: "password123" });
+                if (res.success) {
+                  router.push(redirectTarget);
+                  router.refresh();
+                } else {
+                  setErrorMessage("Demo authentication failed.");
+                }
+              } catch (err: any) {
+                setErrorMessage(err.message || "Failed to log in with demo account.");
+              } finally {
+                setLoading(false);
+              }
+            }}
+            className="w-full py-3 px-6 rounded-xl border border-amber-400/40 bg-amber-500/10 text-amber-700 font-bold text-xs uppercase tracking-wider hover:bg-amber-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
+            <span>1-Click Demo Sign-In (Preloaded Tenant)</span>
+          </button>
         </form>
+
 
         <div className="mt-8 pt-6 border-t border-slate-200/50 text-center">
           <p className="text-xs text-slate-500">

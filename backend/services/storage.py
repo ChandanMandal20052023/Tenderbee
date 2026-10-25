@@ -580,8 +580,38 @@ class DiskStorageBackend(StorageBackend):
         return target_path.exists() and target_path.is_file()
 
 
+class B2StorageBackend(StorageBackend):
+    """Backblaze B2 S3-compatible cloud object storage backend."""
+    def __init__(self):
+        from backend.services.b2_storage import BackblazeB2Storage
+        self.b2 = BackblazeB2Storage()
+
+    def put(self, key: str, data: bytes, content_type: Optional[str] = None) -> Dict[str, Any]:
+        return self.b2.upload_bytes(key=key, data=data, content_type=content_type or "application/pdf")
+
+    def get(self, key: str) -> Optional[bytes]:
+        return self.b2.download_bytes(key)
+
+    def delete(self, key: str) -> bool:
+        return self.b2.delete_file(key)
+
+    def exists(self, key: str) -> bool:
+        return self.b2.file_exists(key)
+
+
+def _init_default_storage() -> StorageBackend:
+    backend_type = os.getenv("STORAGE_BACKEND", "").lower()
+    if backend_type == "b2" or os.getenv("B2_APPLICATION_KEY_ID") or os.getenv("B2_KEY_ID"):
+        try:
+            return B2StorageBackend()
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning("Failed to initialize B2StorageBackend: %s. Using DiskStorageBackend.", e)
+    return DiskStorageBackend()
+
+
 # Global storage adapter instance
-_active_backend: StorageBackend = DiskStorageBackend()
+_active_backend: StorageBackend = _init_default_storage()
 
 
 def set_storage_backend(backend: StorageBackend):
@@ -592,6 +622,7 @@ def set_storage_backend(backend: StorageBackend):
 
 def get_storage_backend() -> StorageBackend:
     return _active_backend
+
 
 
 def put(key: str, data: bytes, content_type: Optional[str] = None) -> Dict[str, Any]:

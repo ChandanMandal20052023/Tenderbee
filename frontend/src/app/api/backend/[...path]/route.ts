@@ -39,7 +39,9 @@ async function proxyRequest(request: NextRequest, params: Promise<{ path: string
   if (!["GET", "HEAD"].includes(method)) {
     const contentType = request.headers.get("content-type") || "";
     if (contentType.includes("multipart/form-data")) {
-      body = await request.formData();
+      const arrayBuffer = await request.arrayBuffer();
+      body = Buffer.from(arrayBuffer);
+      forwardHeaders.set("content-length", body.length.toString());
     } else {
       body = await request.text();
     }
@@ -72,8 +74,9 @@ async function proxyRequest(request: NextRequest, params: Promise<{ path: string
       headers: responseHeaders,
     });
   } catch (error: any) {
+    console.error(`[Next.js Backend Proxy Error] ${method} ${targetUrl}:`, error);
     return NextResponse.json(
-      { error: "Service unavailable. Failed to reach backend core." },
+      { error: `Service unavailable. Failed to reach backend core: ${error?.message || error}` },
       { status: 503 }
     );
   }
