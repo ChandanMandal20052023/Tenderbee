@@ -34,6 +34,7 @@ class RulePackListAPIView(TenantIsolationMixin, generics.ListAPIView):
     GET /api/v1/rules/
     Lists RulePacks for the authenticated tenant organization.
     """
+    queryset = RulePack.objects.all()
     serializer_class = RulePackSerializer
     permission_classes = [IsMember]
     pagination_class = RulePackPagination
@@ -55,6 +56,7 @@ class RulePackDetailAPIView(TenantIsolationMixin, generics.RetrieveAPIView):
     permission_classes = [IsMember]
     queryset = RulePack.objects.all()
     lookup_field = "id"
+    lookup_url_kwarg = "rule_pack_id"
 
 
 class RulePackFreezeAPIView(APIView):
@@ -95,8 +97,8 @@ class RulePackFreezeAPIView(APIView):
         # Append to audit trail
         record_audit_event(
             organization=org,
-            actor=user.email,
-            event_type=AuditEventType.RULE_PACK_CONFIRM,
+            actor=confirmed_by or user.email,
+            event_type=AuditEventType.RULE_PACK_FROZEN,
             target_id=rule_pack.id,
             details={
                 "tender_id": rule_pack.tender_id,
