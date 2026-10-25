@@ -67,11 +67,20 @@ INSTALLED_APPS = [
     "apps.prepare.apps.PrepareConfig",
 ]
 
+try:
+    import whitenoise  # noqa: F401
+    HAS_WHITENOISE = True
+except ImportError:
+    HAS_WHITENOISE = False
+
 MIDDLEWARE = [
     "apps.accounts.logging.RequestContextMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",
+]
+if HAS_WHITENOISE:
+    MIDDLEWARE.append("whitenoise.middleware.WhiteNoiseMiddleware")
+MIDDLEWARE.extend([
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -79,7 +88,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "apps.accounts.middleware.TenantContextMiddleware",
-]
+])
 
 # Structured Logging Configuration
 LOGGING = {
@@ -189,7 +198,8 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATIC_ROOT.mkdir(parents=True, exist_ok=True)
-STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
+if HAS_WHITENOISE:
+    STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 
 # Media & Storage
 MEDIA_URL = "/media/"
