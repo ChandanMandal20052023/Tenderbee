@@ -1,10 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 
+const defaultUrl =
+  process.env.NODE_ENV === "production"
+    ? "https://tenderbee-1.onrender.com"
+    : "http://127.0.0.1:8000";
+
 const BACKEND_INTERNAL_URL =
   process.env.BACKEND_URL ||
   process.env.INTERNAL_BACKEND_URL ||
-  "http://127.0.0.1:8000";
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  defaultUrl;
 const cleanBackendUrl = BACKEND_INTERNAL_URL.replace(/\/+$/, "");
+
+const HOP_BY_HOP = new Set([
+  "host",
+  "connection",
+  "keep-alive",
+  "proxy-authenticate",
+  "proxy-authorization",
+  "te",
+  "trailers",
+  "transfer-encoding",
+  "upgrade",
+]);
 
 async function proxyRequest(request: NextRequest, params: Promise<{ path: string[] }>) {
   const resolvedParams = await params;
@@ -20,8 +38,8 @@ async function proxyRequest(request: NextRequest, params: Promise<{ path: string
   // Forward request headers
   const forwardHeaders = new Headers();
   request.headers.forEach((value, key) => {
-    // Avoid forwarding host, connection, or transfer-encoding headers that conflict with node fetch
-    if (!["host", "connection", "transfer-encoding"].includes(key.toLowerCase())) {
+    // Avoid forwarding hop-by-hop headers that conflict with fetch
+    if (!HOP_BY_HOP.has(key.toLowerCase())) {
       forwardHeaders.set(key, value);
     }
   });
@@ -79,7 +97,7 @@ async function proxyRequest(request: NextRequest, params: Promise<{ path: string
   } catch (error: any) {
     console.error(`[Next.js Backend Proxy Error] ${method} ${targetUrl}:`, error);
     return NextResponse.json(
-      { error: error?.message || "Service unavailable. Failed to reach backend core." },
+      { error: `Service unavailable. Failed to reach backend core at ${targetUrl}: ${error?.message || error}` },
       { status: 503 }
     );
   }
