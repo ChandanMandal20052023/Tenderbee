@@ -80,8 +80,12 @@ async function proxyRequest(request: NextRequest, params: Promise<{ path: string
 
     const responseHeaders = new Headers();
     backendResponse.headers.forEach((value, key) => {
-      // Forward Set-Cookie headers properly
-      if (key.toLowerCase() === "set-cookie") {
+      const lower = key.toLowerCase();
+      // Drop content-encoding and content-length because node fetch automatically decompresses the payload
+      if (lower === "content-encoding" || lower === "content-length") {
+        return;
+      }
+      if (lower === "set-cookie") {
         responseHeaders.append(key, value);
       } else {
         responseHeaders.set(key, value);
