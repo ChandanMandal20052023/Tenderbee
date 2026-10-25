@@ -29,6 +29,8 @@ export interface TenderSummary {
   category?: string;
   estimated_value_inr?: number;
   emd_amount_inr?: number;
+  tender_fee_inr?: number;
+  processing_fee_inr?: number;
   tenure_months?: number;
   submission_deadline?: string;
   portal?: string;
@@ -36,6 +38,22 @@ export interface TenderSummary {
   status: string;
   summary?: string;
   has_pdf_document?: boolean;
+  dealing_officer?: string;
+  org_hierarchy?: string[];
+  mandatory_documents?: string[];
+  attachments?: Array<{
+    label?: string;
+    file_name?: string;
+    file_size_bytes?: number;
+    remote_path?: string;
+    [key: string]: any;
+  }>;
+  nit_attachment?: any;
+  boq_attachment?: any;
+  preview_details?: Record<string, any>;
+  content_hash?: string;
+  fetched_at?: string;
+  mode?: string;
 }
 
 export interface AsyncJobStatus {
@@ -173,8 +191,16 @@ class APIClient {
     const response = await fetch(targetUrl, mergedOptions);
 
     // If 401 Unauthorized and not already retrying or on auth endpoint -> trigger silent refresh
-    const isAuthEndpoint = url.includes("/auth/login/") || url.includes("/auth/refresh/") || url.includes("/auth/register/");
+    const isAuthEndpoint =
+      url.includes("/auth/login/") ||
+      url.includes("/auth/refresh/") ||
+      url.includes("/auth/register/") ||
+      url.includes("/auth/me/");
+
     if (response.status === 401 && !isRetry && !isAuthEndpoint && typeof window !== "undefined") {
+      const pathname = window.location.pathname;
+      const isPublicPage = pathname === "/" || pathname.startsWith("/tenders");
+
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           addRefreshSubscriber(async (success) => {
@@ -186,7 +212,9 @@ class APIClient {
                 reject(e);
               }
             } else {
-              window.location.href = "/login";
+              if (!isPublicPage) {
+                window.location.href = "/login";
+              }
               reject(new Error("Session expired. Please log in again."));
             }
           });
@@ -202,13 +230,17 @@ class APIClient {
           return this.fetchInternal(url, options, true);
         } else {
           onRefreshed(false);
-          window.location.href = "/login";
+          if (!isPublicPage) {
+            window.location.href = "/login";
+          }
           throw new Error("Authentication expired.");
         }
       } catch (err) {
         isRefreshing = false;
         onRefreshed(false);
-        window.location.href = "/login";
+        if (!isPublicPage) {
+          window.location.href = "/login";
+        }
         throw new Error("Authentication expired. Please log in.");
       }
     }
@@ -269,9 +301,13 @@ class APIClient {
 
   // --- 2. Tenders & Discovery ---
   public tenders = {
-    search: (params: { query?: string; state?: string; category?: string; page?: number; limit?: number } = {}) => {
+    search: (params: { query?: string; q?: string; state?: string; category?: string; page?: number; limit?: number } = {}) => {
       const q = new URLSearchParams();
-      if (params.query) q.set("query", params.query);
+      const term = params.q || params.query;
+      if (term) {
+        q.set("query", term);
+        q.set("q", term);
+      }
       if (params.state) q.set("state", params.state);
       if (params.category) q.set("category", params.category);
       if (params.page) q.set("page", String(params.page));

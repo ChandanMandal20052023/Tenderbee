@@ -127,6 +127,13 @@ class TenderSearchAPIView(APIView):
         from backend.apps.tenders.search import TenderSearchService, TenderSearchFilter
 
         prompt = request.query_params.get("q") or request.query_params.get("prompt")
+        has_structured_filters = any(
+            request.query_params.get(k)
+            for k in ["state", "category", "min_value", "max_value", "tenure", "buyer", "tender_number", "tender_no", "tender_id"]
+        )
+        if not prompt and not has_structured_filters and request.query_params.get("query"):
+            prompt = request.query_params.get("query")
+
         service = TenderSearchService()
         if prompt:
             res = service.search_by_prompt(prompt)

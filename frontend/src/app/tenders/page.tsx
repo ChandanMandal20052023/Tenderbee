@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import DashboardHeader from "@/components/DashboardHeader";
 import { apiClient, TenderSummary, DocumentRecord } from "@/lib/api";
@@ -34,8 +35,11 @@ interface VerificationResult {
   assessed_at?: string;
 }
 
-export default function OpenTendersPage() {
-  const [searchQuery, setSearchQuery] = useState("");
+function OpenTendersContent() {
+  const searchParams = useSearchParams();
+  const initialQuery = searchParams.get("query") || searchParams.get("q") || "";
+
+  const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [selectedState, setSelectedState] = useState("All");
   const [selectedPortal, setSelectedPortal] = useState("All");
   const [tenders, setTenders] = useState<TenderSummary[]>([]);
@@ -85,8 +89,25 @@ export default function OpenTendersPage() {
   };
 
   useEffect(() => {
-    executeSearch("");
-  }, [selectedState]);
+    const qParam = searchParams.get("query") || searchParams.get("q");
+    if (qParam) {
+      setSearchQuery(qParam);
+      executeSearch(qParam);
+    } else {
+      executeSearch("");
+    }
+  }, [searchParams.get("query"), searchParams.get("q"), selectedState]);
+
+  // If tender_id is provided in URL, auto-select it for inspection & verification
+  useEffect(() => {
+    const targetId = searchParams.get("tender_id");
+    if (targetId && tenders.length > 0) {
+      const match = tenders.find((t) => t.tender_id === targetId || t.tender_number === targetId);
+      if (match && (!selectedTender || (selectedTender.tender_id !== match.tender_id && selectedTender.tender_number !== match.tender_number))) {
+        handleSelectTender(match);
+      }
+    }
+  }, [searchParams.get("tender_id"), tenders]);
 
   const handleSelectTender = async (tender: TenderSummary) => {
     setSelectedTender(tender);
@@ -98,11 +119,14 @@ export default function OpenTendersPage() {
 
     const targetId = tender.tender_id || tender.tender_number;
 
-    // 1. Fetch detailed tender clauses & rules
+    // 1. Fetch detailed tender clauses, skimmed specs & rules
     setTenderDetailLoading(true);
     try {
       const detailed = await apiClient.tenders.get(targetId, "detailed");
       setTenderDetails(detailed);
+      if (detailed) {
+        setSelectedTender((prev) => (prev ? { ...prev, ...detailed } : detailed));
+      }
     } catch (err) {
       console.warn("Could not load deep details:", err);
     } finally {
@@ -342,43 +366,70 @@ export default function OpenTendersPage() {
                     <div>
                       {/* Top Badges */}
                       <div className="flex items-center justify-between gap-2 mb-3">
-                        <span className="text-[10px] px-2.5 py-0.5 rounded-full neu-pressed-sm text-slate-700 font-mono font-semibold truncate max-w-[180px]">
-                          {tender.tender_number}
-                        </span>
-                        <span className="text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider bg-secondary-fixed text-on-secondary-fixed">
+                        <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                          <span className="text-[11px] px-2.5 py-0.5 rounded-full neu-pressed-sm text-primary font-mono font-bold truncate max-w-[200px] border border-secondary/20 bg-surface-container-lowest">
+                            {tender.tender_number}
+                          </span>
+                          {tender.state && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface-container text-slate-600 font-semibold">
+                              {tender.state}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider bg-secondary-fixed text-on-secondary-fixed shrink-0">
                           {tender.portal || "eProcurement"}
                         </span>
                       </div>
 
                       {/* Title */}
-                      <h2 className="font-serif text-base font-bold text-primary line-clamp-2 mb-2 leading-snug">
+                      <h2 className="font-serif text-base font-bold text-primary line-clamp-2 mb-1.5 leading-snug">
                         {tender.title}
                       </h2>
 
-                      {/* Buyer */}
-                      <p className="text-xs text-on-surface-variant line-clamp-1 mb-4 flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-sm text-slate-400">account_balance</span>
-                        <span>{tender.buyer_name || "Procurement Authority"}</span>
-                      </p>
+                      {/* Buyer & Dealing Officer */}
+                      <div className="flex flex-col gap-0.5 mb-3 text-xs text-on-surface-variant">
+                        <p className="line-clamp-1 flex items-center gap-1.5 font-medium">
+                          <span className="material-symbols-outlined text-sm text-slate-400">account_balance</span>
+                          <span>{tender.buyer_name || "Procurement Authority"}</span>
+                        </p>
+                        {tender.dealing_officer && (
+                          <p className="line-clamp-1 text-[11px] text-slate-500 flex items-center gap-1.5 pl-0.5">
+                            <span className="material-symbols-outlined text-xs text-slate-400">badge</span>
+                            <span>Officer: {tender.dealing_officer}</span>
+                          </p>
+                        )}
+                      </div>
 
-                      {/* Key Value & Specs */}
-                      <div className="grid grid-cols-2 gap-2 p-3 rounded-xl neu-inset bg-[#edf1f7] mb-4 text-xs">
+                      {/* Key Skimmed Financials & Specs */}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-3 rounded-xl neu-inset bg-[#edf1f7] mb-4 text-xs">
                         <div>
                           <span className="text-[10px] uppercase font-semibold text-slate-500 block">Est. Value</span>
-                          <span className="font-bold text-slate-800">{formatCurrency(tender.estimated_value_inr)}</span>
+                          <span className="font-bold text-emerald-800">{formatCurrency(tender.estimated_value_inr)}</span>
                         </div>
                         <div>
-                          <span className="text-[10px] uppercase font-semibold text-slate-500 block">State / Region</span>
-                          <span className="font-semibold text-slate-700">{tender.state || "India"}</span>
+                          <span className="text-[10px] uppercase font-semibold text-slate-500 block">EMD Deposit</span>
+                          <span className="font-semibold text-slate-800">{formatCurrency(tender.emd_amount_inr)}</span>
                         </div>
                         <div>
-                          <span className="text-[10px] uppercase font-semibold text-slate-500 block">EMD Required</span>
-                          <span className="font-semibold text-slate-700">{formatCurrency(tender.emd_amount_inr)}</span>
+                          <span className="text-[10px] uppercase font-semibold text-slate-500 block">Tender Fee</span>
+                          <span className="font-semibold text-slate-800">
+                            {tender.tender_fee_inr ? formatCurrency(tender.tender_fee_inr) : "Exempt / Free"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] uppercase font-semibold text-slate-500 block">Duration</span>
+                          <span className="font-semibold text-slate-700">{tender.tenure_months || 12} Months</span>
                         </div>
                         <div>
                           <span className="text-[10px] uppercase font-semibold text-slate-500 block">Deadline</span>
                           <span className="font-semibold text-slate-700 truncate block">
                             {tender.submission_deadline ? new Date(tender.submission_deadline).toLocaleDateString("en-IN") : "Active"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] uppercase font-semibold text-slate-500 block">Checklist</span>
+                          <span className="font-semibold text-primary truncate block">
+                            {tender.mandatory_documents?.length ? `${tender.mandatory_documents.length} Proofs` : "Criteria Ready"}
                           </span>
                         </div>
                       </div>
@@ -452,36 +503,191 @@ export default function OpenTendersPage() {
             {/* Modal Body */}
             <div className="p-6 overflow-y-auto space-y-6 flex-1 text-slate-800 text-sm">
               
-              {/* Step 1: Extracted Requirements Summary */}
-              <div className="p-4 rounded-2xl neu-inset bg-[#e8ecf4]">
-                <h4 className="font-bold text-xs uppercase tracking-wider text-slate-600 mb-2 flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-base text-secondary">rule</span>
-                  <span>1. Scraped Tender Eligibility Criteria</span>
-                </h4>
-                
-                {tenderDetailLoading ? (
-                  <p className="text-xs text-slate-500 italic">Ingesting full criteria &amp; drafting RulePack from official notice...</p>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                    <div className="p-2.5 bg-white/70 rounded-xl">
-                      <span className="text-[10px] text-slate-500 block">Min Annual Turnover</span>
-                      <span className="font-bold text-slate-800">
-                        {tenderDetails?.eligibility_rules?.min_annual_turnover_inr
-                          ? `₹${(tenderDetails.eligibility_rules.min_annual_turnover_inr / 100000).toFixed(2)} Lakh`
-                          : "Calculated based on 30% contract value"}
+              {/* Step 1: Official Skimmed Tender Specifications from Backend Engine */}
+              <div className="p-5 rounded-2xl neu-inset bg-[#e8ecf4] space-y-4">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-base text-secondary">fact_check</span>
+                    <span>1. Official Tender Specifications &amp; Skimmed Notice Data</span>
+                  </h4>
+                  <div className="flex items-center gap-2">
+                    {selectedTender.source_url && (
+                      <a
+                        href={selectedTender.source_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-1 neu-flat-sm px-2.5 py-1 rounded-md bg-white/80"
+                      >
+                        <span>Official Portal Notice</span>
+                        <span className="material-symbols-outlined text-xs">open_in_new</span>
+                      </a>
+                    )}
+                    {selectedTender.content_hash && (
+                      <span className="text-[10px] font-mono text-slate-500 bg-white/60 px-2 py-0.5 rounded border border-slate-200">
+                        SHA-256: {selectedTender.content_hash.slice(0, 10)}...
                       </span>
-                    </div>
-                    <div className="p-2.5 bg-white/70 rounded-xl">
-                      <span className="text-[10px] text-slate-500 block">Statutory MSME Exemption</span>
-                      <span className="font-bold text-slate-800">
-                        {selectedTender.portal?.includes("GeM") ? "Rule 153 GFR Applicable" : "Udyam Certificate Required"}
-                      </span>
-                    </div>
-                    <div className="p-2.5 bg-white/70 rounded-xl">
-                      <span className="text-[10px] text-slate-500 block">Audit &amp; Cryptography</span>
-                      <span className="font-bold text-slate-800">SHA-256 + pyHanko Signature</span>
-                    </div>
+                    )}
                   </div>
+                </div>
+
+                {tenderDetailLoading ? (
+                  <div className="p-4 bg-white/70 rounded-xl flex items-center gap-2 text-xs text-slate-500 italic">
+                    <span className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin"></span>
+                    <span>Ingesting skimmed parameters, fees &amp; mandatory checklists from backend...</span>
+                  </div>
+                ) : (
+                  <>
+                    {/* Organization Hierarchy & Dealing Officer */}
+                    <div className="p-3.5 bg-white/80 rounded-xl border border-white/60 space-y-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-slate-500 block">Issuing Authority / Division</span>
+                          <span className="text-xs font-bold text-slate-800">{selectedTender.buyer_name}</span>
+                        </div>
+                        {selectedTender.dealing_officer && (
+                          <div className="sm:text-right">
+                            <span className="text-[10px] uppercase font-bold text-slate-500 block">Inviting / Dealing Officer</span>
+                            <span className="text-xs font-semibold text-secondary">{selectedTender.dealing_officer}</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {selectedTender.org_hierarchy && selectedTender.org_hierarchy.length > 0 && (
+                        <div className="pt-2 border-t border-slate-100 flex items-center gap-1.5 flex-wrap text-[11px] text-slate-600">
+                          <span className="font-semibold text-slate-400">Hierarchy:</span>
+                          {selectedTender.org_hierarchy.map((lvl, idx) => (
+                            <React.Fragment key={idx}>
+                              <span className="font-medium bg-slate-100 px-2 py-0.5 rounded">{lvl}</span>
+                              {idx < (selectedTender.org_hierarchy?.length || 0) - 1 && (
+                                <span className="text-slate-400">&gt;</span>
+                              )}
+                            </React.Fragment>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Financial Terms & Fees Matrix */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                      <div className="p-3 bg-white/80 rounded-xl border border-white/60">
+                        <span className="text-[10px] uppercase font-bold text-slate-500 block">Advertised Value</span>
+                        <span className="font-bold text-emerald-800 text-sm">
+                          {formatCurrency(selectedTender.estimated_value_inr)}
+                        </span>
+                      </div>
+                      <div className="p-3 bg-white/80 rounded-xl border border-white/60">
+                        <span className="text-[10px] uppercase font-bold text-slate-500 block">EMD Deposit</span>
+                        <span className="font-bold text-slate-800 text-sm">
+                          {formatCurrency(selectedTender.emd_amount_inr)}
+                        </span>
+                      </div>
+                      <div className="p-3 bg-white/80 rounded-xl border border-white/60">
+                        <span className="text-[10px] uppercase font-bold text-slate-500 block">Tender Notice Fee</span>
+                        <span className="font-semibold text-slate-800">
+                          {selectedTender.tender_fee_inr ? formatCurrency(selectedTender.tender_fee_inr) : "Exempt / Free"}
+                        </span>
+                      </div>
+                      <div className="p-3 bg-white/80 rounded-xl border border-white/60">
+                        <span className="text-[10px] uppercase font-bold text-slate-500 block">Processing Fee</span>
+                        <span className="font-semibold text-slate-800">
+                          {selectedTender.processing_fee_inr ? formatCurrency(selectedTender.processing_fee_inr) : "Nil"}
+                        </span>
+                      </div>
+                      <div className="p-3 bg-white/80 rounded-xl border border-white/60">
+                        <span className="text-[10px] uppercase font-bold text-slate-500 block">Contract Duration</span>
+                        <span className="font-semibold text-slate-800">
+                          {selectedTender.tenure_months ? `${selectedTender.tenure_months} Months` : "12 Months"}
+                        </span>
+                      </div>
+                      <div className="p-3 bg-white/80 rounded-xl border border-white/60">
+                        <span className="text-[10px] uppercase font-bold text-slate-500 block">Submission Deadline</span>
+                        <span className="font-semibold text-slate-800">
+                          {selectedTender.submission_deadline ? new Date(selectedTender.submission_deadline).toLocaleString("en-IN") : "Active"}
+                        </span>
+                      </div>
+                      <div className="p-3 bg-white/80 rounded-xl border border-white/60">
+                        <span className="text-[10px] uppercase font-bold text-slate-500 block">Min Annual Turnover</span>
+                        <span className="font-semibold text-slate-800">
+                          {tenderDetails?.eligibility_rules?.min_annual_turnover_inr
+                            ? `₹${(tenderDetails.eligibility_rules.min_annual_turnover_inr / 100000).toFixed(2)} Lakh`
+                            : "Calculated at 30% contract value"}
+                        </span>
+                      </div>
+                      <div className="p-3 bg-white/80 rounded-xl border border-white/60">
+                        <span className="text-[10px] uppercase font-bold text-slate-500 block">MSME Exemption</span>
+                        <span className="font-semibold text-slate-800">
+                          {selectedTender.portal?.includes("GeM") ? "Rule 153 GFR Applicable" : "Udyam Certificate Valid"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Official Mandatory Documents Checklist */}
+                    {selectedTender.mandatory_documents && selectedTender.mandatory_documents.length > 0 && (
+                      <div className="p-3.5 bg-white/80 rounded-xl border border-white/60">
+                        <span className="text-[10px] uppercase font-bold text-slate-500 block mb-2">
+                          Mandatory Compliance Documents Specified by Tender Notice ({selectedTender.mandatory_documents.length})
+                        </span>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedTender.mandatory_documents.map((docName, idx) => {
+                            const isUploaded = tenderDocs.some(
+                              (d) =>
+                                d.document_type?.toLowerCase().includes(docName.toLowerCase().replace(/[^a-z0-9]/g, "")) ||
+                                d.file_name?.toLowerCase().includes(docName.toLowerCase().slice(0, 4))
+                            );
+                            return (
+                              <div
+                                key={idx}
+                                className={`text-[11px] px-2.5 py-1 rounded-lg flex items-center gap-1.5 border ${
+                                  isUploaded
+                                    ? "bg-emerald-50 border-emerald-300 text-emerald-800 font-bold"
+                                    : "bg-surface-container-lowest border-slate-200 text-slate-700 font-medium"
+                                }`}
+                              >
+                                <span className="material-symbols-outlined text-xs">
+                                  {isUploaded ? "check_circle" : "pending"}
+                                </span>
+                                <span>{docName}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Official Attached Notice Documents (NIT, BOQ) */}
+                    {selectedTender.attachments && selectedTender.attachments.length > 0 && (
+                      <div className="p-3.5 bg-white/80 rounded-xl border border-white/60">
+                        <span className="text-[10px] uppercase font-bold text-slate-500 block mb-2">
+                          Official Tender Notices &amp; Schedules ({selectedTender.attachments.length} files)
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {selectedTender.attachments.map((att, idx) => (
+                            <div
+                              key={idx}
+                              className="p-2.5 rounded-lg bg-surface-container-lowest border border-slate-200 flex items-center justify-between text-xs"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="material-symbols-outlined text-base text-rose-500 shrink-0">description</span>
+                                <div className="min-w-0">
+                                  <span className="font-semibold text-slate-800 truncate block">
+                                    {att.file_name || `Document_${idx + 1}`}
+                                  </span>
+                                  {att.file_size_bytes && (
+                                    <span className="text-[10px] text-slate-400">
+                                      {(att.file_size_bytes / 1024).toFixed(1)} KB
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded">
+                                Attached NIT
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -751,5 +957,22 @@ export default function OpenTendersPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function OpenTendersPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-surface flex items-center justify-center">
+          <div className="flex items-center gap-3 px-6 py-4 rounded-2xl neu-flat bg-white text-slate-700 text-sm font-semibold">
+            <span className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin"></span>
+            <span>Loading procurement tenders workspace...</span>
+          </div>
+        </div>
+      }
+    >
+      <OpenTendersContent />
+    </Suspense>
   );
 }

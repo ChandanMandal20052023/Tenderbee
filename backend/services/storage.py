@@ -317,7 +317,7 @@ class TenderStorage:
             cursor = conn.cursor()
             cursor.execute(sql, params)
             for row in cursor.fetchall():
-                results.append({
+                t_item = {
                     "tender_id": row["tender_id"],
                     "tender_number": row["external_id"],
                     "title": row["title"],
@@ -331,7 +331,40 @@ class TenderStorage:
                     "portal": row["portal"] or "Government Portal",
                     "source_url": row["source_url"],
                     "status": "ACTIVE",
-                })
+                }
+
+                # Attach snapshot skimmed fields if available
+                alt_id = f"tnd_{self.compute_sha256(row['external_id'])[:12]}"
+                cursor2 = conn.cursor()
+                cursor2.execute("""
+                    SELECT extracted_json_path, content_hash FROM tender_snapshots
+                    WHERE tender_id = ? OR tender_id = ?
+                    ORDER BY fetched_at DESC LIMIT 1
+                """, (row["tender_id"], alt_id))
+                snap_row = cursor2.fetchone()
+                if snap_row:
+                    t_item["content_hash"] = snap_row["content_hash"]
+                    ext_path = Path(snap_row["extracted_json_path"])
+                    if ext_path.exists():
+                        try:
+                            with open(ext_path, "r", encoding="utf-8") as f:
+                                snap_data = json.load(f)
+                                if isinstance(snap_data, dict):
+                                    for k in (
+                                        "tender_fee_inr", "processing_fee_inr", "dealing_officer",
+                                        "org_hierarchy", "mandatory_documents", "attachments",
+                                        "nit_attachment", "boq_attachment", "summary"
+                                    ):
+                                        if k in snap_data and k not in t_item:
+                                            t_item[k] = snap_data[k]
+                                    if snap_data.get("estimated_value_inr") is not None and t_item["estimated_value_inr"] is None:
+                                        t_item["estimated_value_inr"] = snap_data["estimated_value_inr"]
+                                    if snap_data.get("emd_amount_inr") is not None and t_item["emd_amount_inr"] is None:
+                                        t_item["emd_amount_inr"] = snap_data["emd_amount_inr"]
+                        except Exception:
+                            pass
+
+                results.append(t_item)
 
         return results
 
