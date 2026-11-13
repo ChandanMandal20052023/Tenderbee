@@ -22,18 +22,19 @@ export default function HeroSection() {
   const [heroTenders, setHeroTenders] = useState<TenderSummary[]>([]);
   const [loadingHero, setLoadingHero] = useState(true);
 
-  // Load initial live tenders from the backend API for the hero showcase
+  // Load indexed showcase tenders from the local backend without triggering live web scrapes on mount
   useEffect(() => {
     let isMounted = true;
     apiClient.tenders
-      .search({})
+      .list()
       .then((res) => {
-        if (isMounted && res && Array.isArray(res.results)) {
-          setHeroTenders(res.results);
+        if (isMounted) {
+          const list = Array.isArray(res) ? res : res.results || [];
+          setHeroTenders(list.slice(0, 5));
         }
       })
       .catch((err) => {
-        console.warn("Could not fetch live showcase tenders:", err);
+        console.warn("Could not fetch showcase tenders:", err);
       })
       .finally(() => {
         if (isMounted) setLoadingHero(false);

@@ -99,6 +99,8 @@ class TenderSearchFilter(BaseModel):
     max_tenure_months: Optional[int] = Field(default=None, description="Maximum contract period in months")
     buyer_name: Optional[str] = Field(default=None, description="Issuing authority / department")
     active_only: bool = Field(default=True, description="Filter only active tenders with upcoming deadlines")
+    nationwide: bool = Field(default=False, description="Explicit nationwide search")
+    portal: Optional[str] = Field(default=None, description="Target procurement portal or domain (GeM, CPPP, Bihar, IREPS)")
     page: int = Field(default=1, ge=1)
     limit: int = Field(default=20, ge=1, le=100)
 
@@ -392,11 +394,68 @@ class TenderSearchService:
             except Exception:
                 self.live_search_engine = None
 
+    def parse_prompt_to_filters(self, prompt: str) -> TenderSearchFilter:
+        """Helper to parse raw natural language prompt into structured filters."""
+        return QueryParser.parse(prompt, llm_adapter=self.llm_adapter)
+
     def search(self, filters: TenderSearchFilter, raw_prompt: Optional[str] = None) -> Dict[str, Any]:
         """
         Execute search query across local index and connected portals.
+        Strictly enforces state boundaries and avoids broad all-state fetches when unrequested.
         """
-        # 1. Search local indexed database
+        # Check if specific query criteria were requested
+        has_criteria = bool(
+            filters.query
+            or filters.tender_number
+            or filters.state
+            or filters.category
+            or filters.portal
+            or filters.buyer_name
+            or filters.min_value_inr is not None
+            or filters.max_value_inr is not None
+            or filters.nationwide
+            or raw_prompt
+        )
+
+        # Empty criteria guard: avoid unscoped broad web scrapes when no search parameters are given
+        if not has_criteria:
+            return {
+                "success": True,
+                "applied_filters": filters.model_dump(),
+                "total_matches": 0,
+                "page": filters.page,
+                "limit": filters.limit,
+                "source": "empty_criteria",
+                "results": [],
+                "message": "Please enter a search query or select a state to discover tenders.",
+            }
+
+        # 1. Primary Live Discovery: If user entered search criteria, query TinyFish API
+        # to retrieve real, live tenders across any requested state, portal, or domain
+        if self.live_search_engine:
+            logger.info("Executing TinyFish live tender discovery for filters: %s", filters.model_dump())
+            live_tenders = self.live_search_engine.search_live(
+                query=filters.tender_number or filters.query,
+                state=filters.state,
+                category=filters.category,
+                city=filters.city_or_district,
+                portal=filters.portal,
+                raw_prompt=raw_prompt or filters.tender_number,
+                limit=filters.limit,
+                nationwide=filters.nationwide,
+            )
+            if live_tenders:
+                return {
+                    "success": True,
+                    "applied_filters": filters.model_dump(),
+                    "total_matches": len(live_tenders),
+                    "page": filters.page,
+                    "limit": filters.limit,
+                    "source": "live_portal_discovery",
+                    "results": live_tenders,
+                }
+
+        # 2. Local indexed database lookup: used as graceful fallback when live API returns 0
         local_results = self.storage.search_indexed_tenders(
             query=filters.query,
             tender_number=filters.tender_number,
@@ -411,82 +470,6 @@ class TenderSearchService:
         )
 
         total_count = len(local_results)
-
-        # 2. If no local matches, automatically trigger live procurement portal search!
-        if total_count == 0 and self.live_search_engine:
-            logger.info("No local match found. Dispatching live portal search for filters %s", filters.model_dump())
-            live_tenders = self.live_search_engine.search_live(
-                query=filters.tender_number or filters.query,
-                state=filters.state,
-                category=filters.category,
-                city=filters.city_or_district,
-                raw_prompt=raw_prompt or filters.tender_number,
-                limit=filters.limit,
-            )
-            if live_tenders:
-                return {
-                    "success": True,
-                    "applied_filters": filters.model_dump(),
-                    "total_matches": len(live_tenders),
-                    "page": filters.page,
-                    "limit": filters.limit,
-                    "source": "live_portal_discovery",
-                    "results": live_tenders,
-                }
-
-        # 2. Concurrently enrich candidate tenders missing financial / preview details from the eye button
-        if self.live_search_engine and local_results:
-            missing = [
-                t for t in local_results
-                if t.get("estimated_value_inr") is None
-                and ("eproc2.bihar.gov.in" in (t.get("portal") or "") or "BIH/EPROC2/" in str(t.get("tender_number") or ""))
-            ]
-            if missing:
-                from concurrent.futures import ThreadPoolExecutor
-                def _enrich_worker(t):
-                    try:
-                        prev = self.live_search_engine.fetch_tender_preview(t)
-                        if prev:
-                            if prev.get("estimated_value_inr") is not None:
-                                t["estimated_value_inr"] = prev["estimated_value_inr"]
-                            if prev.get("emd_amount_inr") is not None:
-                                t["emd_amount_inr"] = prev["emd_amount_inr"]
-                            if prev.get("dealing_officer"):
-                                t["dealing_officer"] = prev["dealing_officer"]
-                            if prev.get("tender_fee_inr") is not None:
-                                t["tender_fee_inr"] = prev["tender_fee_inr"]
-                            if prev.get("processing_fee_inr") is not None:
-                                t["processing_fee_inr"] = prev["processing_fee_inr"]
-                            if prev.get("mandatory_documents"):
-                                t["mandatory_documents"] = prev["mandatory_documents"]
-                            if prev.get("attachments"):
-                                t["attachments"] = prev["attachments"]
-                                t["nit_attachment"] = prev.get("nit_attachment")
-                                t["boq_attachment"] = prev.get("boq_attachment")
-                            
-                            self.storage.save_tender_and_snapshot(
-                                org_id="org_default",
-                                tender_number=t["tender_number"],
-                                tender_title=t["title"],
-                                source_url=t.get("source_url") or "",
-                                buyer_name=t.get("buyer_name"),
-                                submission_deadline=t.get("submission_deadline"),
-                                estimated_value_inr=t.get("estimated_value_inr"),
-                                extracted_data=t,
-                                raw_text_payload=json.dumps(t, default=str),
-                                tender_id=t["tender_id"],
-                                state=t.get("state"),
-                                category=t.get("category"),
-                                portal=t.get("portal"),
-                                tenure_months=t.get("tenure_months"),
-                                emd_amount_inr=t.get("emd_amount_inr"),
-                                location=t.get("state"),
-                            )
-                    except Exception as e:
-                        logger.debug("Failed to enrich tender %s: %s", t.get("tender_number"), e)
-
-                with ThreadPoolExecutor(max_workers=min(len(missing), 8)) as ex:
-                    list(ex.map(_enrich_worker, missing))
 
         return {
             "success": True,

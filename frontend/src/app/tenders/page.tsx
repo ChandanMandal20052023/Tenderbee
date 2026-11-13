@@ -41,6 +41,7 @@ function OpenTendersContent() {
 
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [selectedState, setSelectedState] = useState("All");
+  const [isNationwide, setIsNationwide] = useState(false);
   const [selectedPortal, setSelectedPortal] = useState("All");
   const [tenders, setTenders] = useState<TenderSummary[]>([]);
   const [loading, setLoading] = useState(false);
@@ -67,13 +68,25 @@ function OpenTendersContent() {
   const [evaluationResult, setEvaluationResult] = useState<VerificationResult | null>(null);
   const [evaluationError, setEvaluationError] = useState("");
 
-  const executeSearch = async (queryText = searchQuery) => {
+  const executeSearch = async (
+    queryText = searchQuery,
+    stateOverride?: string,
+    nationwideOverride?: boolean,
+    portalOverride?: string
+  ) => {
+    const qTrimmed = queryText.trim();
+    const effectiveState = stateOverride !== undefined ? stateOverride : selectedState;
+    const effectiveNationwide = nationwideOverride !== undefined ? nationwideOverride : isNationwide;
+    const effectivePortal = portalOverride !== undefined ? portalOverride : selectedPortal;
+
     setLoading(true);
     setError(null);
     try {
       const res = await apiClient.tenders.search({
-        query: queryText.trim() || undefined,
-        state: selectedState !== "All" ? selectedState : undefined,
+        query: qTrimmed || undefined,
+        state: effectiveState !== "All" ? effectiveState : undefined,
+        portal: effectivePortal !== "All" ? effectivePortal : undefined,
+        nationwide: effectiveNationwide || undefined,
       });
 
       if (res && Array.isArray(res.results)) {
@@ -88,15 +101,35 @@ function OpenTendersContent() {
     }
   };
 
+  // Execute search on mount: loads showcase tenders by default or executes live search for URL params
   useEffect(() => {
     const qParam = searchParams.get("query") || searchParams.get("q");
-    if (qParam) {
-      setSearchQuery(qParam);
-      executeSearch(qParam);
+    const stateParam = searchParams.get("state");
+    const nwParam = searchParams.get("nationwide") === "true";
+
+    if (stateParam) setSelectedState(stateParam);
+    if (nwParam) setIsNationwide(true);
+
+    const queryToRun = qParam || "";
+    setSearchQuery(queryToRun);
+    if (queryToRun || (stateParam && stateParam !== "All") || nwParam) {
+      executeSearch(queryToRun, stateParam || undefined, nwParam);
     } else {
-      executeSearch("");
+      setLoading(true);
+      apiClient.tenders
+        .list()
+        .then((res) => {
+          const list = Array.isArray(res) ? res : res.results || [];
+          setTenders(list);
+        })
+        .catch((err) => {
+          console.warn("Could not load initial showcase tenders:", err);
+        })
+        .finally(() => {
+          setLoading(false);
+        });
     }
-  }, [searchParams.get("query"), searchParams.get("q"), selectedState]);
+  }, [searchParams]);
 
   // If tender_id is provided in URL, auto-select it for inspection & verification
   useEffect(() => {
@@ -262,20 +295,43 @@ function OpenTendersContent() {
                   />
                 </div>
 
-                <div className="flex items-center gap-2 w-full md:w-auto">
+                <div className="flex items-center gap-2 w-full md:w-auto flex-wrap">
                   <select
                     value={selectedState}
-                    onChange={(e) => setSelectedState(e.target.value)}
+                    onChange={(e) => {
+                      const newState = e.target.value;
+                      setSelectedState(newState);
+                    }}
                     aria-label="Filter by state"
                     className="px-3 py-3 rounded-xl neu-flat text-xs font-semibold text-slate-700 bg-surface-container-low focus:outline-none cursor-pointer"
                   >
-                    <option value="All">All States</option>
+                    <option value="All">All States (Scope: Targeted)</option>
                     <option value="Bihar">Bihar</option>
                     <option value="Delhi">Delhi</option>
                     <option value="Maharashtra">Maharashtra</option>
                     <option value="Uttar Pradesh">Uttar Pradesh</option>
                     <option value="Rajasthan">Rajasthan</option>
+                    <option value="Gujarat">Gujarat</option>
+                    <option value="Karnataka">Karnataka</option>
+                    <option value="Tamil Nadu">Tamil Nadu</option>
+                    <option value="West Bengal">West Bengal</option>
+                    <option value="Madhya Pradesh">Madhya Pradesh</option>
+                    <option value="Haryana">Haryana</option>
+                    <option value="Punjab">Punjab</option>
+                    <option value="Odisha">Odisha</option>
+                    <option value="Telangana">Telangana</option>
+                    <option value="Andhra Pradesh">Andhra Pradesh</option>
                   </select>
+
+                  <label className="flex items-center gap-1.5 px-3 py-3 rounded-xl neu-flat text-xs font-semibold text-slate-700 bg-surface-container-low cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={isNationwide}
+                      onChange={(e) => setIsNationwide(e.target.checked)}
+                      className="rounded text-secondary focus:ring-0 cursor-pointer"
+                    />
+                    <span>Nationwide</span>
+                  </label>
 
                   <button
                     onClick={() => executeSearch()}
@@ -307,7 +363,10 @@ function OpenTendersContent() {
                   {["All", "GeM", "CPPP", "Bihar", "IREPS"].map((portal) => (
                     <button
                       key={portal}
-                      onClick={() => setSelectedPortal(portal)}
+                      onClick={() => {
+                        setSelectedPortal(portal);
+                        executeSearch(searchQuery, selectedState, isNationwide, portal);
+                      }}
                       className={`px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                         selectedPortal === portal
                           ? "neu-pressed bg-secondary text-white shadow-sm"
@@ -455,10 +514,18 @@ function OpenTendersContent() {
 
             {filteredTenders.length === 0 && !loading && (
               <div className="p-12 text-center neu-flat rounded-3xl bg-surface-container-lowest my-8">
-                <span className="material-symbols-outlined text-4xl text-slate-400 mb-2">find_in_page</span>
-                <h3 className="font-serif text-lg font-bold text-slate-700">No tenders matched your search</h3>
+                <span className="material-symbols-outlined text-4xl text-slate-400 mb-2">
+                  {searchQuery || selectedState !== "All" || isNationwide ? "find_in_page" : "travel_explore"}
+                </span>
+                <h3 className="font-serif text-lg font-bold text-slate-700">
+                  {searchQuery || selectedState !== "All" || isNationwide
+                    ? "No tenders matched your search"
+                    : "Ready to Discover Tenders"}
+                </h3>
                 <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
-                  Try adjusting your query, clearing state filters, or selecting one of the quick picks above.
+                  {searchQuery || selectedState !== "All" || isNationwide
+                    ? "Try adjusting your keywords, selecting a different state, or clicking one of the quick picks above."
+                    : "Enter keywords (e.g. 'Sanitation', 'Solar', 'CCTV'), select a state, or toggle Nationwide to scan active procurement notices."}
                 </p>
               </div>
             )}

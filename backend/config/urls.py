@@ -11,14 +11,7 @@ from drf_spectacular.views import SpectacularAPIView
 from apps.documents.views import JobDetailAPIView
 
 
-def health_check(request):
-    """Liveness and health check endpoint."""
-    return JsonResponse({
-        "status": "healthy",
-        "service": "TenderBee Core API",
-        "version": "1.0.0",
-        "tenant_id": getattr(request, "org_id", "org_default"),
-    })
+from apps.health import health_check
 
 
 def api_root(request):

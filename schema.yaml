@@ -161,6 +161,7 @@ paths:
   /api/v1/documents/:
     get:
       operationId: v1_documents_list
+      
       description: |-
         GET /api/v1/documents/
         Paginated list of documents uploaded by the current tenant organization.

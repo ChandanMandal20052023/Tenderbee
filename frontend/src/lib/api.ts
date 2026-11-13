@@ -380,7 +380,7 @@ class APIClient {
 
   // --- 2. Tenders & Discovery ---
   public tenders = {
-    search: (params: { query?: string; q?: string; state?: string; category?: string; page?: number; limit?: number } = {}) => {
+    search: (params: { query?: string; q?: string; state?: string; category?: string; portal?: string; nationwide?: boolean; page?: number; limit?: number } = {}) => {
       const q = new URLSearchParams();
       const term = params.q || params.query;
       if (term) {
@@ -389,9 +389,11 @@ class APIClient {
       }
       if (params.state) q.set("state", params.state);
       if (params.category) q.set("category", params.category);
+      if (params.portal && params.portal !== "All") q.set("portal", params.portal);
+      if (params.nationwide) q.set("nationwide", "true");
       if (params.page) q.set("page", String(params.page));
       if (params.limit) q.set("limit", String(params.limit));
-      return this.request<{ success: boolean; total_matches: number; results: TenderSummary[] }>(
+      return this.request<{ success: boolean; total_matches: number; results: TenderSummary[]; message?: string }>(
         `/api/v1/tenders/search/?${q.toString()}`
       );
     },

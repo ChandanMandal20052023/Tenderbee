@@ -215,42 +215,19 @@ class VerificationService:
             bidder_documents_payload[d.document_type] = d.extracted_data or {}
             doc_map_by_type[d.document_type] = d
 
-        # Fill in verified statutory credentials from organization profile if not yet uploaded as separate PDF
-        if "udyam_certificate" not in bidder_documents_payload:
-            u_num = getattr(org, "udyam_number", "UDYAM-MH-01-0012345")
-            bidder_documents_payload["udyam_certificate"] = {
-                "udyam_registration_number": u_num,
-                "enterprise_name": getattr(org, "name", "ABC Facility Services Pvt Ltd"),
+        # External registry lookup payload
+        statutory_payload = dict(bidder_documents_payload)
+        if "udyam_certificate" not in statutory_payload and getattr(org, "udyam_number", None):
+            statutory_payload["udyam_certificate"] = {
+                "udyam_registration_number": org.udyam_number,
+                "enterprise_name": getattr(org, "name", ""),
                 "enterprise_type": "MICRO",
                 "major_activity": "SERVICES",
             }
-        if "gst_certificate" not in bidder_documents_payload:
-            g_num = getattr(org, "gstin", "27AABCU9603R1ZM")
-            bidder_documents_payload["gst_certificate"] = {
-                "gstin": g_num,
+        if "gst_certificate" not in statutory_payload and getattr(org, "gstin", None):
+            statutory_payload["gst_certificate"] = {
+                "gstin": org.gstin,
                 "status": "ACTIVE",
-            }
-        if "ca_turnover_certificate" in bidder_documents_payload:
-            ca_data = bidder_documents_payload["ca_turnover_certificate"]
-            if not ca_data.get("udin"):
-                ca_data["udin"] = "24078912AAAAAA1234"
-            if not ca_data.get("average_turnover_inr"):
-                ca_data["average_turnover_inr"] = 151600000.0
-        else:
-            bidder_documents_payload["ca_turnover_certificate"] = {
-                "udin": "24078912AAAAAA1234",
-                "average_turnover_inr": 151600000.0,
-                "annual_turnovers": [
-                    {"financial_year": "2023-24", "turnover_inr": 148000000.0},
-                    {"financial_year": "2024-25", "turnover_inr": 152000000.0},
-                    {"financial_year": "2025-26", "turnover_inr": 155000000.0},
-                ],
-            }
-        if "truthfulness_undertaking_annexure_i" not in bidder_documents_payload:
-            bidder_documents_payload["truthfulness_undertaking_annexure_i"] = {
-                "bidder_name": getattr(org, "name", "ABC Facility Services Pvt Ltd"),
-                "debarred": False,
-                "truthful": True,
             }
 
         # 3. Stage 4 & 5: Deterministic Rules Engine Evaluation
@@ -313,7 +290,7 @@ class VerificationService:
             return {"success": False, "error": f"Rule evaluation failed: {str(eval_exc)}"}
 
         # 4. Stage 6: External Registry Verification (Udyam, GST, UDIN)
-        registry_results = self._perform_registry_verifications(bidder_documents_payload)
+        registry_results = self._perform_registry_verifications(statutory_payload)
 
         # Incorporate registry verification into overall verdict
         overall_status_val = assessment_resp.overall_status.value

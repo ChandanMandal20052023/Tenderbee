@@ -362,7 +362,7 @@ class LLMAdapter:
         if len(query_text) > 2_000:
             logger.warning("Skipping LLM search parsing for an oversized query.")
             return None
-        if not self.api_key:
+        if not self.api_key or not self.api_key.startswith("AIza"):
             return None
 
         system_instruction = (
