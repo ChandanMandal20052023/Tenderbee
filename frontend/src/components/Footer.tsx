@@ -65,6 +65,11 @@ export default function Footer() {
           </div>
         </div>
 
+        <div className="mt-8 border-b border-purple-900/60 pb-8 text-center">
+          <p className="text-sm font-semibold text-white">Built by Mery Bytes</p>
+          <p className="mt-1 text-xs text-purple-200/70">Developed in 24 hours for the IIITD Hackathon</p>
+        </div>
+
         {/* Bottom Trademark & Legal Line */}
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-purple-300/60">
           <p>© 2025 TenderBee Technologies Inc. All rights reserved.</p>

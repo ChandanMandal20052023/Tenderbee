@@ -28,6 +28,15 @@
 * **API Health Check**: [https://tenderbee-1.onrender.com/api/health/](https://tenderbee-1.onrender.com/api/health/)
 * **Interactive API Schema**: [https://tenderbee-1.onrender.com/api/schema/](https://tenderbee-1.onrender.com/api/schema/)
 
+## Team & Contributors
+
+TenderBee was developed by **Mery Bytes** in 24 hours for the **IIITD Hackathon**.
+
+- ChandanMandAl20052023 -Team Leader
+- arjunb1204
+- Prince-kumar223 
+- mondhoorain07
+
 ---
 
 ## Core Modules
