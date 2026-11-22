@@ -32,7 +32,7 @@
 
 TenderBee was developed by **Mery Bytes** in 24 hours for the **IIITD Hackathon**.
 
-- ChandanMandAl20052023 -Team Leader
+- ChandanMandal20052023 -Team Leader
 - arjunb1204
 - Prince-kumar223 
 - mondhoorain07
